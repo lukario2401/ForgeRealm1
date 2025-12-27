@@ -1,5 +1,10 @@
 {
   "item.forgerealmmod.soulessence": "Soul Essence",
   "item.forgerealmmod.coin": "Coin",
-  "item.forgerealmmod.soulcoin": "Soul Coin"
+  "item.forgerealmmod.soulcoin": "Soul Coin",
+  "item.forgerealmmod.shadow_sword": "Shadow Sword",
+
+
+  "creativetab.forgerealmmod.soul_tab": "Soul Tab",
+  "creativetab.forgerealmmod.extras_tab": "Extras Tab"
 }
