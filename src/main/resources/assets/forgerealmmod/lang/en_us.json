@@ -5,6 +5,12 @@
   "item.forgerealmmod.shadow_sword": "Shadow Sword",
 
 
+  "item.forgerealmmod.diamond_carrot": "Diamond Carrot",
+  "item.forgerealmmod.energy_shard": "Energy Shard",
+  "item.forgerealmmod.depleted_energy_shard": "Depleted Energy Shard",
+
+
   "creativetab.forgerealmmod.soul_tab": "Soul Tab",
   "creativetab.forgerealmmod.extras_tab": "Extras Tab"
+
 }

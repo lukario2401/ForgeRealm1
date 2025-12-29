@@ -54,10 +54,7 @@ public class ForgeRealm
     // Add the example block item to the building blocks tab
     private void addCreative(BuildCreativeModeTabContentsEvent event){
         if (event.getTabKey() == CreativeModeTabs.INGREDIENTS){
-            event.accept(ModItems.SOULESSENCE);
             event.accept(ModItems.COIN);
-            event.accept(ModItems.SOULCOIN);
-            event.accept(ModItems.SHADOW_SWORD);
         }
     }
 

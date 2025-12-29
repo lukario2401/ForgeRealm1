@@ -20,6 +20,8 @@ public class CreativeModTabs {
                         output.accept(ModItems.SOULESSENCE.get());
                         output.accept(ModItems.SOULCOIN.get());
                         output.accept(ModItems.SHADOW_SWORD.get());
+                        output.accept(ModItems.ENERGY_SHARD.get());
+                        output.accept(ModItems.DEPLETED_ENERGY_SHARD.get());
 
                     })
                     .build());
@@ -31,6 +33,8 @@ public class CreativeModTabs {
                     .displayItems((itemDisplayParameters, output) -> {
 
                         output.accept(ModItems.COIN.get());
+                        output.accept(ModItems.DIAMOND_CARROT.get());
+
 
                     })
                     .build());
