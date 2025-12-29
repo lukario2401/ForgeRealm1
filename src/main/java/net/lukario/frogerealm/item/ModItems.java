@@ -3,6 +3,7 @@ package net.lukario.frogerealm.item;
 import net.lukario.frogerealm.ForgeRealm;
 import net.lukario.frogerealm.item.custom.ModFoodProperties;
 import net.lukario.frogerealm.item.custom.ShadowSword;
+import net.lukario.frogerealm.item.custom.StrengthElixir;
 import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.SwordItem;
@@ -38,6 +39,8 @@ public class ModItems {
     );
 
     public static final RegistryObject<Item> DIAMOND_CARROT = ITEMS.register("diamond_carrot", () -> new Item(new Item.Properties().food(ModFoodProperties.DIAMOND_CARROT)));
+
+    public static final RegistryObject<Item> STRENGTH_ELIXIR = ITEMS.register("strength_elixir", () -> new Item(new Item.Properties().food(StrengthElixir.STRENGTH_ELIXIR)));
 
 
 
