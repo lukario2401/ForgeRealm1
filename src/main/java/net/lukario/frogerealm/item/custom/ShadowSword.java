@@ -57,8 +57,4 @@ public class ShadowSword extends SwordItem {
         return InteractionResultHolder.success(stack);
     }
 
-//    @Override
-//    public UseAnim getUseAnimation(ItemStack pStack) {
-//        return UseAnim.SPEAR;
-//    }
 }

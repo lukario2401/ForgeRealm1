@@ -2,6 +2,7 @@ package net.lukario.frogerealm.item;
 
 import net.lukario.frogerealm.ForgeRealm;
 import net.lukario.frogerealm.item.custom.ModFoodProperties;
+import net.lukario.frogerealm.item.custom.ModFuelItem;
 import net.lukario.frogerealm.item.custom.ShadowSword;
 import net.lukario.frogerealm.item.custom.StrengthElixir;
 import net.minecraft.world.food.FoodProperties;
@@ -23,7 +24,7 @@ public class ModItems {
 
     public static final RegistryObject<Item> SOULCOIN = ITEMS.register("soulcoin", () -> new Item(new Item.Properties()));
 
-    public static final RegistryObject<Item> DEPLETED_ENERGY_SHARD = ITEMS.register("depleted_energy_shard", () -> new Item(new Item.Properties()));
+    public static final RegistryObject<Item> DEPLETED_ENERGY_SHARD = ITEMS.register("depleted_energy_shard", () -> new ModFuelItem(new Item.Properties(), 48000));
 
     public static final RegistryObject<Item> ENERGY_SHARD = ITEMS.register("energy_shard",
             () -> new Item(new Item.Properties()
