@@ -40,8 +40,11 @@ public class ModItems {
 
     public static final RegistryObject<Item> DIAMOND_CARROT = ITEMS.register("diamond_carrot", () -> new Item(new Item.Properties().food(ModFoodProperties.DIAMOND_CARROT)));
 
-    public static final RegistryObject<Item> STRENGTH_ELIXIR = ITEMS.register("strength_elixir", () -> new Item(new Item.Properties().food(StrengthElixir.STRENGTH_ELIXIR)));
-
+    public static final RegistryObject<Item> STRENGTH_ELIXIR =
+            ITEMS.register("strength_elixir",
+                    () -> new StrengthElixir(
+                            new Item.Properties().food(StrengthElixir.STRENGTH_ELIXIR)
+                    ));
 
 
     public static final RegistryObject<Item> SHADOW_SWORD = ITEMS.register(

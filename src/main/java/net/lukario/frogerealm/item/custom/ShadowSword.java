@@ -3,10 +3,7 @@ package net.lukario.frogerealm.item.custom;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.SwordItem;
-import net.minecraft.world.item.Tier;
+import net.minecraft.world.item.*;
 import net.minecraft.world.level.Level;
 
 public class ShadowSword extends SwordItem {
@@ -60,4 +57,8 @@ public class ShadowSword extends SwordItem {
         return InteractionResultHolder.success(stack);
     }
 
+//    @Override
+//    public UseAnim getUseAnimation(ItemStack pStack) {
+//        return UseAnim.SPEAR;
+//    }
 }
