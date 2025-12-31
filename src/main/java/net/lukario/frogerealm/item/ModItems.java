@@ -3,7 +3,8 @@ package net.lukario.frogerealm.item;
 import net.lukario.frogerealm.ForgeRealm;
 import net.lukario.frogerealm.item.custom.ModFoodProperties;
 import net.lukario.frogerealm.item.custom.ModFuelItem;
-import net.lukario.frogerealm.item.custom.ShadowSword;
+import net.lukario.frogerealm.item.custom.ranged.LaserStaff;
+import net.lukario.frogerealm.item.custom.swords.ShadowSword;
 import net.lukario.frogerealm.item.custom.StrengthElixir;
 import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.item.Item;
@@ -61,6 +62,9 @@ public class ModItems {
                     )
             )
     );
+
+    public static final RegistryObject<Item> LASER_STAFF = ITEMS.register("laser_staff",
+            () -> new LaserStaff(new Item.Properties()));
 
     public static void register(IEventBus eventBus){
         ITEMS.register(eventBus);

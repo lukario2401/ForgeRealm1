@@ -1,4 +1,4 @@
-package net.lukario.frogerealm.item.custom;
+package net.lukario.frogerealm.item.custom.swords;
 
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
