@@ -23,6 +23,7 @@ public class CreativeModTabs {
                         output.accept(ModItems.ENERGY_SHARD.get());
                         output.accept(ModItems.DEPLETED_ENERGY_SHARD.get());
                         output.accept(ModItems.LASER_STAFF.get());
+                        output.accept(ModItems.TERMINATOR.get());
 
                     })
                     .build());
