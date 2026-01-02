@@ -1,8 +1,14 @@
 package net.lukario.frogerealm.item.custom.ranged;
 
+import net.minecraft.client.resources.sounds.Sound;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.particles.ParticleType;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.ProjectileUtil;
@@ -22,13 +28,40 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.event.entity.player.PlayerInteractEvent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
 
+import java.util.List;
 
 public class LaserStaff extends Item {
 
     public LaserStaff(Properties pProperties) {
         super(pProperties);
     }
+
+    private static final int FIRE_COOLDOWN = 1; // ticks (0.5 sec)
+
+    @Override
+    public boolean onEntitySwing(ItemStack stack, LivingEntity entity) {
+        if (entity instanceof Player player) {
+
+            if (!player.level().isClientSide) {
+
+                // 🔒 prevent multiple fires
+                if (!player.getCooldowns().isOnCooldown(this)) {
+                    Level level = player.level();
+
+                    test(level, player);
+                    player.getCooldowns().addCooldown(this, FIRE_COOLDOWN);
+                }
+            }
+
+            return true; // cancel default swing
+        }
+        return false;
+    }
+
 
     @Override
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
@@ -118,4 +151,37 @@ public class LaserStaff extends Item {
         }
     }
 
+    private static void test(Level level,Player player){
+        if (!(level instanceof ServerLevel serverLevel)) return;
+
+        Vec3 start = player.getEyePosition();
+        Vec3 direction = player.getLookAngle().normalize();
+        Vec3 step = direction.scale(0.5);
+        double distanceToTravel = 32.0;
+
+        Vec3 c = start;
+        for (double distance = 0; distance <= distanceToTravel; distance +=0.5 ){
+            serverLevel.sendParticles(ParticleTypes.FIREWORK, c.x, c.y, c.z, 1, 0, 0, 0, 0);
+
+            List<LivingEntity> entities = level.getEntitiesOfClass(
+                    LivingEntity.class,
+                    new AABB(c, c).inflate(0.5),
+                    e -> e != player
+            );
+
+            for (LivingEntity entity : entities){
+                entity.hurt(level.damageSources().playerAttack(player),16.0f);
+                serverLevel.sendParticles(ParticleTypes.EXPLOSION_EMITTER, c.x, c.y, c.z, 1, 0, 0, 0, 0);
+                serverLevel.playSound(null,c.x,c.y,c.z, SoundEvents.GENERIC_EXPLODE, SoundSource.BLOCKS,16 ,1);
+            }
+
+//            player.sendSystemMessage(Component.literal("Entities: " + entities));
+
+            //---------------------------
+            c = c.add(step);
+            if (!entities.isEmpty()){
+                break;
+            }
+        }
+    }
 }
