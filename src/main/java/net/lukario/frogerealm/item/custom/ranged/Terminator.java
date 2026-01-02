@@ -1,5 +1,7 @@
 package net.lukario.frogerealm.item.custom.ranged;
 
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
@@ -15,6 +17,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
@@ -166,5 +169,36 @@ public class Terminator extends Item {
                 break;
             }
         }
+    }
+
+    @Override
+    public void appendHoverText(ItemStack pStack, TooltipContext pContext, List<Component> pTooltipComponents, TooltipFlag pTooltipFlag) {
+
+        if (Screen.hasShiftDown()){
+            pTooltipComponents.add(Component.translatable("tooltip.forgerealmmod.terminator.tooltip.shift.6"));
+            pTooltipComponents.add(Component.translatable("tooltip.forgerealmmod.terminator.tooltip.shift.7"));
+            pTooltipComponents.add(Component.translatable("tooltip.forgerealmmod.terminator.tooltip.shift.5"));
+            pTooltipComponents.add(Component.translatable("tooltip.forgerealmmod.terminator.tooltip.shift.1"));
+            pTooltipComponents.add(Component.translatable("tooltip.forgerealmmod.terminator.tooltip.shift.2"));
+            pTooltipComponents.add(Component.translatable("tooltip.forgerealmmod.terminator.tooltip.shift.3"));
+            pTooltipComponents.add(Component.translatable("tooltip.forgerealmmod.terminator.tooltip.shift.4"));
+            pTooltipComponents.add(Component.translatable("tooltip.forgerealmmod.terminator.tooltip.shift.5"));
+        }else{
+            pTooltipComponents.add(Component.translatable("tooltip.forgerealmmod.terminator.tooltip.shift.6"));
+            pTooltipComponents.add(Component.translatable("tooltip.forgerealmmod.terminator.tooltip.shift.7"));
+            pTooltipComponents.add(Component.translatable("tooltip.forgerealmmod.terminator.tooltip.shift.5"));
+            pTooltipComponents.add(Component.translatable("tooltip.forgerealmmod.terminator.tooltip"));
+            pTooltipComponents.add(Component.translatable("tooltip.forgerealmmod.terminator.tooltip.2"));
+            pTooltipComponents.add(Component.translatable("tooltip.forgerealmmod.terminator.tooltip.shift.5"));
+        }
+
+
+
+        super.appendHoverText(pStack, pContext, pTooltipComponents, pTooltipFlag);
+    }
+
+    @Override
+    public Component getName(ItemStack stack) {
+        return Component.translatable(this.getDescriptionId(stack)).withStyle(ChatFormatting.LIGHT_PURPLE);
     }
 }
