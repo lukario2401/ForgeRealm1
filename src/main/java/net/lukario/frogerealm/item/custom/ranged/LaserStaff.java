@@ -1,35 +1,26 @@
 package net.lukario.frogerealm.item.custom.ranged;
 
-import net.minecraft.client.resources.sounds.Sound;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.particles.ParticleType;
-import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
-import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.entity.projectile.ProjectileUtil;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.*;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.level.ClipContext;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.EntityHitResult;
-import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.event.entity.player.PlayerInteractEvent;
-import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 
 import java.util.List;
@@ -130,7 +121,7 @@ public class LaserStaff extends Item {
 
         /* ---------- SERVER: DAMAGE ---------- */
         if (!level.isClientSide && entityHit != null) {
-            ((LivingEntity) entityHit.getEntity())
+            (entityHit.getEntity())
                     .hurt(level.damageSources().magic(), 8.0F);
         }
     }
@@ -161,6 +152,14 @@ public class LaserStaff extends Item {
 
         Vec3 c = start;
         for (double distance = 0; distance <= distanceToTravel; distance +=0.5 ){
+
+            BlockPos blockPos = new BlockPos(Mth.floor(c.x), Mth.floor(c.y), Mth.floor(c.z));
+            BlockState blockState = level.getBlockState(blockPos);
+
+            if (blockState.getBlock().defaultBlockState().isSolid()){
+                break;
+            }
+
             serverLevel.sendParticles(ParticleTypes.FIREWORK, c.x, c.y, c.z, 1, 0, 0, 0, 0);
 
             List<LivingEntity> entities = level.getEntitiesOfClass(
@@ -170,7 +169,7 @@ public class LaserStaff extends Item {
             );
 
             for (LivingEntity entity : entities){
-                entity.hurt(level.damageSources().playerAttack(player),16.0f);
+                entity.hurt(level.damageSources().playerAttack(player),32.0f);
                 serverLevel.sendParticles(ParticleTypes.EXPLOSION_EMITTER, c.x, c.y, c.z, 1, 0, 0, 0, 0);
                 serverLevel.playSound(null,c.x,c.y,c.z, SoundEvents.GENERIC_EXPLODE, SoundSource.BLOCKS,16 ,1);
             }
