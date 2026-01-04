@@ -47,7 +47,7 @@ public class Terminator extends Item {
                     terminatorShootLeftClick(level, player, 0d);
                     terminatorShootLeftClick(level, player, 7.5d);
 
-                    player.sendSystemMessage(Component.literal("Trig: " + ClickState.leftClickPressed));
+//                    player.sendSystemMessage(Component.literal("Trig: " + ClickState.leftClickPressed));
 
                 }
             }
@@ -74,8 +74,8 @@ public class Terminator extends Item {
                 terminatorShootRightClick(level, player, 0d);
                 terminatorShootRightClick(level, player, -7.5d);
 
-                player.sendSystemMessage(Component.literal("Trig Left: " + ClickState.leftClickPressed));
-                player.sendSystemMessage(Component.literal("Trig Right: " + ClickState.leftClickPressed));
+//                player.sendSystemMessage(Component.literal("Trig Left: " + ClickState.leftClickPressed));
+//                player.sendSystemMessage(Component.literal("Trig Right: " + ClickState.leftClickPressed));
 
                 player.getCooldowns().addCooldown(this, 1);
             }
@@ -175,7 +175,7 @@ public class Terminator extends Item {
             }
 
             serverLevel.sendParticles(ParticleTypes.SOUL, c.x, c.y, c.z, 1, 0, 0, 0, 0);
-            player.sendSystemMessage(Component.literal("left triggered"));
+//            player.sendSystemMessage(Component.literal("left triggered"));
 
             List<LivingEntity> entities = level.getEntitiesOfClass(
                     LivingEntity.class,
