@@ -12,6 +12,7 @@
   "item.forgerealmmod.energy_shard": "Energy Shard",
   "item.forgerealmmod.depleted_energy_shard": "Depleted Energy Shard",
 
+
   "tooltip.forgerealmmod.terminator.tooltip.shift.1": "This weapon was forged in the depths of a star",
   "tooltip.forgerealmmod.terminator.tooltip.shift.2": "After shattering it split into several parts",
   "tooltip.forgerealmmod.terminator.tooltip.shift.3": "Now with all of its parts combined",
@@ -19,9 +20,18 @@
   "tooltip.forgerealmmod.terminator.tooltip.shift.5": "------",
   "tooltip.forgerealmmod.terminator.tooltip.shift.6": "Damage: §432",
   "tooltip.forgerealmmod.terminator.tooltip.shift.7": "Range: §948",
+  "tooltip.forgerealmmod.terminator.tooltip.shift.8": "§eRight Click:§r Soul Devourer",
+  "tooltip.forgerealmmod.terminator.tooltip.shift.9": "This ability charges up the shoots with",
+  "tooltip.forgerealmmod.terminator.tooltip.shift.10": "Energy of the stars and performs",
+  "tooltip.forgerealmmod.terminator.tooltip.shift.11": "unstoppable and unblockable attack",
+  "tooltip.forgerealmmod.terminator.tooltip.shift.12": "that damages soul directly",
+  "tooltip.forgerealmmod.terminator.tooltip.shift.13": "§eLeft Click:§r Regular Shot",
+  "tooltip.forgerealmmod.terminator.tooltip.shift.14": "Shoots deadly beams",
+
 
   "tooltip.forgerealmmod.terminator.tooltip": "§dTerminator §rthe strongest §4Weapon",
   "tooltip.forgerealmmod.terminator.tooltip.2": "Hold shift for more info",
+
 
   "creativetab.forgerealmmod.soul_tab": "Soul Tab",
   "creativetab.forgerealmmod.extras_tab": "Extras Tab"

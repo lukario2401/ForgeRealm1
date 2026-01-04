@@ -12,7 +12,6 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
-import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
@@ -32,36 +31,51 @@ public class Terminator extends Item {
         super(pProperties);
     }
 
-    private static final int FIRE_COOLDOWN = 1;
-
     @Override
     public boolean onEntitySwing(ItemStack stack, LivingEntity entity) {
-        if (entity instanceof Player player) {
+        if (!(entity instanceof Player player)) return false;
 
-            if (!player.level().isClientSide) {
+        var data = player.getPersistentData();
 
-                if (!player.getCooldowns().isOnCooldown(this)) {
-                    Level level = player.level();
-
-                    terminatorShootLeftClick(level, player, -7.5d);
-                    terminatorShootLeftClick(level, player, 0d);
-                    terminatorShootLeftClick(level, player, 7.5d);
-
-                    player.getCooldowns().addCooldown(this, FIRE_COOLDOWN);
-                }
-            }
-
-            return true;
+        if (data.getBoolean("terminator_right_click")) {
+            data.putBoolean("terminator_right_click", false);
+            return false;
         }
-        return false;
+
+        if (!player.level().isClientSide && !player.getCooldowns().isOnCooldown(this)) {
+
+            Level level = player.level();
+
+            terminatorShootLeftClick(level, player, -7.5d);
+            terminatorShootLeftClick(level, player, 0d);
+            terminatorShootLeftClick(level, player, 7.5d);
+
+            player.getCooldowns().addCooldown(this, 1);
+        }
+        if (player.level().isClientSide && !player.getCooldowns().isOnCooldown(this)){
+            Vec3 l = player.position();
+            player.level().playLocalSound(l.x,l.y,l.z,SoundEvents.ARROW_SHOOT,SoundSource.PLAYERS,1,1,false);
+        }
+
+        return true;
     }
+
 
     @Override
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
+
         if (!level.isClientSide) {
+
             terminatorShootRightClick(level, player, 7.5d);
             terminatorShootRightClick(level, player, 0d);
             terminatorShootRightClick(level, player, -7.5d);
+
+            player.getPersistentData().putBoolean("terminator_right_click", true);
+
+        }
+        if (level.isClientSide){
+            Vec3 l = player.position();
+            level.playLocalSound(l.x,l.y,l.z,SoundEvents.CROSSBOW_SHOOT,SoundSource.PLAYERS,1,1,false);
         }
         return InteractionResultHolder.sidedSuccess(player.getItemInHand(hand), level.isClientSide());
     }
@@ -94,9 +108,7 @@ public class Terminator extends Item {
             DustParticleOptions redDust = new DustParticleOptions(color, 2f);
 
             serverLevel.sendParticles(redDust, c.x, c.y, c.z, 1, 0, 0, 0, 0);
-
-
-            serverLevel.sendParticles(ParticleTypes.SOUL, c.x, c.y, c.z, 1, 0, 0, 0, 0);
+//            serverLevel.sendParticles(ParticleTypes.SOUL, c.x, c.y, c.z, 1, 0, 0, 0, 0);
 
             List<LivingEntity> entities = level.getEntitiesOfClass(
                     LivingEntity.class,
@@ -106,13 +118,18 @@ public class Terminator extends Item {
 
             for (LivingEntity entity : entities){
 
-//                entity.hurt(level.damageSources().playerAttack(player),32.0f);
-
                 entity.setHealth(entity.getHealth()-32.0f);
                 entity.setLastHurtByPlayer(player);
 
                 serverLevel.sendParticles(ParticleTypes.EXPLOSION_EMITTER, c.x, c.y, c.z, 1, 0, 0, 0, 0);
-                serverLevel.playSound(null,c.x,c.y,c.z, SoundEvents.GENERIC_EXPLODE, SoundSource.BLOCKS,16 ,1);
+                serverLevel.playSound(null,c.x,c.y,c.z, SoundEvents.GENERIC_EXPLODE, SoundSource.BLOCKS,8 ,1);
+
+                player.playNotifySound(
+                        SoundEvents.ARROW_HIT_PLAYER,
+                        SoundSource.PLAYERS,
+                        4f,
+                        1f
+                );
             }
 
             c = c.add(step);
@@ -160,9 +177,15 @@ public class Terminator extends Item {
             for (LivingEntity entity : entities){
                 entity.hurt(level.damageSources().playerAttack(player),24.0f);
                 serverLevel.sendParticles(ParticleTypes.EXPLOSION_EMITTER, c.x, c.y, c.z, 1, 0, 0, 0, 0);
-                serverLevel.playSound(null,c.x,c.y,c.z, SoundEvents.GENERIC_EXPLODE, SoundSource.BLOCKS,16 ,1);
-            }
+                serverLevel.playSound(null,c.x,c.y,c.z, SoundEvents.GENERIC_EXPLODE, SoundSource.MASTER,8 ,1);
 
+                player.playNotifySound(
+                        SoundEvents.ARROW_HIT_PLAYER,
+                        SoundSource.PLAYERS,
+                        4f,
+                        1f
+                );
+            }
 
             c = c.add(step);
             if (!entities.isEmpty()){
@@ -178,6 +201,19 @@ public class Terminator extends Item {
             pTooltipComponents.add(Component.translatable("tooltip.forgerealmmod.terminator.tooltip.shift.6"));
             pTooltipComponents.add(Component.translatable("tooltip.forgerealmmod.terminator.tooltip.shift.7"));
             pTooltipComponents.add(Component.translatable("tooltip.forgerealmmod.terminator.tooltip.shift.5"));
+
+            pTooltipComponents.add(Component.translatable("tooltip.forgerealmmod.terminator.tooltip.shift.13"));
+            pTooltipComponents.add(Component.translatable("tooltip.forgerealmmod.terminator.tooltip.shift.14"));
+
+            pTooltipComponents.add(Component.translatable("tooltip.forgerealmmod.terminator.tooltip.shift.5"));
+
+            pTooltipComponents.add(Component.translatable("tooltip.forgerealmmod.terminator.tooltip.shift.8"));
+            pTooltipComponents.add(Component.translatable("tooltip.forgerealmmod.terminator.tooltip.shift.9"));
+            pTooltipComponents.add(Component.translatable("tooltip.forgerealmmod.terminator.tooltip.shift.10"));
+            pTooltipComponents.add(Component.translatable("tooltip.forgerealmmod.terminator.tooltip.shift.11"));
+            pTooltipComponents.add(Component.translatable("tooltip.forgerealmmod.terminator.tooltip.shift.12"));
+
+            pTooltipComponents.add(Component.translatable("tooltip.forgerealmmod.terminator.tooltip.shift.5"));
             pTooltipComponents.add(Component.translatable("tooltip.forgerealmmod.terminator.tooltip.shift.1"));
             pTooltipComponents.add(Component.translatable("tooltip.forgerealmmod.terminator.tooltip.shift.2"));
             pTooltipComponents.add(Component.translatable("tooltip.forgerealmmod.terminator.tooltip.shift.3"));
@@ -191,8 +227,6 @@ public class Terminator extends Item {
             pTooltipComponents.add(Component.translatable("tooltip.forgerealmmod.terminator.tooltip.2"));
             pTooltipComponents.add(Component.translatable("tooltip.forgerealmmod.terminator.tooltip.shift.5"));
         }
-
-
 
         super.appendHoverText(pStack, pContext, pTooltipComponents, pTooltipFlag);
     }
