@@ -36,26 +36,24 @@ public class Terminator extends Item {
     public boolean onEntitySwing(ItemStack stack, LivingEntity entity) {
         if (!(entity instanceof Player player)) return false;
 
-        if (ClickState.leftClickPressed && !ClickState.rightClickPressed){
+        if (ClickState.leftClickPressed){
             if (!player.level().isClientSide && !player.getCooldowns().isOnCooldown(this)) {
-                if (ClickState.leftClickPressed){
-                    Level level = player.level();
 
-                    player.getCooldowns().addCooldown(this, 1);
+                Level level = player.level();
 
-                    terminatorShootLeftClick(level, player, -7.5d);
-                    terminatorShootLeftClick(level, player, 0d);
-                    terminatorShootLeftClick(level, player, 7.5d);
+                player.getCooldowns().addCooldown(this, 1);
+
+                terminatorShootLeftClick(level, player, -7.5d);
+                terminatorShootLeftClick(level, player, 0d);
+                terminatorShootLeftClick(level, player, 7.5d);
 
 //                    player.sendSystemMessage(Component.literal("Trig: " + ClickState.leftClickPressed));
-
-                }
             }
             if (player.level().isClientSide && !player.getCooldowns().isOnCooldown(this)){
-                if (ClickState.leftClickPressed){
-                    Vec3 l = player.position();
-                    player.level().playLocalSound(l.x,l.y,l.z,SoundEvents.ARROW_SHOOT,SoundSource.PLAYERS,1,1,false);
-                }
+
+                Vec3 l = player.position();
+                player.level().playLocalSound(l.x,l.y,l.z,SoundEvents.ARROW_SHOOT,SoundSource.PLAYERS,1,1,false);
+
             }
         }
 
@@ -68,7 +66,7 @@ public class Terminator extends Item {
 
         if (!level.isClientSide) {
 
-            if (!ClickState.leftClickPressed && ClickState.rightClickPressed && !player.getCooldowns().isOnCooldown(this)){
+            if (ClickState.rightClickPressed && !player.getCooldowns().isOnCooldown(this)){
 
                 terminatorShootRightClick(level, player, 7.5d);
                 terminatorShootRightClick(level, player, 0d);
