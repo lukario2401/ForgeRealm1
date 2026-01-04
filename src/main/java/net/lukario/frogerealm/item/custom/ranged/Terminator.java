@@ -1,5 +1,6 @@
 package net.lukario.frogerealm.item.custom.ranged;
 
+import net.lukario.frogerealm.item.custom.detection.ClickState;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.BlockPos;
@@ -42,19 +43,21 @@ public class Terminator extends Item {
             return false;
         }
 
-        if (!player.level().isClientSide && !player.getCooldowns().isOnCooldown(this)) {
+        if (ClickState.leftClickPressed){
+            if (!player.level().isClientSide && !player.getCooldowns().isOnCooldown(this)) {
 
-            Level level = player.level();
+                Level level = player.level();
 
-            terminatorShootLeftClick(level, player, -7.5d);
-            terminatorShootLeftClick(level, player, 0d);
-            terminatorShootLeftClick(level, player, 7.5d);
+                terminatorShootLeftClick(level, player, -7.5d);
+                terminatorShootLeftClick(level, player, 0d);
+                terminatorShootLeftClick(level, player, 7.5d);
 
-            player.getCooldowns().addCooldown(this, 1);
-        }
-        if (player.level().isClientSide && !player.getCooldowns().isOnCooldown(this)){
-            Vec3 l = player.position();
-            player.level().playLocalSound(l.x,l.y,l.z,SoundEvents.ARROW_SHOOT,SoundSource.PLAYERS,1,1,false);
+                player.getCooldowns().addCooldown(this, 1);
+            }
+            if (player.level().isClientSide && !player.getCooldowns().isOnCooldown(this)){
+                Vec3 l = player.position();
+                player.level().playLocalSound(l.x,l.y,l.z,SoundEvents.ARROW_SHOOT,SoundSource.PLAYERS,1,1,false);
+            }
         }
 
         return true;
