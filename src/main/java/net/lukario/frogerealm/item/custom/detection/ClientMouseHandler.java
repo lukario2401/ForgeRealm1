@@ -7,6 +7,9 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import org.lwjgl.glfw.GLFW;
 
+import static net.lukario.frogerealm.item.custom.detection.ClickState.leftClickPressed;
+import static net.lukario.frogerealm.item.custom.detection.ClickState.rightClickPressed;
+
 @Mod.EventBusSubscriber(modid = "forgerealmmod", value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public class ClientMouseHandler {
 
@@ -18,14 +21,18 @@ public class ClientMouseHandler {
 
         // LEFT mouse button
         if (event.getButton() == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
-            if (pressed) ClickState.leftClickPressed = true;
-            if (released) ClickState.leftClickPressed = false;
+            if (pressed) leftClickPressed = true;
+            if (released) leftClickPressed = false;
+            System.out.println("Left: " + leftClickPressed );
         }
 
         // RIGHT mouse button
         if (event.getButton() == GLFW.GLFW_MOUSE_BUTTON_RIGHT) {
-            if (pressed) ClickState.rightClickPressed = true;
-            if (released) ClickState.rightClickPressed = false;
+            if (pressed) rightClickPressed = true;
+            if (released) rightClickPressed = false;
+            System.out.println("Right: " + rightClickPressed );
         }
+
+
     }
 }

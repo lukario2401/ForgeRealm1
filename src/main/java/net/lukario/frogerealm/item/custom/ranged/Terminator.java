@@ -36,27 +36,26 @@ public class Terminator extends Item {
     public boolean onEntitySwing(ItemStack stack, LivingEntity entity) {
         if (!(entity instanceof Player player)) return false;
 
-        var data = player.getPersistentData();
-
-        if (data.getBoolean("terminator_right_click")) {
-            data.putBoolean("terminator_right_click", false);
-            return false;
-        }
-
-        if (ClickState.leftClickPressed){
+        if (ClickState.leftClickPressed && !ClickState.rightClickPressed){
             if (!player.level().isClientSide && !player.getCooldowns().isOnCooldown(this)) {
+                if (ClickState.leftClickPressed){
+                    Level level = player.level();
 
-                Level level = player.level();
+                    player.getCooldowns().addCooldown(this, 1);
 
-                terminatorShootLeftClick(level, player, -7.5d);
-                terminatorShootLeftClick(level, player, 0d);
-                terminatorShootLeftClick(level, player, 7.5d);
+                    terminatorShootLeftClick(level, player, -7.5d);
+                    terminatorShootLeftClick(level, player, 0d);
+                    terminatorShootLeftClick(level, player, 7.5d);
 
-                player.getCooldowns().addCooldown(this, 1);
+                    player.sendSystemMessage(Component.literal("Trig: " + ClickState.leftClickPressed));
+
+                }
             }
             if (player.level().isClientSide && !player.getCooldowns().isOnCooldown(this)){
-                Vec3 l = player.position();
-                player.level().playLocalSound(l.x,l.y,l.z,SoundEvents.ARROW_SHOOT,SoundSource.PLAYERS,1,1,false);
+                if (ClickState.leftClickPressed){
+                    Vec3 l = player.position();
+                    player.level().playLocalSound(l.x,l.y,l.z,SoundEvents.ARROW_SHOOT,SoundSource.PLAYERS,1,1,false);
+                }
             }
         }
 
@@ -69,14 +68,22 @@ public class Terminator extends Item {
 
         if (!level.isClientSide) {
 
-            terminatorShootRightClick(level, player, 7.5d);
-            terminatorShootRightClick(level, player, 0d);
-            terminatorShootRightClick(level, player, -7.5d);
+            if (!ClickState.leftClickPressed && ClickState.rightClickPressed && !player.getCooldowns().isOnCooldown(this)){
+
+                terminatorShootRightClick(level, player, 7.5d);
+                terminatorShootRightClick(level, player, 0d);
+                terminatorShootRightClick(level, player, -7.5d);
+
+                player.sendSystemMessage(Component.literal("Trig Left: " + ClickState.leftClickPressed));
+                player.sendSystemMessage(Component.literal("Trig Right: " + ClickState.leftClickPressed));
+
+                player.getCooldowns().addCooldown(this, 1);
+            }
 
             player.getPersistentData().putBoolean("terminator_right_click", true);
 
         }
-        if (level.isClientSide){
+        if (level.isClientSide && !player.getCooldowns().isOnCooldown(this)){
             Vec3 l = player.position();
             level.playLocalSound(l.x,l.y,l.z,SoundEvents.CROSSBOW_SHOOT,SoundSource.PLAYERS,1,1,false);
         }
@@ -104,8 +111,6 @@ public class Terminator extends Item {
 
         Vec3 c = start;
         for (double distance = 0; distance <= distanceToTravel; distance +=0.5 ){
-
-            serverLevel.sendParticles(ParticleTypes.SOUL, c.x, c.y, c.z, 1, 0, 0, 0, 0);
 
             Vector3f color = new Vector3f(1f, 0f, 0f);
             DustParticleOptions redDust = new DustParticleOptions(color, 2f);
@@ -170,6 +175,7 @@ public class Terminator extends Item {
             }
 
             serverLevel.sendParticles(ParticleTypes.SOUL, c.x, c.y, c.z, 1, 0, 0, 0, 0);
+            player.sendSystemMessage(Component.literal("left triggered"));
 
             List<LivingEntity> entities = level.getEntitiesOfClass(
                     LivingEntity.class,
