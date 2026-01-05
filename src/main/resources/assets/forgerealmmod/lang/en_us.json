@@ -34,6 +34,9 @@
 
 
   "creativetab.forgerealmmod.soul_tab": "Soul Tab",
-  "creativetab.forgerealmmod.extras_tab": "Extras Tab"
+  "creativetab.forgerealmmod.extras_tab": "Extras Tab",
+
+  "key.forgerealmmod.dash": "Dash",
+  "key.categories.forgerealmmod": "Forged Realm"
 
 }

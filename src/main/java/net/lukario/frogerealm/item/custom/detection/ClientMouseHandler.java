@@ -23,16 +23,12 @@ public class ClientMouseHandler {
         if (event.getButton() == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
             if (pressed) leftClickPressed = true;
             if (released) leftClickPressed = false;
-            System.out.println("Left: " + leftClickPressed );
         }
 
         // RIGHT mouse button
         if (event.getButton() == GLFW.GLFW_MOUSE_BUTTON_RIGHT) {
             if (pressed) rightClickPressed = true;
             if (released) rightClickPressed = false;
-            System.out.println("Right: " + rightClickPressed );
         }
-
-
     }
 }

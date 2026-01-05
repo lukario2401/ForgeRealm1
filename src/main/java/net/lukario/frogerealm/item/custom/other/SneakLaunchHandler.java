@@ -64,7 +64,7 @@ public class SneakLaunchHandler {
             data.putBoolean(COOLDOWN, true);
         }
 
-        displaySpeed(player);
+//        displaySpeed(player);
     }
 
 
