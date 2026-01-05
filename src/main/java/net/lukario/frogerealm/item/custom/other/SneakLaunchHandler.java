@@ -50,6 +50,7 @@ public class SneakLaunchHandler {
                 data.putBoolean(CAN_USE, false);
             }
         }
+
         if (mc.options.keyJump.isDown()) {
             data.putBoolean(DOUBLE_JUMP, true);
         }
@@ -63,9 +64,20 @@ public class SneakLaunchHandler {
             data.putBoolean(COOLDOWN, true);
         }
 
+        displaySpeed(player);
     }
 
 
+    private static void displaySpeed(Player player){
+        double deltaX = player.getDeltaMovement().x;
+        double deltaZ = player.getDeltaMovement().z;
+
+        double currentSpeed = Math.sqrt(deltaX * deltaX + deltaZ * deltaZ) * 20;
+
+        String formattedSpeed = String.format("%.1f", currentSpeed);
+
+        player.displayClientMessage(Component.literal("§6Speed: §e" + formattedSpeed + " §fB/S"), true);
+    }
 
     private static void launchPlayer(Player player, double forwardStrength, double upwardStrength) {
 
@@ -85,7 +97,7 @@ public class SneakLaunchHandler {
 
 
     private static void spawnParticleCloud(Level level, Vec3 pos) {
-        for (int i = 0; i < 15; i++) {
+        for (int i = 0; i < 45; i++) {
             double offsetX = (level.random.nextDouble() - 0.5) * 0.3;
             double offsetY = level.random.nextDouble() * 0.2;
             double offsetZ = (level.random.nextDouble() - 0.5) * 0.3;
@@ -96,9 +108,9 @@ public class SneakLaunchHandler {
 
             level.addParticle(
                     ParticleTypes.FIREWORK,
-                    pos.x + offsetX,
-                    pos.y + offsetY,
-                    pos.z + offsetZ,
+                    pos.x + offsetX*3,
+                    pos.y + offsetY*3,
+                    pos.z + offsetZ*3,
                     speedX, speedY, speedZ
             );
         }
