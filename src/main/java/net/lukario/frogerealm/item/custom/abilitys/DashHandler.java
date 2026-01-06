@@ -3,6 +3,7 @@ package net.lukario.frogerealm.item.custom.abilitys;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -20,6 +21,7 @@ import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.network.ForgePacketHandler;
+import org.joml.Vector3f;
 
 import java.util.List;
 
@@ -31,13 +33,10 @@ public class DashHandler {
         if (event.phase != TickEvent.Phase.END) return;
         if (event.player.level().isClientSide) return;
 
-        Minecraft mc = Minecraft.getInstance();
-        LocalPlayer player = mc.player;
-        if (player == null) return;
+        Player player = event.player;
+        Level level = event.player.level();
 
-        Level level = player.level();
-
-        if (DashKeybindClient.DASH_KEY.consumeClick()) {
+        if (DashKeybindClient.DASH_KEY.isDown()) {
 
             LivingEntity target = getTarget(player);
 
@@ -45,7 +44,9 @@ public class DashHandler {
 
                 List<LivingEntity> listOfTargets = detectEnemies(target);
 
-                shoot(player, level, target, listOfTargets);
+                if (!level.isClientSide){
+                    shoot(player, level, target, listOfTargets);
+                }
             }
         }
     }
@@ -62,6 +63,8 @@ public class DashHandler {
     private static void twoEntityBeam(Player player, LivingEntity entity, LivingEntity target, Boolean displayParticles) {
         Level level = entity.level();
 
+        if (!(level instanceof ServerLevel serverLevel)) return;
+
         Vec3 start = entity.position().add(0, entity.getBbHeight() * 0.5, 0); // middle of source entity
         Vec3 end = target.position().add(0, target.getBbHeight() * 0.5, 0); // middle of target entity
 
@@ -74,7 +77,7 @@ public class DashHandler {
             Vec3 point = start.add(diff.scale(factor));
 
             if (displayParticles){
-                level.addParticle(ParticleTypes.SOUL, point.x, point.y, point.z, 0, 0, 0);
+                serverLevel.sendParticles(ParticleTypes.SOUL, point.x, point.y, point.z, 1, 0, 0, 0 ,0);
             }
 
             List<LivingEntity> entities = level.getEntitiesOfClass(
@@ -106,8 +109,10 @@ public class DashHandler {
     }
 
     private static LivingEntity getTarget(Player player){
-
         Level level = player.level();
+
+        if (!(level instanceof ServerLevel serverLevel)) return null;
+
 
         Vec3 start = player.getEyePosition();
         Vec3 direction = player.getLookAngle().normalize();
@@ -125,7 +130,12 @@ public class DashHandler {
                 break;
             }
 
-            level.addParticle(ParticleTypes.SOUL, c.x, c.y, c.z, 0, 0, 0);
+//            level.addParticle(ParticleTypes.SOUL, c.x, c.y, c.z, 0, 0, 0);
+//            serverLevel.sendParticles(ParticleTypes.SOUL, c.x, c.y, c.z, 1, 0, 0, 0 ,0);
+            Vector3f color = new Vector3f(1f, 0f, 0f);
+            DustParticleOptions redDust = new DustParticleOptions(color, 2f);
+
+            serverLevel.sendParticles(redDust, c.x, c.y, c.z, 1, 0, 0, 0, 0);
 
             List<LivingEntity> entities = level.getEntitiesOfClass(
                     LivingEntity.class,
@@ -141,6 +151,4 @@ public class DashHandler {
         }
         return null;
     }
-
-
 }
