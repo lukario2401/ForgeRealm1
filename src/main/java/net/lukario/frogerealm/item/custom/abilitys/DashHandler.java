@@ -104,7 +104,7 @@ public class DashHandler {
 
         return level.getEntitiesOfClass(
                 LivingEntity.class,
-                new AABB(position, position).inflate(5)
+                new AABB(position, position).inflate(3)
         );
     }
 

@@ -45,7 +45,7 @@ public class SneakLaunchHandler {
             boolean can_use = data.getBoolean(CAN_USE);
 
             if (!used && !player.onGround() && can_use && !player.isCreative()) {
-                launchPlayer(player,0.4,1.8);
+                launchPlayer(player,0.4,1.2);
                 data.putBoolean(DOUBLE_JUMP, true);
                 data.putBoolean(CAN_USE, false);
             }
@@ -60,7 +60,7 @@ public class SneakLaunchHandler {
         }
 
         if (!data.getBoolean(CAN_USE) && player.isShiftKeyDown() && !data.getBoolean(COOLDOWN) && !player.isCreative()){
-            launchPlayer(player, 1.6, 0.4);
+            launchPlayer(player, 1.6, 0);
             data.putBoolean(COOLDOWN, true);
         }
 
