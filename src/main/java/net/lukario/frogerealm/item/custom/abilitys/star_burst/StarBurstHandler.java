@@ -1,4 +1,5 @@
-package net.lukario.frogerealm.item.custom.abilitys;
+package net.lukario.frogerealm.item.custom.abilitys.star_burst;
+
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
@@ -24,8 +25,9 @@ import net.minecraftforge.network.ForgePacketHandler;
 import org.joml.Vector3f;
 import java.util.List;
 
+
 @Mod.EventBusSubscriber(modid = "forgerealmmod", bus = Mod.EventBusSubscriber.Bus.FORGE)
-public class DashHandler {
+public class StarBurstHandler {
 
     @SubscribeEvent
     public static void onPlayerTick(TickEvent.PlayerTickEvent event) {
@@ -35,36 +37,45 @@ public class DashHandler {
         Player player = event.player;
         Level level = event.player.level();
 
-        if (DashKeybindClient.DASH_KEY.isDown()) {
+        if (StarBurstKeybindClient.STAR_BURST_KEY.isDown()) {
 
             LivingEntity target = getTarget(player);
 
             if (target!=null){
 
-                List<LivingEntity> listOfTargets = detectEnemies(target);
-
                 if (!level.isClientSide){
-                    shoot(player, level, target, listOfTargets);
+                    shoot(player, level, target);
+                    shoot(player, level, target);
+                    shoot(player, level, target);
                 }
             }
         }
     }
 
-    private static void shoot(Player player, Level level, LivingEntity target, List<LivingEntity> livingEntityList){
+    private static void shoot(Player player, Level level, LivingEntity target){
 
-        twoEntityBeam(player, player, target, false);
+        Vec3 position = player.position().add(0, player.getBbHeight() * 0.5, 0);
 
-        for (LivingEntity additionalTargets : livingEntityList){
-            twoEntityBeam(player, target, additionalTargets, true);
-        }
+        float offsetX = -5 + 1.0f + level.random.nextFloat() * 8.0f;
+        float offsetY = -1 + 1.0f + level.random.nextFloat() * 4;
+        float offsetZ = -5 + 1.0f + level.random.nextFloat() * 8.0f;
+
+        double x = position.x;
+        double y = position.y;
+        double z = position.z;
+
+        Vec3 location = new Vec3(x+offsetX,y+offsetY,z+offsetZ);
+
+        twoEntityBeam(player, location, target,true);
+
     }
 
-    private static void twoEntityBeam(Player player, LivingEntity entity, LivingEntity target, Boolean displayParticles) {
-        Level level = entity.level();
+    private static void twoEntityBeam(Player player, Vec3 start, LivingEntity target, Boolean displayParticles) {
+        Level level = player.level();
 
         if (!(level instanceof ServerLevel serverLevel)) return;
 
-        Vec3 start = entity.position().add(0, entity.getBbHeight() * 0.5, 0); // middle of source entity
+         // middle of source entity
         Vec3 end = target.position().add(0, target.getBbHeight() * 0.5, 0); // middle of target entity
 
         int particles = Mth.floor(start.distanceTo(end)*2);
@@ -96,17 +107,6 @@ public class DashHandler {
     }
 
 
-    private static List<LivingEntity> detectEnemies(LivingEntity livingEntity){
-
-        Level level = livingEntity.level();
-        Vec3 position = livingEntity.position();
-
-        return level.getEntitiesOfClass(
-                LivingEntity.class,
-                new AABB(position, position).inflate(3)
-        );
-    }
-
     private static LivingEntity getTarget(Player player){
         Level level = player.level();
 
@@ -131,10 +131,10 @@ public class DashHandler {
 
 //            level.addParticle(ParticleTypes.SOUL, c.x, c.y, c.z, 0, 0, 0);
 //            serverLevel.sendParticles(ParticleTypes.SOUL, c.x, c.y, c.z, 1, 0, 0, 0 ,0);
-            Vector3f color = new Vector3f(1f, 0f, 0f);
-            DustParticleOptions redDust = new DustParticleOptions(color, 2f);
+//            Vector3f color = new Vector3f(1f, 0f, 0f);
+//            DustParticleOptions redDust = new DustParticleOptions(color, 2f);
 
-            serverLevel.sendParticles(redDust, c.x, c.y, c.z, 1, 0, 0, 0, 0);
+//            serverLevel.sendParticles(redDust, c.x, c.y, c.z, 1, 0, 0, 0, 0);
 
             List<LivingEntity> entities = level.getEntitiesOfClass(
                     LivingEntity.class,
@@ -150,4 +150,5 @@ public class DashHandler {
         }
         return null;
     }
+
 }
