@@ -5,6 +5,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.DustParticleOptions;
+import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -37,7 +38,7 @@ public class StarBurstHandler {
         Player player = event.player;
         Level level = event.player.level();
 
-        if (StarBurstKeybindClient.STAR_BURST_KEY.isDown()) {
+        if (StarBurstKeybindClient.STAR_BURST_KEY.consumeClick()) {
 
             LivingEntity target = getTarget(player);
 
@@ -82,7 +83,12 @@ public class StarBurstHandler {
 
         Vec3 diff = end.subtract(start);
 
-        for (int i = 0; i <= particles; i++) {
+        spawnParticles(level, start, 25, 1.1, 0,0,0, ParticleTypes.SOUL_FIRE_FLAME);
+        spawnParticles(level, start, 25, 0, 1.1,0,0, ParticleTypes.SOUL_FIRE_FLAME);
+        spawnParticles(level, start, 25, 0, 0,1.1,0, ParticleTypes.SOUL_FIRE_FLAME);
+        spawnParticles(level, start, 20, 0.3, 0.3,0.3,0, ParticleTypes.FLAME);
+
+        for (float i = 0; i <= particles; i+=0.5) {
             double factor = i / (double) particles;
             Vec3 point = start.add(diff.scale(factor));
 
@@ -150,5 +156,23 @@ public class StarBurstHandler {
         }
         return null;
     }
+
+    private static void spawnParticles(Level level, Vec3 pos, int amount,
+                                       double xSpread, double ySpread, double zSpread,
+                                       double speed, ParticleOptions particle) {
+
+        if (level instanceof ServerLevel serverLevel) {
+            serverLevel.sendParticles(
+                    particle,
+                    pos.x, pos.y, pos.z,
+                    amount,
+                    xSpread, ySpread, zSpread,
+                    speed
+            );
+        }
+    }
+
+
+
 
 }
