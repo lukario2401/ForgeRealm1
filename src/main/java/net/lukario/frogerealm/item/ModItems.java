@@ -5,6 +5,7 @@ import net.lukario.frogerealm.item.custom.ModFoodProperties;
 import net.lukario.frogerealm.item.custom.ModFuelItem;
 import net.lukario.frogerealm.item.custom.ranged.LaserStaff;
 import net.lukario.frogerealm.item.custom.ranged.Terminator;
+import net.lukario.frogerealm.item.custom.ranged.TarotDeck;
 import net.lukario.frogerealm.item.custom.swords.ShadowSword;
 import net.lukario.frogerealm.item.custom.StrengthElixir;
 import net.minecraft.world.food.FoodProperties;
@@ -68,6 +69,7 @@ public class ModItems {
             () -> new LaserStaff(new Item.Properties()));
 
     public static final RegistryObject<Item> TERMINATOR = ITEMS.register("terminator", ()-> new Terminator(new Item.Properties()));
+    public static final RegistryObject<Item> TAROTDECK = ITEMS.register("tarot_deck", ()-> new TarotDeck(new Item.Properties()));
 
     public static void register(IEventBus eventBus){
         ITEMS.register(eventBus);

@@ -24,6 +24,7 @@ public class CreativeModTabs {
                         output.accept(ModItems.DEPLETED_ENERGY_SHARD.get());
                         output.accept(ModItems.LASER_STAFF.get());
                         output.accept(ModItems.TERMINATOR.get());
+                        output.accept(ModItems.TAROTDECK.get());
 
                     })
                     .build());

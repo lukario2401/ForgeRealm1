@@ -43,7 +43,6 @@ public class StarBurstHandler {
             LivingEntity target = getTarget(player);
 
             if (target!=null){
-
                 if (!level.isClientSide){
                     shoot(player, level, target);
                     shoot(player, level, target);
