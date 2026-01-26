@@ -1,10 +1,19 @@
 package net.lukario.frogerealm.item.custom.ranged;
 
 import net.lukario.frogerealm.item.custom.detection.ClickState;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.particles.DustParticleOptions;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LightningBolt;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.LargeFireball;
@@ -13,8 +22,12 @@ import net.minecraft.world.entity.projectile.Snowball;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import org.joml.Vector3f;
 
+import java.util.List;
 import java.util.Random;
 
 public class TarotDeck extends Item {
@@ -31,11 +44,14 @@ public class TarotDeck extends Item {
 
                 Level level = player.level();
 
-                shootVanillaSnowballProjectile(player,level,2f,0.5f);
+                int n = level.random.nextInt(2);
+                if (n == 0){
+                shootDeathTarotCard(player, level, 32f);
+                } else if (n == 1) {
+                    shootTowerTarotCard(player, level, 32f);
+                }
 
                 player.getCooldowns().addCooldown(this, 2);
-
-                player.sendSystemMessage(Component.literal("Trig Left: " + ClickState.leftClickPressed));
             }
         }
         return true;
@@ -47,21 +63,148 @@ public class TarotDeck extends Item {
 
         if (!level.isClientSide) {
 
-            if (ClickState.rightClickPressed && !player.getCooldowns().isOnCooldown(this) && player.isShiftKeyDown()){
+            if (ClickState.rightClickPressed && !player.getCooldowns().isOnCooldown(this)){
 
                 shootVanillaSmallFireball(player,level,4f,0f);
 
                 player.getCooldowns().addCooldown(this, 5);
             }
-            if (ClickState.rightClickPressed && !player.getCooldowns().isOnCooldown(this) && !player.isShiftKeyDown()){
-
-                shootLargeFireball(player,level,12f,0f,6);
-
-                player.getCooldowns().addCooldown(this, 5);
-            }
-
         }
         return InteractionResultHolder.sidedSuccess(player.getItemInHand(hand), level.isClientSide());
+    }
+
+    private static void shootTowerTarotCard(Player player, Level level, Float range){
+        Vec3 start = player.getEyePosition();
+        Vec3 direction = player.getLookAngle().normalize();
+
+        player.playNotifySound(SoundEvents.BREEZE_JUMP, SoundSource.MASTER, 1 , 0.9f);
+
+        for (float i = 0; i <= range;i+=0.5f){
+
+            List<LivingEntity> entities = level.getEntitiesOfClass(
+                    LivingEntity.class,
+                    new AABB(start, start).inflate(0.25),
+                    e -> e != player
+            );
+
+            for (LivingEntity entity : entities){
+                if (Math.random() < 0.5) {
+
+                    entity.addDeltaMovement(new Vec3(0, 1.2, 0));
+                    entity.hurtMarked = true;
+
+                    if (level instanceof ServerLevel serverLevel) {
+                        LightningBolt lightning = EntityType.LIGHTNING_BOLT.create(serverLevel);
+                        if (lightning != null) {
+                            lightning.moveTo(start.x(), start.y(), start.z());
+                            serverLevel.addFreshEntity(lightning);
+                        }
+                    }
+                    i+=256;
+                }else {
+                    level.explode(
+                            null,                   // source entity (can be player)
+                            start.x(),
+                            start.y(),
+                            start.z(),
+                            4.0f,                   // power (TNT = 4)
+                            Level.ExplosionInteraction.TNT
+                    );
+                    i+=256;
+                }
+
+                level.playSound(null,start.x,start.y,start.z, SoundEvents.SOUL_ESCAPE, SoundSource.BLOCKS,3 ,1);
+
+                player.playNotifySound(
+                        SoundEvents.ARROW_HIT_PLAYER,
+                        SoundSource.PLAYERS,
+                        2f,
+                        1f
+                );
+            }
+
+            BlockPos blockPos = new BlockPos(Mth.floor(start.x), Mth.floor(start.y), Mth.floor(start.z));
+            BlockState blockState = level.getBlockState(blockPos);
+
+            if (!blockState.getCollisionShape(level, blockPos).isEmpty()) {
+                break;
+            }
+
+            Vector3f color = new Vector3f(0.8f, 0.8f, 0.8f);
+            DustParticleOptions redDust = new DustParticleOptions(color, 1f);
+
+            if (level instanceof ServerLevel serverLevel) {
+                serverLevel.sendParticles(
+                        redDust,
+                        start.x, start.y, start.z,
+                        1,      // count
+                        0, 0, 0,// spread
+                        0       // speed
+                );
+            }
+
+            start = start.add(direction.scale(0.5));
+        }
+    }
+
+
+    private static void shootDeathTarotCard(Player player, Level level, Float range){
+
+        Vec3 start = player.getEyePosition();
+        Vec3 direction = player.getLookAngle().normalize();
+
+//        level.playSound(player, start.x, start.y, start.z, SoundEvents.BREEZE_JUMP, SoundSource.MASTER, 1 , 0.9f);
+        player.playNotifySound(SoundEvents.BREEZE_JUMP, SoundSource.MASTER, 1 , 0.9f);
+
+        for (float i = 0; i <= range;i+=0.5f){
+
+            List<LivingEntity> entities = level.getEntitiesOfClass(
+                    LivingEntity.class,
+                    new AABB(start, start).inflate(0.25),
+                    e -> e != player
+            );
+
+            for (LivingEntity entity : entities){
+
+                entity.setHealth(entity.getHealth()-32.0f);
+                entity.setLastHurtByPlayer(player);
+                if (entity.getHealth()<=0){
+                    entity.kill();
+                }
+
+                level.playSound(null,start.x,start.y,start.z, SoundEvents.SOUL_ESCAPE, SoundSource.BLOCKS,3 ,1);
+
+                player.playNotifySound(
+                        SoundEvents.ARROW_HIT_PLAYER,
+                        SoundSource.PLAYERS,
+                        2f,
+                        1f
+                );
+            }
+
+            BlockPos blockPos = new BlockPos(Mth.floor(start.x), Mth.floor(start.y), Mth.floor(start.z));
+            BlockState blockState = level.getBlockState(blockPos);
+
+            if (!blockState.getCollisionShape(level, blockPos).isEmpty()) {
+                break;
+            }
+
+            Vector3f color = new Vector3f(1f, 0f, 0f);
+            DustParticleOptions redDust = new DustParticleOptions(color, 1f);
+
+            if (level instanceof ServerLevel serverLevel) {
+                serverLevel.sendParticles(
+                        redDust,
+                        start.x, start.y, start.z,
+                        1,      // count
+                        0, 0, 0,// spread
+                        0       // speed
+                );
+            }
+
+
+            start = start.add(direction.scale(0.5));
+        }
     }
 
     private static void shootVanillaSnowballProjectile(Player player, Level level, Float velocity, Float inaccuracy){
@@ -135,6 +278,5 @@ public class TarotDeck extends Item {
         // spawn entity
         level.addFreshEntity(fireball);
     }
-
-
 }
+
