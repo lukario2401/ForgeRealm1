@@ -183,6 +183,11 @@ public class Terminator extends Item {
 
             for (LivingEntity entity : entities){
                 entity.hurt(level.damageSources().playerAttack(player),24.0f);
+
+                //The Estuary Key
+                entity.invulnerableTime = 0;
+                //The key
+
                 serverLevel.sendParticles(ParticleTypes.EXPLOSION_EMITTER, c.x, c.y, c.z, 1, 0, 0, 0, 0);
                 serverLevel.playSound(null,c.x,c.y,c.z, SoundEvents.GENERIC_EXPLODE, SoundSource.MASTER,8 ,1);
 
