@@ -87,7 +87,6 @@ public class DashHandler {
 
             for (LivingEntity damageable : entities){
                 if (damageable != player && damageable != target){
-
                     damageable.hurt(level.damageSources().playerAttack(player),24.0f);
                 }
             }
@@ -129,8 +128,6 @@ public class DashHandler {
                 break;
             }
 
-//            level.addParticle(ParticleTypes.SOUL, c.x, c.y, c.z, 0, 0, 0);
-//            serverLevel.sendParticles(ParticleTypes.SOUL, c.x, c.y, c.z, 1, 0, 0, 0 ,0);
             Vector3f color = new Vector3f(1f, 0f, 0f);
             DustParticleOptions redDust = new DustParticleOptions(color, 2f);
 
