@@ -7,7 +7,7 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
 @Mod.EventBusSubscriber(modid = "forgerealmmod")
-public class SoulShards {
+public class SoulCore {
 
     private static final String MOD_TAG = "forgerealmmod";
 
@@ -72,6 +72,24 @@ public class SoulShards {
         getModData(player).putInt("aspect_tier", clamped);
 
         setSoulShards(player, getSoulShards(player));
+    }
+
+
+    public static float getSoulEssence(Player player) {
+        CompoundTag tag = getModData(player);
+
+        if (!tag.contains("soul_essence")) {
+            tag.putFloat("soul_essence", 0); // default tier
+        }
+
+        return tag.getFloat("soul_essence");
+    }
+
+
+    public static void setSoulEssence(Player player, float value) {
+        float maxValue = (float) (getSoulShards(player) /100) * (getAspectTier(player) * 10);
+        float clamped = Math.min(maxValue, Math.max(0, value)); // tier must be between 1 and 7
+        getModData(player).putFloat("soul_essence", clamped);
     }
 
 

@@ -1,6 +1,7 @@
 package net.lukario.frogerealm.shadow_slave.soul_shards;
 
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.FloatArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -32,13 +33,16 @@ public class SoulShardCommands {
                                 .executes(ctx -> {
                                     Player player = EntityArgument.getPlayer(ctx, "player");
 
-                                    int shards = SoulShards.getSoulShards(player);
-                                    int tier = SoulShards.getAspectTier(player);
+                                    int shards = SoulCore.getSoulShards(player);
+                                    int tier = SoulCore.getAspectTier(player);
+                                    float soulEssence = SoulCore.getSoulEssence(player);
 
                                     ctx.getSource().sendSuccess(() ->
                                                     Component.literal("Player: " + player.getName().getString()
-                                                            + " | SoulShards=" + shards
-                                                            + " | Tier=" + tier),
+                                                            + " / Tier: " + tier
+                                                            + " / SoulShards: " + shards
+                                                            + " / Soul Essence: " + soulEssence
+                                                    ),
                                             false
                                     );
                                     return 1;
@@ -56,10 +60,10 @@ public class SoulShardCommands {
                                             Player player = EntityArgument.getPlayer(ctx, "player");
                                             int amount = IntegerArgumentType.getInteger(ctx, "amount");
 
-                                            SoulShards.setSoulShards(player, amount);
+                                            SoulCore.setSoulShards(player, amount);
 
                                             ctx.getSource().sendSuccess(() ->
-                                                            Component.literal("Set SoulShards to " + SoulShards.getSoulShards(player)),
+                                                            Component.literal("Set SoulShards to " + SoulCore.getSoulShards(player)),
                                                     false
                                             );
                                             return 1;
@@ -78,10 +82,10 @@ public class SoulShardCommands {
                                             Player player = EntityArgument.getPlayer(ctx, "player");
                                             int amount = IntegerArgumentType.getInteger(ctx, "amount");
 
-                                            SoulShards.addSoulShards(player, amount);
+                                            SoulCore.addSoulShards(player, amount);
 
                                             ctx.getSource().sendSuccess(() ->
-                                                            Component.literal("Added shards. New value = " + SoulShards.getSoulShards(player)),
+                                                            Component.literal("Added shards. New value = " + SoulCore.getSoulShards(player)),
                                                     false
                                             );
                                             return 1;
@@ -89,7 +93,27 @@ public class SoulShardCommands {
                                 )
                         )
                 )
+                // =========================
+                // /soul addSoulEssence <player> <amount>
+                // =========================
+                .then(Commands.literal("addSoulEssence")
+                        .then(Commands.argument("player", EntityArgument.player())
+                                .then(Commands.argument("amount", FloatArgumentType.floatArg())
+                                        .executes(ctx -> {
+                                            Player player = EntityArgument.getPlayer(ctx, "player");
+                                            float amount = FloatArgumentType.getFloat(ctx, "amount");
 
+                                            SoulCore.setSoulEssence(player, SoulCore.getSoulEssence(player) + amount);
+
+                                            ctx.getSource().sendSuccess(() ->
+                                                            Component.literal("Added Soul Essence. New value = " + SoulCore.getSoulEssence(player)),
+                                                    false
+                                            );
+                                            return 1;
+                                        })
+                                )
+                        )
+                )
                 // =========================
                 // /soul settier <player> <tier>
                 // =========================
@@ -100,10 +124,10 @@ public class SoulShardCommands {
                                             Player player = EntityArgument.getPlayer(ctx, "player");
                                             int tier = IntegerArgumentType.getInteger(ctx, "tier");
 
-                                            SoulShards.setAspectTier(player, tier);
+                                            SoulCore.setAspectTier(player, tier);
 
                                             ctx.getSource().sendSuccess(() ->
-                                                            Component.literal("Set Aspect Tier to " + SoulShards.getAspectTier(player)),
+                                                            Component.literal("Set Aspect Tier to " + SoulCore.getAspectTier(player)),
                                                     false
                                             );
                                             return 1;

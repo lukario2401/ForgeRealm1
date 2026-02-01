@@ -1,18 +1,13 @@
 package net.lukario.frogerealm.shadow_slave.soul_shards;
 
-import net.lukario.frogerealm.shadow_slave.soul_shards.SoulShards;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.entity.ai.attributes.AttributeInstance;
-import net.minecraft.world.entity.ai.attributes.AttributeModifier;
-import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
-import java.util.UUID;
 @Mod.EventBusSubscriber(modid = "forgerealmmod")
 public class SoulShardPower {
 
@@ -40,7 +35,7 @@ public class SoulShardPower {
 
     public static void applySoulShardPowers(Player player) {
 
-        int shards =  SoulShards.getSoulShards(player);
+        int shards =  SoulCore.getSoulShards(player);
 
         double percent = shards / (double) MAX_SHARDS;
 
@@ -67,7 +62,7 @@ public class SoulShardPower {
             player.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 40, 0, false, false));
         }
 
-        player.sendSystemMessage(Component.literal("worked"+shards));
+//        player.sendSystemMessage(Component.literal("worked"+shards));
     }
 
     private static void clearEffects(Player player) {
