@@ -11,6 +11,8 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobSpawnType;
 import net.minecraftforge.event.network.CustomPayloadEvent;
@@ -31,16 +33,15 @@ public class SKeyPressAbilityOneUsed {
         if(player == null)
             return;
 
-        ServerLevel level = player.serverLevel();
-        player.sendSystemMessage(Component.literal("worked 1"));
-        player.playNotifySound(
-                SoundEvents.DRAGON_FIREBALL_EXPLODE,
-                SoundSource.PLAYERS,
-                1.0f,
-                1.0f
-        );
-        level.sendParticles(player, ParticleTypes.EXPLOSION_EMITTER,true,player.getX(),player.getY(),player.getZ(),1,0,0,0,0);
-        SoulCore.setSoulEssence(player,SoulCore.getSoulEssence(player)-100);
+
+        if (SoulCore.getAspect(player).equals("Shadow Slave")){
+            SoulCore.setSoulEssence(player,SoulCore.getSoulEssence(player)-100);
+            player.addEffect(new MobEffectInstance(MobEffects.HEAL, 1, 2, false, false));
+        }
+        if (SoulCore.getAspect(player).equals("Light Bringer")){
+            SoulCore.setSoulEssence(player,SoulCore.getSoulEssence(player)-100);
+            player.addEffect(new MobEffectInstance(MobEffects.FIRE_RESISTANCE, 20*20, 2, false, false));
+        }
     }
 
 }
