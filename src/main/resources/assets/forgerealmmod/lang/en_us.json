@@ -37,6 +37,10 @@
   "creativetab.forgerealmmod.soul_tab": "Soul Tab",
   "creativetab.forgerealmmod.extras_tab": "Extras Tab",
 
+  "key.forgerealmmod.example_key": "Example Key",
+  "key.forgerealmmod.example_packet_key": "Example Packet Key",
+  "message.forgerealmmod.example_key_pressed": "Example Key was pressed!",
+
   "key.forgerealmmod.dash": "Dash",
   "key.forgerealmmod.star_burst": "Star Burst",
   "key.categories.forgerealmmod": "Forged Realm"
