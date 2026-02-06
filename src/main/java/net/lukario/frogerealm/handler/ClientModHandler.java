@@ -12,22 +12,18 @@ import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 
 @Mod.EventBusSubscriber(modid = ForgeRealm.MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
 public class ClientModHandler {
-//    @SubscribeEvent
-//    public static void clientSetup(FMLClientSetupEvent event) {
-//        event.enqueueWork(() -> {
-//            MenuScreens.register(MenuInit.EXAMPLE_MENU.get(), ExampleMenuScreen::new);
-//            MenuScreens.register(MenuInit.EXAMPLE_ENERGY_GENERATOR_MENU.get(), ExampleEnergyGeneratorScreen::new);
-//            MenuScreens.register(MenuInit.EXAMPLE_SIDED_INVENTORY_MENU.get(), ExampleSidedInventoryScreen::new);
-//            MenuScreens.register(MenuInit.EXAMPLE_FLUID_MENU.get(), ExampleFluidScreen::new);
-//            MenuScreens.register(MenuInit.EXAMPLE_BER_MENU.get(), ExampleBERScreen::new);
-//            MenuScreens.register(MenuInit.EXAMPLE_FLUID_BER_MENU.get(), ExampleFluidBERScreen::new);
-//        });
-//    }
 
     @SubscribeEvent
     public static void registerKeys(RegisterKeyMappingsEvent event) {
         event.register(Keybindings.INSTANCE.exampleKey);
         event.register(Keybindings.INSTANCE.examplePacketKey);
+        event.register(Keybindings.INSTANCE.abilityOnePacketKey);
+//        event.register(Keybindings.INSTANCE.abilityTwoPacketKey);
+//        event.register(Keybindings.INSTANCE.abilityThreePacketKey);
+//        event.register(Keybindings.INSTANCE.abilityFourPacketKey);
+//        event.register(Keybindings.INSTANCE.abilityFivePacketKey);
+//        event.register(Keybindings.INSTANCE.abilitySixPacketKey);
+//        event.register(Keybindings.INSTANCE.abilitySevenPacketKey);
     }
 
 }

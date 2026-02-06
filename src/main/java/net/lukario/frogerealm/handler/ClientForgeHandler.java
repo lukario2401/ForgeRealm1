@@ -4,6 +4,7 @@ package net.lukario.frogerealm.handler;
 import net.lukario.frogerealm.ForgeRealm;
 import net.lukario.frogerealm.client.Keybindings;
 import net.lukario.frogerealm.network.PacketHandler;
+import net.lukario.frogerealm.network.SKeyPressAbilityOneUsed;
 import net.lukario.frogerealm.network.SKeyPressSpawnEntityPacket;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
@@ -27,6 +28,10 @@ public class ClientForgeHandler {
         if(Keybindings.INSTANCE.examplePacketKey.consumeClick() && minecraft.player != null) {
             minecraft.player.displayClientMessage(EXAMPLE_KEY_PRESSED, true);
             PacketHandler.sendToServer(new SKeyPressSpawnEntityPacket());
+        }
+        if(Keybindings.INSTANCE.abilityOnePacketKey.consumeClick() && minecraft.player != null) {
+            minecraft.player.displayClientMessage(EXAMPLE_KEY_PRESSED, true);
+            PacketHandler.sendToServer(new SKeyPressAbilityOneUsed());
         }
     }
 }

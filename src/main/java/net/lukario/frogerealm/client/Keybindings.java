@@ -26,4 +26,11 @@ public final class Keybindings {
             InputConstants.getKey(InputConstants.KEY_V, -1),
             CATEGORY
     );
+
+    public final KeyMapping abilityOnePacketKey = new KeyMapping(
+            "key." + ForgeRealm.MOD_ID + ".ability_one_packet_key",
+            KeyConflictContext.IN_GAME,
+            InputConstants.getKey(InputConstants.KEY_G, -1),
+            CATEGORY
+    );
 }

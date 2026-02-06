@@ -23,6 +23,12 @@ public class PacketHandler {
                 .decoder(SKeyPressSpawnEntityPacket::new)
                 .consumerMainThread(SKeyPressSpawnEntityPacket::handle)
                 .add();
+
+        INSTANCE.messageBuilder(SKeyPressAbilityOneUsed.class, NetworkDirection.PLAY_TO_SERVER)
+                .encoder(SKeyPressAbilityOneUsed::encode)
+                .decoder(SKeyPressAbilityOneUsed::new)
+                .consumerMainThread(SKeyPressAbilityOneUsed::handle)
+                .add();
     }
 
     public static void sendToServer(Object msg) {
