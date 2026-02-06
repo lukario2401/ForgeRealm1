@@ -92,6 +92,22 @@ public class SoulCore {
         getModData(player).putFloat("soul_essence", clamped);
     }
 
+    // aspect
+
+    public static String getAspect(Player player) {
+        CompoundTag tag = getModData(player);
+
+        if (!tag.contains("soul_aspect")) {
+            tag.putString("soul_aspect", "none"); // default tier
+        }
+
+        return tag.getString("soul_aspect");
+    }
+
+
+    public static void setAspect(Player player, String aspectName) {
+        getModData(player).putString("soul_aspect", aspectName);
+    }
 
     // =========================
     // Copy data on death

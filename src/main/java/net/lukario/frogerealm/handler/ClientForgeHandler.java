@@ -3,9 +3,7 @@ package net.lukario.frogerealm.handler;
 
 import net.lukario.frogerealm.ForgeRealm;
 import net.lukario.frogerealm.client.Keybindings;
-import net.lukario.frogerealm.network.PacketHandler;
-import net.lukario.frogerealm.network.SKeyPressAbilityOneUsed;
-import net.lukario.frogerealm.network.SKeyPressSpawnEntityPacket;
+import net.lukario.frogerealm.network.*;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraftforge.api.distmarker.Dist;
@@ -32,6 +30,30 @@ public class ClientForgeHandler {
         if(Keybindings.INSTANCE.abilityOnePacketKey.consumeClick() && minecraft.player != null) {
             minecraft.player.displayClientMessage(EXAMPLE_KEY_PRESSED, true);
             PacketHandler.sendToServer(new SKeyPressAbilityOneUsed());
+        }
+        if(Keybindings.INSTANCE.abilityTwoPacketKey.consumeClick() && minecraft.player != null) {
+            minecraft.player.displayClientMessage(EXAMPLE_KEY_PRESSED, true);
+            PacketHandler.sendToServer(new SKeyPressAbilityTwoUsed());
+        }
+        if(Keybindings.INSTANCE.abilityThreePacketKey.consumeClick() && minecraft.player != null) {
+            minecraft.player.displayClientMessage(EXAMPLE_KEY_PRESSED, true);
+            PacketHandler.sendToServer(new SKeyPressAbilityThreeUsed());
+        }
+        if(Keybindings.INSTANCE.abilityFourPacketKey.consumeClick() && minecraft.player != null) {
+            minecraft.player.displayClientMessage(EXAMPLE_KEY_PRESSED, true);
+            PacketHandler.sendToServer(new SKeyPressAbilityFourUsed());
+        }
+        if(Keybindings.INSTANCE.abilityFivePacketKey.consumeClick() && minecraft.player != null) {
+            minecraft.player.displayClientMessage(EXAMPLE_KEY_PRESSED, true);
+            PacketHandler.sendToServer(new SKeyPressAbilityFiveUsed());
+        }
+        if(Keybindings.INSTANCE.abilitySixPacketKey.consumeClick() && minecraft.player != null) {
+            minecraft.player.displayClientMessage(EXAMPLE_KEY_PRESSED, true);
+            PacketHandler.sendToServer(new SKeyPressAbilitySixUsed());
+        }
+        if(Keybindings.INSTANCE.abilitySevenPacketKey.consumeClick() && minecraft.player != null) {
+            minecraft.player.displayClientMessage(EXAMPLE_KEY_PRESSED, true);
+            PacketHandler.sendToServer(new SKeyPressAbilitySevenUsed());
         }
     }
 }

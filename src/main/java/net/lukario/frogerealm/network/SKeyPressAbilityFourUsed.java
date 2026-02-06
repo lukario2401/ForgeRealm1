@@ -1,29 +1,19 @@
 package net.lukario.frogerealm.network;
 
 import net.lukario.frogerealm.shadow_slave.soul_shards.SoulCore;
-import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
-import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.MobSpawnType;
 import net.minecraftforge.event.network.CustomPayloadEvent;
-import net.minecraftforge.registries.ForgeRegistries;
 
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ThreadLocalRandom;
+public class SKeyPressAbilityFourUsed {
 
-public class SKeyPressAbilityOneUsed {
-
-    public SKeyPressAbilityOneUsed() {}
-    public SKeyPressAbilityOneUsed(FriendlyByteBuf buffer) {}
+    public SKeyPressAbilityFourUsed() {}
+    public SKeyPressAbilityFourUsed(FriendlyByteBuf buffer) {}
     public void encode(FriendlyByteBuf buffer) {}
 
     public void handle(CustomPayloadEvent.Context context) {
@@ -32,7 +22,7 @@ public class SKeyPressAbilityOneUsed {
             return;
 
         ServerLevel level = player.serverLevel();
-        player.sendSystemMessage(Component.literal("worked 1"));
+        player.sendSystemMessage(Component.literal("worked 4"));
         player.playNotifySound(
                 SoundEvents.DRAGON_FIREBALL_EXPLODE,
                 SoundSource.PLAYERS,
@@ -40,7 +30,7 @@ public class SKeyPressAbilityOneUsed {
                 1.0f
         );
         level.sendParticles(player, ParticleTypes.EXPLOSION_EMITTER,true,player.getX(),player.getY(),player.getZ(),1,0,0,0,0);
-        SoulCore.setSoulEssence(player,SoulCore.getSoulEssence(player)-100);
+        SoulCore.setSoulEssence(player,SoulCore.getSoulEssence(player)-400);
     }
 
 }

@@ -39,6 +39,15 @@
 
   "key.forgerealmmod.example_key": "Example Key",
   "key.forgerealmmod.example_packet_key": "Example Packet Key",
+
+  "key.forgerealmmod.ability_one_packet_key": "Soul Ability One",
+  "key.forgerealmmod.ability_two_packet_key": "Soul Ability Two",
+  "key.forgerealmmod.ability_three_packet_key": "Soul Ability Three",
+  "key.forgerealmmod.ability_four_packet_key": "Soul Ability Four",
+  "key.forgerealmmod.ability_five_packet_key": "Soul Ability Five",
+  "key.forgerealmmod.ability_six_packet_key": "Soul Ability Six",
+  "key.forgerealmmod.ability_seven_packet_key": "Soul Ability Seven",
+
   "message.forgerealmmod.example_key_pressed": "Example Key was pressed!",
 
   "key.forgerealmmod.dash": "Dash",

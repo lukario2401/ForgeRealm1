@@ -3,6 +3,7 @@ package net.lukario.frogerealm.shadow_slave.soul_shards;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.FloatArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.EntityArgument;
@@ -36,9 +37,11 @@ public class SoulShardCommands {
                                     int shards = SoulCore.getSoulShards(player);
                                     int tier = SoulCore.getAspectTier(player);
                                     float soulEssence = SoulCore.getSoulEssence(player);
+                                    String aspectName = SoulCore.getAspect(player);
 
                                     ctx.getSource().sendSuccess(() ->
                                                     Component.literal("Player: " + player.getName().getString()
+                                                            + " / Aspect Name: " + aspectName
                                                             + " / Tier: " + tier
                                                             + " / SoulShards: " + shards
                                                             + " / Soul Essence: " + soulEssence
@@ -135,6 +138,29 @@ public class SoulShardCommands {
                                 )
                         )
                 )
+                // =========================
+                // /soul setAspect <player> <tier>
+                // =========================
+                .then(Commands.literal("setAspect")
+                        .then(Commands.argument("player", EntityArgument.player())
+                                .then(Commands.argument("aspect_name", StringArgumentType.string())
+                                        .executes(ctx -> {
+                                            Player player = EntityArgument.getPlayer(ctx, "player");
+                                            String aspectName = StringArgumentType.getString(ctx, "aspect_name");
+
+                                            SoulCore.setAspect(player, aspectName);
+
+                                            ctx.getSource().sendSuccess(() ->
+                                                            Component.literal("Aspect is set to: " + SoulCore.getAspect(player)),
+                                                    false
+                                            );
+
+                                            return 1;
+                                        })
+                                )
+                        )
+                )
+
         );
     }
 }

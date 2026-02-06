@@ -33,4 +33,40 @@ public final class Keybindings {
             InputConstants.getKey(InputConstants.KEY_G, -1),
             CATEGORY
     );
+    public final KeyMapping abilityTwoPacketKey = new KeyMapping(
+            "key." + ForgeRealm.MOD_ID + ".ability_two_packet_key",
+            KeyConflictContext.IN_GAME,
+            InputConstants.getKey(InputConstants.KEY_H, -1),
+            CATEGORY
+    );
+    public final KeyMapping abilityThreePacketKey = new KeyMapping(
+            "key." + ForgeRealm.MOD_ID + ".ability_three_packet_key",
+            KeyConflictContext.IN_GAME,
+            InputConstants.getKey(InputConstants.KEY_J, -1),
+            CATEGORY
+    );
+    public final KeyMapping abilityFourPacketKey = new KeyMapping(
+            "key." + ForgeRealm.MOD_ID + ".ability_four_packet_key",
+            KeyConflictContext.IN_GAME,
+            InputConstants.getKey(InputConstants.KEY_K, -1),
+            CATEGORY
+    );
+    public final KeyMapping abilityFivePacketKey = new KeyMapping(
+            "key." + ForgeRealm.MOD_ID + ".ability_five_packet_key",
+            KeyConflictContext.IN_GAME,
+            InputConstants.getKey(InputConstants.KEY_L, -1),
+            CATEGORY
+    );
+    public final KeyMapping abilitySixPacketKey = new KeyMapping(
+            "key." + ForgeRealm.MOD_ID + ".ability_six_packet_key",
+            KeyConflictContext.IN_GAME,
+            InputConstants.getKey(InputConstants.KEY_N, -1),
+            CATEGORY
+    );
+    public final KeyMapping abilitySevenPacketKey = new KeyMapping(
+            "key." + ForgeRealm.MOD_ID + ".ability_seven_packet_key",
+            KeyConflictContext.IN_GAME,
+            InputConstants.getKey(InputConstants.KEY_M, -1),
+            CATEGORY
+    );
 }

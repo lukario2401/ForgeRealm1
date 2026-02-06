@@ -18,12 +18,12 @@ public class ClientModHandler {
         event.register(Keybindings.INSTANCE.exampleKey);
         event.register(Keybindings.INSTANCE.examplePacketKey);
         event.register(Keybindings.INSTANCE.abilityOnePacketKey);
-//        event.register(Keybindings.INSTANCE.abilityTwoPacketKey);
-//        event.register(Keybindings.INSTANCE.abilityThreePacketKey);
-//        event.register(Keybindings.INSTANCE.abilityFourPacketKey);
-//        event.register(Keybindings.INSTANCE.abilityFivePacketKey);
-//        event.register(Keybindings.INSTANCE.abilitySixPacketKey);
-//        event.register(Keybindings.INSTANCE.abilitySevenPacketKey);
+        event.register(Keybindings.INSTANCE.abilityTwoPacketKey);
+        event.register(Keybindings.INSTANCE.abilityThreePacketKey);
+        event.register(Keybindings.INSTANCE.abilityFourPacketKey);
+        event.register(Keybindings.INSTANCE.abilityFivePacketKey);
+        event.register(Keybindings.INSTANCE.abilitySixPacketKey);
+        event.register(Keybindings.INSTANCE.abilitySevenPacketKey);
     }
 
 }
