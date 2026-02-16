@@ -33,7 +33,7 @@ public class SoulHandler {
 
         if (player.tickCount % 5 == 0) {
 
-            SoulCore.setSoulEssence(player, SoulCore.getSoulEssence(player) + SoulCore.getAspectTier(player) * SoulCore.getAspectTier(player));
+            SoulCore.setSoulEssence(player, SoulCore.getSoulEssence(player) + SoulCore.getAspectTier(player) * SoulCore.getAspectTier(player) * SoulCore.getAscensionStage(player));
 
             player.displayClientMessage(
                     Component.literal("Soul Essence: " + SoulCore.getSoulEssence(player)),  // text

@@ -26,7 +26,7 @@ public class SoulCore {
     // =========================
     private static int clampSoulShards(Player player, int value) {
         int tier = Math.max(1, getAspectTier(player)); // avoid tier = 0
-        int max = 1000 * tier;
+        int max = 250 * tier * SoulCore.getAscensionStage(player);
         return Math.max(0, Math.min(value, max));
     }
 
@@ -74,6 +74,26 @@ public class SoulCore {
         setSoulShards(player, getSoulShards(player));
     }
 
+    // =========================
+    // Aspect level
+    // =========================
+    public static int getAscensionStage(Player player) {
+        CompoundTag tag = getModData(player);
+
+        if (!tag.contains("aspect_level")) {
+            tag.putInt("aspect_level", 1); // default tier
+        }
+
+        return tag.getInt("aspect_level");
+    }
+
+
+    public static void setAscensionStage(Player player, int value) {
+        int clamped = Math.min(7, Math.max(1, value)); // tier must be between 1 and 7
+        getModData(player).putInt("aspect_level", clamped);
+
+        setSoulShards(player, getSoulShards(player));
+    }
 
     public static float getSoulEssence(Player player) {
         CompoundTag tag = getModData(player);
@@ -87,7 +107,7 @@ public class SoulCore {
 
 
     public static void setSoulEssence(Player player, float value) {
-        float maxValue = (float) (getSoulShards(player) /100) * (getAspectTier(player) * 10);
+        float maxValue = (float) ((getSoulShards(player)/100) * (getAscensionStage(player) * 10)) * getAspectTier(player) ;
         float clamped = Math.min(maxValue, Math.max(0, value)); // tier must be between 1 and 7
         getModData(player).putFloat("soul_essence", clamped);
     }

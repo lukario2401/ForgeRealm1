@@ -36,11 +36,13 @@ public class SoulShardCommands {
 
                                     int shards = SoulCore.getSoulShards(player);
                                     int tier = SoulCore.getAspectTier(player);
+                                    int stage = SoulCore.getAscensionStage(player);
                                     float soulEssence = SoulCore.getSoulEssence(player);
                                     String aspectName = SoulCore.getAspect(player);
 
                                     ctx.getSource().sendSuccess(() ->
                                                     Component.literal("Player: " + player.getName().getString()
+                                                            + " / Ascension Stage: " + stage
                                                             + " / Aspect Name: " + aspectName
                                                             + " / Tier: " + tier
                                                             + " / SoulShards: " + shards
@@ -131,6 +133,27 @@ public class SoulShardCommands {
 
                                             ctx.getSource().sendSuccess(() ->
                                                             Component.literal("Set Aspect Tier to " + SoulCore.getAspectTier(player)),
+                                                    false
+                                            );
+                                            return 1;
+                                        })
+                                )
+                        )
+                )
+                // =========================
+                // /soul setstage <player> <stage>
+                // =========================
+                .then(Commands.literal("setstage")
+                        .then(Commands.argument("player", EntityArgument.player())
+                                .then(Commands.argument("stage", IntegerArgumentType.integer(1))
+                                        .executes(ctx -> {
+                                            Player player = EntityArgument.getPlayer(ctx, "player");
+                                            int tier = IntegerArgumentType.getInteger(ctx, "stage");
+
+                                            SoulCore.setAscensionStage(player, tier);
+
+                                            ctx.getSource().sendSuccess(() ->
+                                                            Component.literal("Set Ascension Stage to " + SoulCore.getAscensionStage(player)),
                                                     false
                                             );
                                             return 1;
