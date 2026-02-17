@@ -105,7 +105,6 @@ public class SoulCore {
         return tag.getFloat("soul_essence");
     }
 
-
     public static void setSoulEssence(Player player, float value) {
         float maxValue = (float) ((getSoulShards(player)/100) * (getAscensionStage(player) * 10)) * getAspectTier(player) ;
         float clamped = Math.min(maxValue, Math.max(0, value)); // tier must be between 1 and 7
@@ -113,7 +112,6 @@ public class SoulCore {
     }
 
     // aspect
-
     public static String getAspect(Player player) {
         CompoundTag tag = getModData(player);
 

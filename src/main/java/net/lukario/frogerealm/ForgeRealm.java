@@ -3,6 +3,7 @@ package net.lukario.frogerealm;
 import com.mojang.logging.LogUtils;
 import net.lukario.frogerealm.item.CreativeModTabs;
 import net.lukario.frogerealm.item.ModItems;
+import net.lukario.frogerealm.particles.ModParticles;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
@@ -39,7 +40,7 @@ public class ForgeRealm
 
         CreativeModTabs.register(modEventBus);
         ModItems.register(modEventBus);
-
+        ModParticles.PARTICLES.register(modEventBus);
 
         // Register the item to a creative tab
         modEventBus.addListener(this::addCreative);

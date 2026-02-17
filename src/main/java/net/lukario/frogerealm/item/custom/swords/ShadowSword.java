@@ -4,6 +4,7 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.*;
+import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.level.Level;
 
 public class ShadowSword extends SwordItem {
@@ -57,4 +58,10 @@ public class ShadowSword extends SwordItem {
         return InteractionResultHolder.success(stack);
     }
 
+    @Override
+    public int getEnchantmentValue() {
+        // Return the enchantability level.
+        // Iron = 14, Diamond = 10, Netherite = 15, Gold = 22.
+        return 24;
+    }
 }
