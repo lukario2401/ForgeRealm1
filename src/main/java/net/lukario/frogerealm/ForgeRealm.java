@@ -1,6 +1,7 @@
 package net.lukario.frogerealm;
 
 import com.mojang.logging.LogUtils;
+import net.lukario.frogerealm.effects.ModEffects;
 import net.lukario.frogerealm.item.CreativeModTabs;
 import net.lukario.frogerealm.item.ModItems;
 import net.lukario.frogerealm.particles.ModParticles;
@@ -41,6 +42,7 @@ public class ForgeRealm
         CreativeModTabs.register(modEventBus);
         ModItems.register(modEventBus);
         ModParticles.PARTICLES.register(modEventBus);
+        ModEffects.register(modEventBus);
 
         // Register the item to a creative tab
         modEventBus.addListener(this::addCreative);

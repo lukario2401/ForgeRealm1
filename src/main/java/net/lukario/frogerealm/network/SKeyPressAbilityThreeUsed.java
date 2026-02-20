@@ -20,17 +20,6 @@ public class SKeyPressAbilityThreeUsed {
         ServerPlayer player = context.getSender();
         if(player == null)
             return;
-
-        ServerLevel level = player.serverLevel();
-        player.sendSystemMessage(Component.literal("worked 3"));
-        player.playNotifySound(
-                SoundEvents.DRAGON_FIREBALL_EXPLODE,
-                SoundSource.PLAYERS,
-                1.0f,
-                1.0f
-        );
-        level.sendParticles(player, ParticleTypes.EXPLOSION_EMITTER,true,player.getX(),player.getY(),player.getZ(),1,0,0,0,0);
-        SoulCore.setSoulEssence(player,SoulCore.getSoulEssence(player)-300);
     }
 
 }

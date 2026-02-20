@@ -31,14 +31,15 @@ public class SoulHandler {
         if (event.phase != TickEvent.Phase.END || event.player.level().isClientSide) return;
         Player player = event.player;
 
-        if (player.tickCount % 5 == 0) {
+//        if (player.tickCount % 5 == 0) {
 
-            SoulCore.setSoulEssence(player, SoulCore.getSoulEssence(player) + SoulCore.getAspectTier(player) * SoulCore.getAspectTier(player) * SoulCore.getAscensionStage(player));
+
+            SoulCore.setSoulEssence(player, SoulCore.getSoulEssence(player) + (float) (SoulCore.getAspectTier(player) * SoulCore.getAspectTier(player) * SoulCore.getAscensionStage(player)) /(8-SoulCore.getAscensionStage(player)));
 
             player.displayClientMessage(
                     Component.literal("Soul Essence: " + SoulCore.getSoulEssence(player)),  // text
                     true
             );
-        }
+//        }
     }
 }
