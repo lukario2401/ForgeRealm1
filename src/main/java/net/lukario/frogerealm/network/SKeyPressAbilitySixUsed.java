@@ -8,7 +8,11 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.level.Level;
 import net.minecraftforge.event.network.CustomPayloadEvent;
+
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilityFourUsed;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilitySixUsed;
 
 public class SKeyPressAbilitySixUsed {
 
@@ -21,16 +25,12 @@ public class SKeyPressAbilitySixUsed {
         if(player == null)
             return;
 
-        ServerLevel level = player.serverLevel();
-        player.sendSystemMessage(Component.literal("worked 6"));
-        player.playNotifySound(
-                SoundEvents.DRAGON_FIREBALL_EXPLODE,
-                SoundSource.PLAYERS,
-                1.0f,
-                1.0f
-        );
-        level.sendParticles(player, ParticleTypes.EXPLOSION_EMITTER,true,player.getX(),player.getY(),player.getZ(),1,0,0,0,0);
-        SoulCore.setSoulEssence(player,SoulCore.getSoulEssence(player)-600);
+        Level level = player.level();
+
+        if (!(level instanceof ServerLevel serverLevel)) return;
+
+        shadowSlaveAspectAbilitySixUsed(player,level,serverLevel);
+
     }
 
 }
