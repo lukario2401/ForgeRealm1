@@ -50,6 +50,10 @@
 
   "message.forgerealmmod.example_key_pressed": "Example Key was pressed!",
 
+
+  "effect.forgerealmmod.shadow_mark": "Shadow Mark",
+  "effect.forgerealmmod.abyssal_monarch_mark": "Abyssal Monarch Mark",
+
   "key.forgerealmmod.dash": "Dash",
   "key.forgerealmmod.star_burst": "Star Burst",
   "key.categories.forgerealmmod": "Forged Realm"
