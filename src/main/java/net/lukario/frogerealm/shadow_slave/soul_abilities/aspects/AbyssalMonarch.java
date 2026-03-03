@@ -81,7 +81,7 @@ public class AbyssalMonarch {
                 ServerPlayer owner = (ServerPlayer) serverLevel.getPlayerByUUID(ownerUUID);
                 if (owner == null) continue;
 
-                AABB attackBox = shade.getBoundingBox().inflate(12.0);
+                AABB attackBox = owner.getBoundingBox().inflate(12.0);
                 List<LivingEntity> targets = serverLevel.getEntitiesOfClass(LivingEntity.class, attackBox, target -> {
                     // 1. Basic safety: Must be alive and NOT the shade itself
                     if (!target.isAlive() || target.getUUID().equals(shade.getUUID())) {
@@ -102,22 +102,38 @@ public class AbyssalMonarch {
                     return true;
                 });
 
+                if (targets.isEmpty()) {
+                    // No targets: Return to owner
+                    if (shade.distanceTo(owner) > 2.0) {
+                        shade.teleportTo(owner.getX() + 1, owner.getY() + 1, owner.getZ() + 1);
+                    }
+                } else {
+                    // 1. Find the target closest to the PLAYER (Bodyguard mode)
+                    LivingEntity closestToPlayer = targets.getFirst();
+                    double closestDistSq = closestToPlayer.distanceToSqr(owner);
 
-                if (targets.isEmpty()){
-                    shade.teleportTo(owner.getX()+1,owner.getY()+1,owner.getZ()+1);
-                }else{
-                    LivingEntity target = targets.getFirst();
-                    float distance = shade.distanceTo(target);
-                    owner.sendSystemMessage(Component.literal("Distance: "+distance));
+                    for (int i = 1; i < targets.size(); i++) {
+                        LivingEntity potential = targets.get(i);
+                        double distSq = potential.distanceToSqr(owner);
 
-                    shade.teleportTo(target.getX(),target.getY(),target.getZ());
-                    if (distance<=1.5) {
-                        target.hurt(serverLevel.damageSources().playerAttack(owner), 0.5f);
-                        target.invulnerableTime = 0;
+                        if (distSq < closestDistSq) {
+                            closestToPlayer = potential;
+                            closestDistSq = distSq;
+                        }
+                    }
+
+                    // 2. Teleport the shade to that specific target
+                    shade.teleportTo(closestToPlayer.getX(), closestToPlayer.getY(), closestToPlayer.getZ());
+
+                    // 3. Damage Logic: Check if the shade is actually touching the target
+                    // We check distance from SHADE to TARGET here for the hit
+                    if (owner.tickCount % 5 == 0) {
+                        if (shade.distanceToSqr(closestToPlayer) <= 2.25){
+                            closestToPlayer.hurt(serverLevel.damageSources().playerAttack(owner), 2.5f);
+                            closestToPlayer.invulnerableTime = 0;
+                        }
                     }
                 }
-
-                owner.sendSystemMessage(Component.literal("Targets: "+targets));
             }
         }
     }
