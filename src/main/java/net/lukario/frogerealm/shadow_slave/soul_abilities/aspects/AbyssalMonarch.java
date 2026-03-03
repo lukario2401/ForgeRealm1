@@ -3,12 +3,14 @@ package net.lukario.frogerealm.shadow_slave.soul_abilities.aspects;
 import net.lukario.frogerealm.ForgeRealm;
 import net.lukario.frogerealm.effects.ModEffects;
 import net.lukario.frogerealm.shadow_slave.soul_shards.SoulCore;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.Mth;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.damagesource.DamageSources;
 import net.minecraft.world.effect.MobEffect;
@@ -21,6 +23,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.TickEvent;
@@ -57,6 +60,33 @@ public class AbyssalMonarch {
     public static class ShadeEvents {
 
         @SubscribeEvent
+        public static void onAbyssalZoneTick(TickEvent.LevelTickEvent event) {
+            if (event.phase != TickEvent.Phase.END || !(event.level instanceof ServerLevel serverLevel)) return;
+
+            // 1. Find all active Zones (anchored by ArmorStands)
+            for (Entity entity1 : serverLevel.getAllEntities()) {
+                if (entity1.isAlive() && entity1 instanceof Player player){
+                    if (!SoulCore.getAspect(player).equals("Abyssal Monarch"))return;
+                    if (SoulCore.getAscensionStage(player) < 5) return;
+
+                    double radius = 12;
+
+                    AABB zoneArea = player.getBoundingBox().inflate(radius);
+                    serverLevel.sendParticles(ParticleTypes.SQUID_INK, player.getX(), player.getY()+0.1, player.getZ(), 10, radius/2, 0.1, radius/2, 0.05);
+
+                    List<LivingEntity> enemies = serverLevel.getEntitiesOfClass(LivingEntity.class, zoneArea, e -> e.isAlive() && !e.equals(player) && e instanceof LivingEntity);
+                    for (LivingEntity enemy : enemies) {
+                        enemy.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 10, 1)); // Slow II
+
+                        if (player.tickCount % 20 == 0) {
+                            enemy.hurt(serverLevel.damageSources().magic(), 2.0f);
+                        }
+                    }
+                }
+            }
+        }
+
+        @SubscribeEvent
         public static void onShadeTick(TickEvent.LevelTickEvent event) {
             if (event.phase != TickEvent.Phase.END || !(event.level instanceof ServerLevel serverLevel)) return;
 
@@ -91,6 +121,12 @@ public class AbyssalMonarch {
                     if (target.getUUID().equals(ownerUUID)) {
                         return false;
                     }
+                    if (target.getPersistentData().contains("AbyssalSpawnOwner")) {
+                        // 2. Safely get the UUID and use .equals()
+                        if (target.getPersistentData().getUUID("AbyssalSpawnOwner").equals(ownerUUID)) {
+                            return false; // It's an ally, don't target it
+                        }
+                    }
                     // 3. Handle other Shades
                     if (target.getPersistentData().contains("ShadeOwner")) {
                         UUID otherOwner = target.getPersistentData().getUUID("ShadeOwner");
@@ -104,9 +140,8 @@ public class AbyssalMonarch {
 
                 if (targets.isEmpty()) {
                     // No targets: Return to owner
-                    if (shade.distanceTo(owner) > 2.0) {
-                        shade.teleportTo(owner.getX() + 1, owner.getY() + 1, owner.getZ() + 1);
-                    }
+                    shade.teleportTo(owner.getX() + 1, owner.getY() + 1, owner.getZ() + 1);
+
                 } else {
                     // 1. Find the target closest to the PLAYER (Bodyguard mode)
                     LivingEntity closestToPlayer = targets.getFirst();
@@ -135,6 +170,104 @@ public class AbyssalMonarch {
                     }
                 }
             }
+        }
+        @SubscribeEvent
+        public static void onAbyssalSpawnTick(TickEvent.LevelTickEvent event) {
+            if (event.phase != TickEvent.Phase.END || !(event.level instanceof ServerLevel serverLevel)) return;
+
+            for (Entity entity : serverLevel.getAllEntities()) {
+                if (!(entity instanceof ArmorStand abyssalSpawn)) continue;
+
+                // 2. Filter for your Shades
+                if (!abyssalSpawn.getPersistentData().contains("AbyssalSpawnOwner")) continue;
+
+                UUID ownerUUID = abyssalSpawn.getPersistentData().getUUID("AbyssalSpawnOwner");
+                int life = abyssalSpawn.getPersistentData().getInt("AbyssalSpawnLife");
+
+                // 3. Handle Lifetime
+                if (life > 0) {
+                    abyssalSpawn.getPersistentData().putInt("AbyssalSpawnLife", life - 1);
+                } else {
+                    abyssalSpawn.discard();
+                    continue;
+                }
+
+                ServerPlayer owner = (ServerPlayer) serverLevel.getPlayerByUUID(ownerUUID);
+                if (owner == null) continue;
+
+                AABB attackBox = owner.getBoundingBox().inflate(12.0);
+                List<LivingEntity> targets = serverLevel.getEntitiesOfClass(LivingEntity.class, attackBox, target -> {
+                    // 1. Basic safety: Must be alive and NOT the shade itself
+                    if (!target.isAlive() || target.getUUID().equals(abyssalSpawn.getUUID())) {
+                        return false;
+                    }
+                    if (target.getPersistentData().contains("ShadeOwner")) {
+                        // 2. Safely get the UUID and use .equals()
+                        if (target.getPersistentData().getUUID("ShadeOwner").equals(ownerUUID)) {
+                            return false; // It's an ally, don't target it
+                        }
+                    }
+                    // 2. Protect the owner
+                    if (target.getUUID().equals(ownerUUID)) {
+                        return false;
+                    }
+                    // 3. Handle other Shades
+                    if (target.getPersistentData().contains("AbyssalSpawnOwner")) {
+                        UUID otherOwner = target.getPersistentData().getUUID("AbyssalSpawnOwner");
+                        // Only ignore if it belongs to the SAME owner (allies)
+                        // If you want shades to fight OTHER players' shades, keep this as is.
+                        return !otherOwner.equals(ownerUUID);
+                    }
+                    // 4. If it's not a shade and not the owner, it's a valid enemy (Zombie, Skeleton, etc.)
+                    return true;
+                });
+
+                if (targets.isEmpty()) {
+                    // No targets: Return to owner
+                    abyssalSpawn.teleportTo(owner.getX() + 1, owner.getY() + 1, owner.getZ() + 1);
+
+                } else {
+                    // 1. Find the target closest to the PLAYER (Bodyguard mode)
+                    LivingEntity closestToPlayer = targets.getFirst();
+                    double closestDistSq = closestToPlayer.distanceToSqr(owner);
+
+                    for (int i = 1; i < targets.size(); i++) {
+                        LivingEntity potential = targets.get(i);
+                        double distSq = potential.distanceToSqr(owner);
+
+                        if (distSq < closestDistSq) {
+                            closestToPlayer = potential;
+                            closestDistSq = distSq;
+                        }
+                    }
+                    // 3. Damage Logic: Check if the shade is actually touching the target
+                    // We check distance from SHADE to TARGET here for the hit
+                    if (owner.tickCount % 20 == 0) {
+                        twoPlaceRayCast(owner, serverLevel, abyssalSpawn, closestToPlayer);
+                    }
+                }
+            }
+        }
+
+        private static void twoPlaceRayCast(Player player, ServerLevel serverLevel, ArmorStand armorStand, LivingEntity target){
+
+            Vec3 start = armorStand.position();
+            Vec3 end  = target.position();
+
+            Vec3 direction = end.subtract(start).normalize();
+            double distanceToTravel = start.distanceTo(end);
+
+            Vec3 step = direction.scale(0.5);
+
+            Vec3 c = start;
+            for (double distance = 0; distance <= distanceToTravel; distance +=0.5 ){
+
+                serverLevel.sendParticles(ParticleTypes.TRIAL_OMEN, c.x, c.y, c.z, 1, 0, 0, 0, 0);
+                c = c.add(step);
+            }
+
+            target.hurt(serverLevel.damageSources().playerAttack(player),24.0f);
+            target.invulnerableTime = 0;
         }
     }
 
@@ -260,6 +393,41 @@ public class AbyssalMonarch {
                 shade.getPersistentData().putUUID("ShadeOwner", player.getUUID());
                 shade.getPersistentData().putInt("ShadeLife", 600); // 30 seconds
                 shade.getPersistentData().putInt("ShadeStage", stage);
+
+                level.addFreshEntity(shade);
+
+                // Sound/Particles
+                level.playSound(null, shade.blockPosition(), SoundEvents.ENDERMAN_TELEPORT, SoundSource.PLAYERS, 1f, 0.5f);
+            }
+        }
+    }
+    public static void abyssalMonarchAbilitySix(Player player, ServerLevel level) {
+        if (SoulCore.getSoulEssence(player) < 6000) return;
+        if (!SoulCore.getAspect(player).equals("Abyssal Monarch"))return;
+        int stage = SoulCore.getAscensionStage(player);
+        if (SoulCore.getAscensionStage(player)<5)return;
+
+        SoulCore.setSoulEssence(player, SoulCore.getSoulEssence(player) - 6000);
+//        int count = (stage >= 5) ? 2 : 1;
+        int count = 1;
+
+        for (int i = 0; i < count; i++) {
+            ArmorStand shade = EntityType.ARMOR_STAND.create(level);
+            if (shade != null) {
+                // Setup "Shade" Appearance
+                shade.isMarker();
+                shade.setNoGravity(true);
+                shade.setNoBasePlate(true);
+                shade.setCustomName(Component.literal("Abyssal Spawn of " + player.getName().getString()));
+
+                // Position near player
+                shade.moveTo(player.getX() + (i * 1.2), player.getY() + 0.5, player.getZ(), player.getYRot(), 0);
+
+                // Store Metadata (Owner and Duration)
+                // Using Forge/Vanilla Tags to identify it later
+                shade.getPersistentData().putUUID("AbyssalSpawnOwner", player.getUUID());
+                shade.getPersistentData().putInt("AbyssalSpawnLife", 900); // 30 seconds
+                shade.getPersistentData().putInt("AbyssalSpawnStage", stage);
 
                 level.addFreshEntity(shade);
 

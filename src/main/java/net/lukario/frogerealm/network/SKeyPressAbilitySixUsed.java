@@ -11,6 +11,7 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.event.network.CustomPayloadEvent;
 
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AbyssalMonarch.abyssalMonarchAbilitySix;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilityFourUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilitySixUsed;
 
@@ -30,6 +31,7 @@ public class SKeyPressAbilitySixUsed {
         if (!(level instanceof ServerLevel serverLevel)) return;
 
         shadowSlaveAspectAbilitySixUsed(player,level,serverLevel);
+        abyssalMonarchAbilitySix(player,serverLevel);
 
     }
 
