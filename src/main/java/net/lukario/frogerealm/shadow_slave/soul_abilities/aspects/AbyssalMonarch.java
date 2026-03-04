@@ -349,10 +349,10 @@ public class AbyssalMonarch {
                 }
             }
 
-            if (victim.tickCount % 5 == 0) { // Only check every 2 seconds to avoid lag
-                String msg = "§dMark Lvl: §l" + (amplifier + 1) + " §r| §7Target: " + victim.getName().getString();
-                victim.level().players().forEach(p -> p.sendSystemMessage(Component.literal(msg)));
-            }
+//            if (victim.tickCount % 5 == 0) { // Only check every 2 seconds to avoid lag
+//                String msg = "§dMark Lvl: §l" + (amplifier + 1) + " §r| §7Target: " + victim.getName().getString();
+//                victim.level().players().forEach(p -> p.sendSystemMessage(Component.literal(msg)));
+//            }
             return true;
         }
 
