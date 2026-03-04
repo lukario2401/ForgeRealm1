@@ -43,14 +43,41 @@ public class AbyssalMonarch {
 
         @SubscribeEvent
         public static void onDamageTaken(LivingHurtEvent event) {
+            // 1. Ensure the attacker is a player and the victim is a living entity
             if (event.getSource().getEntity() instanceof Player player) {
-                if (SoulCore.getAspect(player).equals("Abyssal Monarch")) {
-                    if (SoulCore.getSoulEssence(player) > 250 && SoulCore.getAscensionStage(player) >= 2) {
-                        SoulCore.setSoulEssence(player, SoulCore.getSoulEssence(player) - 250);
+                LivingEntity victim = event.getEntity();
 
-                        LivingEntity victim = event.getEntity();
-                        victim.addEffect(new MobEffectInstance(ModEffects.Abyssal_Monarch_MARK.getHolder().get(), 200, 0));
+                // 2. Requirements check
+                if (SoulCore.getAspect(player).equals("Abyssal Monarch") &&
+                        SoulCore.getSoulEssence(player) >= 250 &&
+                        SoulCore.getAscensionStage(player) >= 5) {
+
+                    // Deduct Essence
+                    SoulCore.setSoulEssence(player, SoulCore.getSoulEssence(player) - 250);
+
+                    // 3. Define the effect and calculate the amplifier
+                    var effectHolder = ModEffects.Abyssal_Monarch_MARK.getHolder().get();
+                    int finalAmplifier = 0;
+
+                    // If stage > 4, we calculate stacking
+                    if (SoulCore.getAscensionStage(player) > 4) {
+                        MobEffectInstance activeMark = victim.getEffect(effectHolder);
+                        if (activeMark != null) {
+                            // Increment the stack, maxing out at Level 10 (amplifier 9)
+                            if (SoulCore.getAscensionStage(player) == 7){
+                                finalAmplifier = Math.min(activeMark.getAmplifier() + 1, 23);
+                            }else {
+                                finalAmplifier = Math.min(activeMark.getAmplifier() + 1, 11);
+                            }
+                        }
                     }
+
+                    // 4. Apply the effect (this replaces the old one automatically)
+                    victim.addEffect(new MobEffectInstance(effectHolder, 200, finalAmplifier));
+                } else if (SoulCore.getAspect(player).equals("Abyssal Monarch") &&
+                        SoulCore.getSoulEssence(player) >= 250 &&
+                        SoulCore.getAscensionStage(player) >= 2) {
+                    victim.addEffect(new MobEffectInstance(ModEffects.Abyssal_Monarch_MARK.getHolder().get(), 200, 0));
                 }
             }
         }
@@ -67,8 +94,8 @@ public class AbyssalMonarch {
             for (Entity entity1 : serverLevel.getAllEntities()) {
                 if (entity1.isAlive() && entity1 instanceof Player player){
                     if (!SoulCore.getAspect(player).equals("Abyssal Monarch"))return;
-                    if (SoulCore.getAscensionStage(player) < 5) return;
-
+                    if (SoulCore.getAscensionStage(player) < 8) return;
+//fix later
                     double radius = 12;
 
                     AABB zoneArea = player.getBoundingBox().inflate(radius);
@@ -110,6 +137,10 @@ public class AbyssalMonarch {
 
                 ServerPlayer owner = (ServerPlayer) serverLevel.getPlayerByUUID(ownerUUID);
                 if (owner == null) continue;
+
+                serverLevel.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, shade.getX(), shade.getY()+0.1, shade.getZ()+1, 2, 0.3, 0.3, 0.3, 0);
+                serverLevel.sendParticles(ParticleTypes.FLAME, shade.getX(), shade.getY()+0.1, shade.getZ()+1, 1, 0.2, 0.2, 0.2, 0);
+
 
                 AABB attackBox = owner.getBoundingBox().inflate(12.0);
                 List<LivingEntity> targets = serverLevel.getEntitiesOfClass(LivingEntity.class, attackBox, target -> {
@@ -195,6 +226,10 @@ public class AbyssalMonarch {
                 ServerPlayer owner = (ServerPlayer) serverLevel.getPlayerByUUID(ownerUUID);
                 if (owner == null) continue;
 
+                serverLevel.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, abyssalSpawn.getX(), abyssalSpawn.getY()+1, abyssalSpawn.getZ(), 3, 0, 0.5, 0, 0);
+                serverLevel.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, abyssalSpawn.getX(), abyssalSpawn.getY()+1, abyssalSpawn.getZ(), 3, 0.5, 0, 0, 0);
+                serverLevel.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, abyssalSpawn.getX(), abyssalSpawn.getY()+1, abyssalSpawn.getZ(), 3, 0, 0, 0.5, 0);
+
                 AABB attackBox = owner.getBoundingBox().inflate(12.0);
                 List<LivingEntity> targets = serverLevel.getEntitiesOfClass(LivingEntity.class, attackBox, target -> {
                     // 1. Basic safety: Must be alive and NOT the shade itself
@@ -251,7 +286,7 @@ public class AbyssalMonarch {
 
         private static void twoPlaceRayCast(Player player, ServerLevel serverLevel, ArmorStand armorStand, LivingEntity target){
 
-            Vec3 start = armorStand.position();
+            Vec3 start = armorStand.position().add(0,1,0);
             Vec3 end  = target.position();
 
             Vec3 direction = end.subtract(start).normalize();
@@ -262,7 +297,7 @@ public class AbyssalMonarch {
             Vec3 c = start;
             for (double distance = 0; distance <= distanceToTravel; distance +=0.5 ){
 
-                serverLevel.sendParticles(ParticleTypes.TRIAL_OMEN, c.x, c.y, c.z, 1, 0, 0, 0, 0);
+                serverLevel.sendParticles(ParticleTypes.TRIAL_OMEN, c.x, c.y, c.z, 2, 0, 0, 0, 0);
                 c = c.add(step);
             }
 
@@ -277,8 +312,54 @@ public class AbyssalMonarch {
         }
 
         @Override
+        public boolean applyEffectTick(LivingEntity victim, int amplifier) {
+            // Minecraft levels are Amplifier + 1.
+            // Level > 5 means amplifier is 5 or higher.
+
+            if (victim.tickCount%50==0){
+                if (amplifier >= 5) {
+                    victim.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 60, 0, true, false));
+                }
+
+                // TIER 2: Level 11+ (Amplifier 10) -> Weakness
+                if (amplifier >= 10) {
+                    victim.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 60, 0, true, false));
+                    victim.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 60, 1, true, false));
+
+                }
+
+                // TIER 3: Level 16+ (Amplifier 15) -> Wither (The "And so on" part)
+                if (amplifier >= 15) {
+                    victim.addEffect(new MobEffectInstance(MobEffects.WITHER, 60, 0, true, false));
+                    victim.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 60, 1, true, false));
+                    victim.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 60, 2, true, false));
+                }
+
+                if (amplifier >= 20) {
+                    victim.addEffect(new MobEffectInstance(MobEffects.POISON, 60, 0, true, false));
+                    victim.addEffect(new MobEffectInstance(MobEffects.WITHER, 60, 1, true, false));
+                    victim.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 60, 2, true, false));
+                    victim.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 60, 3, true, false));
+                }
+            }
+            if (amplifier >= 24) {
+                if (victim.tickCount%40==0){
+                    victim.hurt(victim.level().damageSources().magic(), 2);
+                    victim.invulnerableTime = 0;
+                }
+            }
+
+            if (victim.tickCount % 5 == 0) { // Only check every 2 seconds to avoid lag
+                String msg = "§dMark Lvl: §l" + (amplifier + 1) + " §r| §7Target: " + victim.getName().getString();
+                victim.level().players().forEach(p -> p.sendSystemMessage(Component.literal(msg)));
+            }
+            return true;
+        }
+
+        @Override
         public boolean shouldApplyEffectTickThisTick(int duration, int amplifier) {
-            return false;
+            // Return true so applyEffectTick runs every single tick while the effect is active
+            return true;
         }
     }
 
@@ -380,6 +461,7 @@ public class AbyssalMonarch {
             if (shade != null) {
                 // Setup "Shade" Appearance
                 shade.isMarker();
+                shade.setInvisible(true);    // Makes it invisible
                 shade.setNoGravity(true);
                 shade.setNoBasePlate(true);
                 shade.setCustomName(Component.literal("Shade of " + player.getName().getString()));
@@ -416,6 +498,7 @@ public class AbyssalMonarch {
             if (shade != null) {
                 // Setup "Shade" Appearance
                 shade.isMarker();
+                shade.setInvisible(true);    // Makes it invisible
                 shade.setNoGravity(true);
                 shade.setNoBasePlate(true);
                 shade.setCustomName(Component.literal("Abyssal Spawn of " + player.getName().getString()));
