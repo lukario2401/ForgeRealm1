@@ -364,7 +364,7 @@ public class AbyssalMonarch {
     }
 
     public static void abyssalMonarchAspectAbilityOneUsed(Player player, Level level, ServerLevel serverLevel){
-        if (SoulCore.getAspect(player).equals("Shadow Slave"))return;
+        if (!SoulCore.getAspect(player).equals("Abyssal Monarch"))return;
         if (SoulCore.getSoulEssence(player)<500)return;
         SoulCore.setSoulEssence(player,SoulCore.getSoulEssence(player)-500);
 
