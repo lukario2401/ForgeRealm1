@@ -3,6 +3,7 @@ package net.lukario.frogerealm.shadow_slave.soul_abilities.aspects;
 import net.lukario.frogerealm.effects.ModEffects;
 import net.lukario.frogerealm.shadow_slave.soul_shards.SoulCore;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -10,7 +11,9 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
+import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
@@ -106,6 +109,28 @@ public class ChronoDuelist {
         }
     }
 
+    public static void chronoDuelistAbilityThreeUsed(Player player, Level level, ServerLevel serverLevel) {
+        if (!SoulCore.getAspect(player).equals("Chrono Duelist")) return;
+        if (SoulCore.getSoulEssence(player) < 1200 || SoulCore.getAscensionStage(player) < 2) return;
 
+        SoulCore.setSoulEssence(player, SoulCore.getSoulEssence(player) - 1200);
+
+
+        player.addEffect(new MobEffectInstance(MobEffects.DIG_SPEED, 1200,
+                (player.hasEffect(MobEffects.DIG_SPEED) ? player.getEffect(MobEffects.DIG_SPEED).getAmplifier() + 3 : 0)));
+
+        player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED, 1200,
+                (player.hasEffect(MobEffects.MOVEMENT_SPEED) ? player.getEffect(MobEffects.MOVEMENT_SPEED).getAmplifier() + 2 : 0)));
+
+        player.addEffect(new MobEffectInstance(MobEffects.JUMP, 1200,
+                (player.hasEffect(MobEffects.JUMP) ? player.getEffect(MobEffects.JUMP).getAmplifier() + 1 : 0)));
+
+        player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, 1200,
+                (player.hasEffect(MobEffects.DAMAGE_RESISTANCE) ? player.getEffect(MobEffects.DAMAGE_RESISTANCE).getAmplifier() + 1 : 0)));
+
+        player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST, 1200,
+                (player.hasEffect(MobEffects.DAMAGE_BOOST) ? player.getEffect(MobEffects.DAMAGE_BOOST).getAmplifier() + 1 : 0)));
+
+    }
 
 }

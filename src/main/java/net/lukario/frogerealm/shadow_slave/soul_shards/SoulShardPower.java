@@ -1,9 +1,10 @@
 package net.lukario.frogerealm.shadow_slave.soul_shards;
 
-import net.minecraft.network.chat.Component;
-import net.minecraft.world.entity.player.Player;
+import net.minecraft.core.Holder;
+import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -11,64 +12,52 @@ import net.minecraftforge.fml.common.Mod;
 @Mod.EventBusSubscriber(modid = "forgerealmmod")
 public class SoulShardPower {
 
-    // ================= CONFIG =================
-
-    public static final int MIN_SHARDS = 0;
     public static final int MAX_SHARDS = 7000;
-
-    // ================= TICK UPDATE =================
 
     @SubscribeEvent
     public static void onPlayerTick(TickEvent.PlayerTickEvent event) {
+        // We check every tick to ensure the 5-tick window is caught immediately
         if (event.phase != TickEvent.Phase.END || event.player.level().isClientSide) return;
 
-        Player player = event.player;
-
-        // Use the world time to trigger the update every 40 ticks (2 seconds)
-        // This is much cleaner than a static counter!
-        if (player.level().getGameTime() % 40 == 0) {
-            applySoulShardPowers(player);
-        }
+        applySoulShardPowers(event.player);
     }
-
-    // ================= MAIN LOGIC =================
 
     public static void applySoulShardPowers(Player player) {
+        int shards = SoulCore.getSoulShards(player);
+        double percent = (double) shards / MAX_SHARDS;
 
-        int shards =  SoulCore.getSoulShards(player);
-
-        double percent = shards / (double) MAX_SHARDS;
-
-        // remove old effects & attributes
-        clearEffects(player);
-        // ===== POTION EFFECTS (scale with shards) =====
-
+        // TIER 1: Speed (500+ Shards)
         if (shards >= 500) {
-            int amplifier = (int) (percent * 4); // up to level 4
-            player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED, 40, amplifier, false, false));
+            handleEffect(player, MobEffects.MOVEMENT_SPEED, (int) (percent * 4));
         }
 
+        // TIER 2: Strength (1500+ Shards)
         if (shards >= 1500) {
-            int amplifier = (int) (percent * 3);
-            player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST, 40, amplifier, false, false));
+            handleEffect(player, MobEffects.DAMAGE_BOOST, (int) (percent * 3));
         }
 
+        // TIER 3: Resistance (3000+ Shards)
         if (shards >= 3000) {
-            int amplifier = (int) (percent * 2);
-            player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, 40, amplifier, false, false));
+            handleEffect(player, MobEffects.DAMAGE_RESISTANCE, (int) (percent * 2));
         }
 
+        // TIER 4: Regeneration (5000+ Shards)
         if (shards >= 5000) {
-            player.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 40, 0, false, false));
+            handleEffect(player, MobEffects.REGENERATION, (int) (percent * 2));
         }
-
-//        player.sendSystemMessage(Component.literal("worked"+shards));
     }
 
-    private static void clearEffects(Player player) {
-        player.removeEffect(MobEffects.MOVEMENT_SPEED);
-        player.removeEffect(MobEffects.DAMAGE_BOOST);
-        player.removeEffect(MobEffects.DAMAGE_RESISTANCE);
-        player.removeEffect(MobEffects.REGENERATION);
+    /**
+     * Logic: If the player doesn't have the effect, OR the level (amplifier) changed,
+     * OR the effect is about to run out (<= 5 ticks), reapply it.
+     */
+    private static void handleEffect(Player player, Holder<MobEffect> effect, int targetAmplifier) {
+        MobEffectInstance active = player.getEffect(effect);
+
+        if (active == null || active.getDuration() <= 5 || active.getAmplifier() != targetAmplifier) {
+            // Duration is 120 ticks (6 seconds).
+            // This provides a huge buffer so the "shouldRefresh" logic has plenty of time to react.
+            player.addEffect(new MobEffectInstance(effect, 120, targetAmplifier, false, false));
+        }
     }
 }

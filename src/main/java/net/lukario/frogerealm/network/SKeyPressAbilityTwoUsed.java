@@ -1,5 +1,6 @@
 package net.lukario.frogerealm.network;
 
+import net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ChronoDuelist;
 import net.lukario.frogerealm.shadow_slave.soul_shards.SoulCore;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.FriendlyByteBuf;
@@ -30,6 +31,7 @@ public class SKeyPressAbilityTwoUsed {
         if (!(level instanceof ServerLevel serverLevel)) return;
 
         shadowSlaveAspectAbilityTwoUsed(player,level,serverLevel);
+        ChronoDuelist.chronoDuelistAbilityThreeUsed(player,level,serverLevel);
 
     }
 }
