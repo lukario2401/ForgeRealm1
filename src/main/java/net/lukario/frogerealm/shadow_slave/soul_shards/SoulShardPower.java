@@ -38,7 +38,11 @@ public class SoulShardPower {
 
         // TIER 3: Resistance (3000+ Shards)
         if (shards >= 3000) {
-            handleEffect(player, MobEffects.DAMAGE_RESISTANCE, (int) (percent * 2));
+            int amplifier = (int) (percent * 2);
+            if (amplifier>=5){
+                amplifier=4;
+            }
+            handleEffect(player, MobEffects.DAMAGE_RESISTANCE, amplifier);
         }
 
         // TIER 4: Regeneration (5000+ Shards)

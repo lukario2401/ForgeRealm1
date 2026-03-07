@@ -12,6 +12,7 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.event.network.CustomPayloadEvent;
 
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ChronoDuelist.chronoDuelistAbilityFourUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilitySixUsed;
 
 public class SKeyPressAbilityThreeUsed {
@@ -30,6 +31,7 @@ public class SKeyPressAbilityThreeUsed {
         if (!(level instanceof ServerLevel serverLevel)) return;
 
         AbyssalMonarch.abyssalMonarchAspectAbilityThree(player,level,serverLevel);
+        chronoDuelistAbilityFourUsed(player);
     }
 
 }
