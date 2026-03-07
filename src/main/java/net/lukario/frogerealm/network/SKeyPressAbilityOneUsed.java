@@ -30,6 +30,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.Abyssal
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ChronoDuelist.chronoDuelistAbilityOneUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.LightBringerAspect.lightBringerAspectAbilityOneUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilityOneUsed;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.StormHerald.stormHeraldAbilityOneUsed;
 
 public class SKeyPressAbilityOneUsed {
 
@@ -50,6 +51,7 @@ public class SKeyPressAbilityOneUsed {
         lightBringerAspectAbilityOneUsed(player,level,serverLevel);
         abyssalMonarchAspectAbilityOneUsed(player,level,serverLevel);
         chronoDuelistAbilityOneUsed(player,level,serverLevel);
+        stormHeraldAbilityOneUsed(player,serverLevel);
 
     }
 }
