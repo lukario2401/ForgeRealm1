@@ -8,7 +8,14 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.level.Level;
 import net.minecraftforge.event.network.CustomPayloadEvent;
+
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AbyssalMonarch.abyssalMonarchAbilitySix;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilitySixUsed;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.StormHerald.stormHeraldAbilitySevenUsed;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidWalker.voidWalkerAbilitySevenUsed;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidWalker.voidWalkerAbilitySixUsed;
 
 public class SKeyPressAbilitySevenUsed {
 
@@ -21,16 +28,12 @@ public class SKeyPressAbilitySevenUsed {
         if(player == null)
             return;
 
-        ServerLevel level = player.serverLevel();
-        player.sendSystemMessage(Component.literal("worked 7"));
-        player.playNotifySound(
-                SoundEvents.DRAGON_FIREBALL_EXPLODE,
-                SoundSource.PLAYERS,
-                1.0f,
-                1.0f
-        );
-        level.sendParticles(player, ParticleTypes.EXPLOSION_EMITTER,true,player.getX(),player.getY(),player.getZ(),1,0,0,0,0);
-        SoulCore.setSoulEssence(player,SoulCore.getSoulEssence(player)-700);
+        Level level = player.level();
+
+        if (!(level instanceof ServerLevel serverLevel)) return;
+
+        voidWalkerAbilitySevenUsed(player,serverLevel);
+
     }
 
 }

@@ -531,6 +531,10 @@ public class StormHerald {
         if (level.isClientSide) return;
         if (!validateUse(player, "Ability6CD", 400, 600)) return;
 
+
+        //needs to be tuned
+        player.teleportTo(player.getX(),player.getY()+0.2,player.getZ());
+
         // Launch upward
         Vec3 vel = player.getDeltaMovement();
         player.setDeltaMovement(vel.x * 0.5, 1.6, vel.z * 0.5);

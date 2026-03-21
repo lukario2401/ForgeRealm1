@@ -89,7 +89,7 @@ public class SoulCore {
 
 
     public static void setAscensionStage(Player player, int value) {
-        int clamped = Math.min(7, Math.max(1, value)); // tier must be between 1 and 7
+        int clamped = Math.min(8, Math.max(1, value)); // tier must be between 1 and 7
         getModData(player).putInt("aspect_level", clamped);
 
         setSoulShards(player, getSoulShards(player));
