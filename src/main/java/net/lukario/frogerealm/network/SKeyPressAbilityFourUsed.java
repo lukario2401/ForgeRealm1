@@ -12,6 +12,7 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.event.network.CustomPayloadEvent;
 
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AetherWarden.aetherWardenAbilityFourUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ChronoDuelist.chronoDuelistAbilityFive;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilityFourUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilityTwoUsed;
@@ -38,6 +39,7 @@ public class SKeyPressAbilityFourUsed {
         chronoDuelistAbilityFive(player,serverLevel);
         stormHeraldAbilityFiveUsed(player,serverLevel);
         voidWalkerAbilityFourUsed(player,serverLevel);
+        aetherWardenAbilityFourUsed(player,serverLevel);
 
     }
 

@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AbyssalMonarch.abyssalMonarchAspectAbilityOneUsed;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AetherWarden.aetherWardenAbilityOneUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ChronoDuelist.chronoDuelistAbilityOneUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.LightBringerAspect.lightBringerAspectAbilityOneUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilityOneUsed;
@@ -54,6 +55,7 @@ public class SKeyPressAbilityOneUsed {
         chronoDuelistAbilityOneUsed(player,level,serverLevel);
         stormHeraldAbilityOneUsed(player,serverLevel);
         voidWalkerAbilityOneUsed(player,serverLevel);
+        aetherWardenAbilityOneUsed(player,serverLevel);
 
     }
 }

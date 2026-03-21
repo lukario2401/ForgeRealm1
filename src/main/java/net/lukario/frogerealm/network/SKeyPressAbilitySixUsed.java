@@ -12,6 +12,7 @@ import net.minecraft.world.level.Level;
 import net.minecraftforge.event.network.CustomPayloadEvent;
 
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AbyssalMonarch.abyssalMonarchAbilitySix;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AetherWarden.aetherWardenAbilitySixUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilityFourUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilitySixUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.StormHerald.stormHeraldAbilitySevenUsed;
@@ -36,6 +37,7 @@ public class SKeyPressAbilitySixUsed {
         abyssalMonarchAbilitySix(player,serverLevel);
         stormHeraldAbilitySevenUsed(player,serverLevel);
         voidWalkerAbilitySixUsed(player,serverLevel);
+        aetherWardenAbilitySixUsed(player,serverLevel);
 
     }
 
