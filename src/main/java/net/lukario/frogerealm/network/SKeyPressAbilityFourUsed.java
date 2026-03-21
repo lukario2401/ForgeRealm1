@@ -15,6 +15,7 @@ import net.minecraftforge.event.network.CustomPayloadEvent;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ChronoDuelist.chronoDuelistAbilityFive;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilityFourUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilityTwoUsed;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.StormHerald.stormHeraldAbilityFiveUsed;
 
 public class SKeyPressAbilityFourUsed {
 
@@ -34,6 +35,7 @@ public class SKeyPressAbilityFourUsed {
         shadowSlaveAspectAbilityFourUsed(player,level,serverLevel);
         AbyssalMonarch.abyssalMonarchAbilityFour(player,serverLevel);
         chronoDuelistAbilityFive(player,serverLevel);
+        stormHeraldAbilityFiveUsed(player,serverLevel);
 
     }
 

@@ -158,6 +158,7 @@ public class ChronoDuelist {
 
                     player.level().playSound(null, player.blockPosition(), SoundEvents.ENCHANTMENT_TABLE_USE, SoundSource.PLAYERS, 1.0f, 2.0f);
                     player.level().playSound(null, player.blockPosition(), SoundEvents.CHORUS_FRUIT_TELEPORT, SoundSource.PLAYERS, 0.8f, 1.5f);
+                    player.invulnerableTime = 20;
                 }
             }
         }

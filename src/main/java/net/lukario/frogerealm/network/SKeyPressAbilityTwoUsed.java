@@ -14,6 +14,7 @@ import net.minecraftforge.event.network.CustomPayloadEvent;
 
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilityOneUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilityTwoUsed;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.StormHerald.stormHeraldAbilityThreeUsed;
 
 public class SKeyPressAbilityTwoUsed {
 
@@ -32,6 +33,7 @@ public class SKeyPressAbilityTwoUsed {
 
         shadowSlaveAspectAbilityTwoUsed(player,level,serverLevel);
         ChronoDuelist.chronoDuelistAbilityThreeUsed(player,level,serverLevel);
+        stormHeraldAbilityThreeUsed(player,serverLevel);
 
     }
 }

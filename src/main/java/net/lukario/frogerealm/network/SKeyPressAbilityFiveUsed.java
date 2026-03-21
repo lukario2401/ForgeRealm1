@@ -15,6 +15,7 @@ import net.minecraftforge.event.network.CustomPayloadEvent;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ChronoDuelist.chronoDuelistAbilityFive;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ChronoDuelist.chronoDuelistAbilitySix;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilityFourUsed;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.StormHerald.stormHeraldAbilitySixUsed;
 
 public class SKeyPressAbilityFiveUsed {
 
@@ -32,6 +33,7 @@ public class SKeyPressAbilityFiveUsed {
         if (!(level instanceof ServerLevel serverLevel)) return;
 
         chronoDuelistAbilitySix(player,serverLevel);
+        stormHeraldAbilitySixUsed(player,serverLevel);
 
     }
 
