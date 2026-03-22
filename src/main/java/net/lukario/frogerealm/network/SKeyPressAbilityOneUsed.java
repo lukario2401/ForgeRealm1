@@ -30,6 +30,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.Abyssal
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AetherWarden.aetherWardenAbilityOneUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ChronoDuelist.chronoDuelistAbilityOneUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.LightBringerAspect.lightBringerAspectAbilityOneUsed;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RuinBladeAscendant.ruinSlash;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilityOneUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.StormHerald.stormHeraldAbilityOneUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidWalker.voidWalkerAbilityOneUsed;
@@ -56,6 +57,7 @@ public class SKeyPressAbilityOneUsed {
         stormHeraldAbilityOneUsed(player,serverLevel);
         voidWalkerAbilityOneUsed(player,serverLevel);
         aetherWardenAbilityOneUsed(player,serverLevel);
+        ruinSlash(player,level,serverLevel);
 
     }
 }

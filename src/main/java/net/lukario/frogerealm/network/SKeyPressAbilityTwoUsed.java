@@ -13,6 +13,7 @@ import net.minecraft.world.level.Level;
 import net.minecraftforge.event.network.CustomPayloadEvent;
 
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AetherWarden.aetherWardenAbilityTwoUsed;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RuinBladeAscendant.rend;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilityOneUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilityTwoUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.StormHerald.stormHeraldAbilityThreeUsed;
@@ -38,6 +39,7 @@ public class SKeyPressAbilityTwoUsed {
         stormHeraldAbilityThreeUsed(player,serverLevel);
         voidWalkerAbilityTwoUsed(player,serverLevel);
         aetherWardenAbilityTwoUsed(player,serverLevel);
+        rend(player,level,serverLevel);
 
     }
 }
