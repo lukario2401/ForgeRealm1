@@ -26,7 +26,7 @@ import java.util.List;
 /**
  * Infernal Duelist
  * -----------------------------------------------
- * Stance-based DPS aspect.  No stacks, no charges —
+ * Stance-based DPS aspect. No stacks, no charges —
  * all power is immediate based on which stance is active.
  *
  * NBT keys stored on the PLAYER:
@@ -49,7 +49,7 @@ public class InfernalDuelist {
     private static final String NBT_CATACLYSM  = "InfernalCataclysmTimer";
     private static final String NBT_FLOW_TIMER = "InfernalFlowTimer";
 
-    private static final int SHIFT_COOLDOWN = 20; // 1 second between swaps
+    private static final int SHIFT_COOLDOWN = 20;
 
     // ─── Stance Helpers ───────────────────────────────────────────────────────
 
@@ -70,7 +70,6 @@ public class InfernalDuelist {
         return player.getPersistentData().getInt(NBT_CATACLYSM) > 0;
     }
 
-    /** Coloured stance label for chat messages. */
     private static String stanceTag(String stance) {
         return switch (stance) {
             case STANCE_EMBER   -> "§c[Ember]";
@@ -96,9 +95,8 @@ public class InfernalDuelist {
         return null;
     }
 
-    // ─── Fire wave helper (Cataclysm Form) ───────────────────────────────────
+    // ─── Fire wave helper ─────────────────────────────────────────────────────
 
-    /** Forward-facing fire wave on every hit during Cataclysm. */
     private static void fireWave(Player player, Level level, ServerLevel sl, Vec3 origin) {
         if (!inCataclysm(player)) return;
         Vec3 dir = player.getLookAngle().normalize();
@@ -117,19 +115,16 @@ public class InfernalDuelist {
     }
 
     // =========================================================================
-    //  TICK EVENT — all timers + Burning Flow passive (server-side only)
+    //  TICK EVENTS — unique class name to avoid Forge scanner collision
     // =========================================================================
 
     @Mod.EventBusSubscriber(modid = ForgeRealm.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
-    public static class TickEvents {
+    public static class InfernalEvents {
 
         @SubscribeEvent
-        public static void onPlayerTick(TickEvent.PlayerTickEvent event) {
+        public static void onInfernalPlayerTick(TickEvent.PlayerTickEvent event) {
             if (event.phase != TickEvent.Phase.END) return;
             Player player = event.player;
-
-            // Everything runs server-side only — abilities are called server-side
-            // so the cooldown check and countdown are both on the same side.
             if (!(player.level() instanceof ServerLevel sl)) return;
             if (!SoulCore.getAspect(player).equals("Infernal Duelist")) return;
 
@@ -162,12 +157,12 @@ public class InfernalDuelist {
             flowTimer--;
             if (flowTimer <= 0) {
                 flowTimer = 20;
-                applyFlowBuffs(player, getStance(player), sl);
+                applyFlowBuffs(player, getStance(player));
             }
             player.getPersistentData().putInt(NBT_FLOW_TIMER, flowTimer);
         }
 
-        private static void applyFlowBuffs(Player player, String stance, ServerLevel sl) {
+        private static void applyFlowBuffs(Player player, String stance) {
             boolean overheat  = inOverheat(player);
             boolean cataclysm = inCataclysm(player);
 
@@ -177,7 +172,6 @@ public class InfernalDuelist {
                 player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST,   25, 2, true, false));
                 return;
             }
-
             switch (stance) {
                 case STANCE_EMBER -> {
                     player.addEffect(new MobEffectInstance(MobEffects.DIG_SPEED,      25, overheat ? 3 : 1, true, false));
@@ -190,23 +184,45 @@ public class InfernalDuelist {
                 }
                 case STANCE_INFERNO -> {
                     player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST, 25, overheat ? 3 : 1, true, false));
-                    // Slight attack speed penalty
                     player.addEffect(new MobEffectInstance(MobEffects.DIG_SPEED,    25, -1,               true, false));
                 }
             }
         }
+
+        /** On kill during Cataclysm Form: +2 seconds. */
+        @SubscribeEvent
+        public static void onInfernalKill(LivingDeathEvent event) {
+            if (!(event.getSource().getEntity() instanceof Player player)) return;
+            if (!SoulCore.getAspect(player).equals("Infernal Duelist")) return;
+            if (!inCataclysm(player)) return;
+
+            int current = player.getPersistentData().getInt(NBT_CATACLYSM);
+            player.getPersistentData().putInt(NBT_CATACLYSM, current + 40);
+
+            if (player.level() instanceof ServerLevel sl)
+                sl.sendParticles(ParticleTypes.SOUL_FIRE_FLAME,
+                        event.getEntity().getX(), event.getEntity().getY() + 1,
+                        event.getEntity().getZ(), 8, 0.3, 0.3, 0.3, 0.05);
+
+            if (player instanceof ServerPlayer sp)
+                sp.sendSystemMessage(Component.literal("§4Cataclysm extended! §c+2s"));
+        }
+
+        /** Fire wave on every melee hit during Cataclysm Form. */
+        @SubscribeEvent
+        public static void onInfernalMeleeHit(LivingHurtEvent event) {
+            if (!(event.getSource().getEntity() instanceof Player player)) return;
+            if (!SoulCore.getAspect(player).equals("Infernal Duelist")) return;
+            if (!inCataclysm(player)) return;
+            if (!(player.level() instanceof ServerLevel sl)) return;
+            fireWave(player, player.level(), sl, event.getEntity().position());
+        }
     }
 
     // =========================================================================
-    //  ABILITY 1 — FLAME CUT  (core DPS, stance-dependent)
+    //  ABILITY 1 — FLAME CUT
     // =========================================================================
 
-    /**
-     * Ember  → fast strike,        8 dmg,  range  8, cost 200
-     * Blaze  → medium + AOE r2,   18 dmg,  range 10, cost 350
-     * Inferno→ heavy slash,        40 dmg, range 12, cost 600
-     * Cataclysm: Inferno values × 1.5 + fire wave
-     */
     public static void flameCut(Player player, Level level, ServerLevel sl) {
         if (!SoulCore.getAspect(player).equals("Infernal Duelist")) return;
 
@@ -219,24 +235,9 @@ public class InfernalDuelist {
         float aoeRadius;
 
         switch (stance) {
-            case STANCE_EMBER -> {
-                essenceCost = 200;
-                damage      = overheat ? 14.0f : 8.0f;
-                range       = 8;
-                aoeRadius   = 0;
-            }
-            case STANCE_BLAZE -> {
-                essenceCost = 350;
-                damage      = overheat ? 28.0f : 18.0f;
-                range       = 10;
-                aoeRadius   = overheat ? 4.0f : 2.0f;
-            }
-            default -> { // INFERNO
-                essenceCost = 600;
-                damage      = overheat ? 65.0f : 40.0f;
-                range       = 12;
-                aoeRadius   = 0;
-            }
+            case STANCE_EMBER -> { essenceCost = 200; damage = overheat ? 14f : 8f;  range = 8;  aoeRadius = 0; }
+            case STANCE_BLAZE -> { essenceCost = 350; damage = overheat ? 28f : 18f; range = 10; aoeRadius = overheat ? 4f : 2f; }
+            default           -> { essenceCost = 600; damage = overheat ? 65f : 40f; range = 12; aoeRadius = 0; }
         }
         if (inCataclysm(player)) damage *= 1.5f;
         if (SoulCore.getSoulEssence(player) < essenceCost) return;
@@ -266,19 +267,17 @@ public class InfernalDuelist {
                 primaryHit.invulnerableTime = 0;
                 primaryHit.setRemainingFireTicks(stance.equals(STANCE_INFERNO) ? 100 : 40);
                 sl.sendParticles(ParticleTypes.EXPLOSION,
-                        primaryHit.getX(), primaryHit.getY() + 1, primaryHit.getZ(),
-                        4, 0.3, 0.3, 0.3, 0.02);
-
+                        primaryHit.getX(), primaryHit.getY() + 1, primaryHit.getZ(), 4, 0.3, 0.3, 0.3, 0.02);
                 if (inCataclysm(player)) fireWave(player, level, sl, primaryHit.position());
 
                 if (aoeRadius > 0) {
-                    final LivingEntity finalHit    = primaryHit;
-                    final float        finalDamage = damage;
+                    final LivingEntity fh  = primaryHit;
+                    final float        fd  = damage;
                     level.getEntitiesOfClass(LivingEntity.class,
                                     primaryHit.getBoundingBox().inflate(aoeRadius),
-                                    e -> e != player && e != finalHit && e.isAlive())
+                                    e -> e != player && e != fh && e.isAlive())
                             .forEach(e -> {
-                                e.hurt(level.damageSources().playerAttack(player), finalDamage * 0.5f);
+                                e.hurt(level.damageSources().playerAttack(player), fd * 0.5f);
                                 e.invulnerableTime = 0;
                                 e.setRemainingFireTicks(40);
                             });
@@ -301,12 +300,6 @@ public class InfernalDuelist {
     //  ABILITY 2 — STANCE SHIFT
     // =========================================================================
 
-    /**
-     * Cycles Ember → Blaze → Inferno → Ember.
-     * Ember/Blaze → next: Strength I (3s).
-     * Inferno → Ember:    Speed II (3s).
-     * 1-second cooldown.  No essence cost.
-     */
     public static void stanceShift(Player player, ServerLevel sl) {
         if (!SoulCore.getAspect(player).equals("Infernal Duelist")) return;
 
@@ -348,15 +341,9 @@ public class InfernalDuelist {
     }
 
     // =========================================================================
-    //  ABILITY 3 — IGNITION BURST  (AOE explosion, stance-dependent)
+    //  ABILITY 3 — IGNITION BURST
     // =========================================================================
 
-    /**
-     * Ember  → r3,  12 dmg, cost 300
-     * Blaze  → r6,  25 dmg, cost 500
-     * Inferno→ r10, 50 dmg, cost 900
-     * Requires stage ≥ 2.
-     */
     public static void ignitionBurst(Player player, Level level, ServerLevel sl) {
         if (!SoulCore.getAspect(player).equals("Infernal Duelist")) return;
         if (SoulCore.getAscensionStage(player) < 2) return;
@@ -364,14 +351,11 @@ public class InfernalDuelist {
         String  stance   = inCataclysm(player) ? STANCE_INFERNO : getStance(player);
         boolean overheat = inOverheat(player);
 
-        float radius;
-        float damage;
-        int   cost;
-
+        float radius; float damage; int cost;
         switch (stance) {
-            case STANCE_EMBER -> { radius = overheat ? 5f  : 3f;  damage = overheat ? 20f : 12f;  cost = 300; }
-            case STANCE_BLAZE -> { radius = overheat ? 9f  : 6f;  damage = overheat ? 38f : 25f;  cost = 500; }
-            default           -> { radius = overheat ? 14f : 10f; damage = overheat ? 80f : 50f;  cost = 900; }
+            case STANCE_EMBER -> { radius = overheat ? 5f  : 3f;  damage = overheat ? 20f : 12f; cost = 300; }
+            case STANCE_BLAZE -> { radius = overheat ? 9f  : 6f;  damage = overheat ? 38f : 25f; cost = 500; }
+            default           -> { radius = overheat ? 14f : 10f; damage = overheat ? 80f : 50f; cost = 900; }
         }
         if (inCataclysm(player)) damage *= 1.5f;
         if (SoulCore.getSoulEssence(player) < cost) return;
@@ -411,15 +395,9 @@ public class InfernalDuelist {
     }
 
     // =========================================================================
-    //  ABILITY 4 — FLARE DASH  (mobility + damage)
+    //  ABILITY 4 — FLARE DASH
     // =========================================================================
 
-    /**
-     * Ember  → long dash ×3.5, 10 dmg,            cost 400
-     * Blaze  → dash ×2.5 + cleave r3, 20 dmg,     cost 500
-     * Inferno→ short dash ×1.5, heavy 45 dmg,      cost 700
-     * Requires stage ≥ 3.
-     */
     public static void flareDash(Player player, Level level, ServerLevel sl) {
         if (!SoulCore.getAspect(player).equals("Infernal Duelist")) return;
         if (SoulCore.getAscensionStage(player) < 3) return;
@@ -427,15 +405,11 @@ public class InfernalDuelist {
         String  stance   = inCataclysm(player) ? STANCE_INFERNO : getStance(player);
         boolean overheat = inOverheat(player);
 
-        double dashScale;
-        float  damage;
-        float  cleaveRadius;
-        int    cost;
-
+        double dashScale; float damage; float cleaveRadius; int cost;
         switch (stance) {
-            case STANCE_EMBER -> { dashScale = overheat ? 5.0 : 3.5; damage = overheat ? 18f : 10f;  cleaveRadius = 0;    cost = 400; }
-            case STANCE_BLAZE -> { dashScale = overheat ? 3.5 : 2.5; damage = overheat ? 32f : 20f;  cleaveRadius = overheat ? 5f : 3f; cost = 500; }
-            default           -> { dashScale = overheat ? 2.5 : 1.5; damage = overheat ? 70f : 45f;  cleaveRadius = 0;    cost = 700; }
+            case STANCE_EMBER -> { dashScale = overheat ? 5.0 : 3.5; damage = overheat ? 18f : 10f; cleaveRadius = 0;                    cost = 400; }
+            case STANCE_BLAZE -> { dashScale = overheat ? 3.5 : 2.5; damage = overheat ? 32f : 20f; cleaveRadius = overheat ? 5f : 3f;   cost = 500; }
+            default           -> { dashScale = overheat ? 2.5 : 1.5; damage = overheat ? 70f : 45f; cleaveRadius = 0;                    cost = 700; }
         }
         if (inCataclysm(player)) damage *= 1.5f;
         if (SoulCore.getSoulEssence(player) < cost) return;
@@ -472,14 +446,9 @@ public class InfernalDuelist {
     }
 
     // =========================================================================
-    //  ABILITY 6 — OVERHEAT  (6-second stance amplifier)
+    //  ABILITY 6 — OVERHEAT
     // =========================================================================
 
-    /**
-     * Amplifies current stance for 6 seconds (120 ticks).
-     * All ability values check inOverheat() and use boosted numbers.
-     * Cost: 2000 essence.  Requires stage ≥ 5.
-     */
     public static void overheat(Player player, ServerLevel sl) {
         if (!SoulCore.getAspect(player).equals("Infernal Duelist")) return;
         if (SoulCore.getSoulEssence(player) < 2000) return;
@@ -498,17 +467,9 @@ public class InfernalDuelist {
     }
 
     // =========================================================================
-    //  ABILITY 7 — CATACLYSM FORM  (ultimate, 10 seconds)
+    //  ABILITY 7 — CATACLYSM FORM
     // =========================================================================
 
-    /**
-     * 10-second transformation (200 ticks):
-     *   - All stance bonuses simultaneously
-     *   - All abilities use Inferno-level damage × 1.5
-     *   - All melee hits create fire waves
-     *   - Each kill extends duration +2 seconds
-     * Cost: 6000 essence.  Requires stage ≥ 7.
-     */
     public static void cataclysmForm(Player player, ServerLevel sl) {
         if (!SoulCore.getAspect(player).equals("Infernal Duelist")) return;
         if (SoulCore.getSoulEssence(player) < 6000) return;
@@ -527,43 +488,5 @@ public class InfernalDuelist {
         if (player instanceof ServerPlayer sp)
             sp.sendSystemMessage(Component.literal(
                     "§4§l🔥 CATACLYSM FORM! §r§cAll stances. Inferno damage. Fire waves. Kills extend duration."));
-    }
-
-    // =========================================================================
-    //  KILL / HIT EVENTS
-    // =========================================================================
-
-    @Mod.EventBusSubscriber(modid = ForgeRealm.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
-    public static class KillEvents {
-
-        /** On kill during Cataclysm Form: +2 seconds. */
-        @SubscribeEvent
-        public static void onKill(LivingDeathEvent event) {
-            if (!(event.getSource().getEntity() instanceof Player player)) return;
-            if (!SoulCore.getAspect(player).equals("Infernal Duelist")) return;
-            if (!inCataclysm(player)) return;
-
-            int current = player.getPersistentData().getInt(NBT_CATACLYSM);
-            player.getPersistentData().putInt(NBT_CATACLYSM, current + 40);
-
-            if (player.level() instanceof ServerLevel sl)
-                sl.sendParticles(ParticleTypes.SOUL_FIRE_FLAME,
-                        event.getEntity().getX(), event.getEntity().getY() + 1,
-                        event.getEntity().getZ(), 8, 0.3, 0.3, 0.3, 0.05);
-
-            if (player instanceof ServerPlayer sp)
-                sp.sendSystemMessage(Component.literal("§4Cataclysm extended! §c+2s"));
-        }
-
-        /** Fire wave on every melee hit during Cataclysm Form. */
-        @SubscribeEvent
-        public static void onMeleeHit(LivingHurtEvent event) {
-            if (!(event.getSource().getEntity() instanceof Player player)) return;
-            if (!SoulCore.getAspect(player).equals("Infernal Duelist")) return;
-            if (!inCataclysm(player)) return;
-            if (!(player.level() instanceof ServerLevel sl)) return;
-
-            fireWave(player, player.level(), sl, event.getEntity().position());
-        }
     }
 }

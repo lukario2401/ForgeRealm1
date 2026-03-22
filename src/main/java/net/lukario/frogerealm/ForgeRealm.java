@@ -5,6 +5,8 @@ import net.lukario.frogerealm.effects.ModEffects;
 import net.lukario.frogerealm.item.CreativeModTabs;
 import net.lukario.frogerealm.item.ModItems;
 import net.lukario.frogerealm.particles.ModParticles;
+import net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.EclipsePhantasm;
+import net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.InfernalDuelist;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;

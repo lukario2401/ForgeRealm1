@@ -15,6 +15,7 @@ import net.minecraftforge.event.network.CustomPayloadEvent;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AetherWarden.aetherWardenAbilityFourUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AstralArbiter.astralPulse;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ChronoDuelist.chronoDuelistAbilityFive;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.EclipsePhantasm.voidDrift;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.InfernalDuelist.flareDash;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RuinBladeAscendant.overload;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilityFourUsed;
@@ -48,6 +49,7 @@ public class SKeyPressAbilityFourUsed {
         spreadMark(player,level,serverLevel);
         astralPulse(player,level,serverLevel);
         flareDash(player,level,serverLevel);
+        voidDrift(player,level,serverLevel);
 
     }
 
