@@ -439,7 +439,7 @@ public class AstralArbiter {
         if (SoulCore.getSoulEssence(player) < 800) return;
         if (SoulCore.getAscensionStage(player) < 2) return;
 
-        LivingEntity target = rayCastFirst(player, level, 16 + SoulCore.getAscensionStage(player));
+        LivingEntity target = rayCastFirst(player, level, 16 + SoulCore.getAscensionStage(player)*2);
         if (target == null) return;
 
         SoulCore.setSoulEssence(player, SoulCore.getSoulEssence(player) - 800);
