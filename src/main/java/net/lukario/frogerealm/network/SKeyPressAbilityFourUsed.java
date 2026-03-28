@@ -17,6 +17,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AstralA
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ChronoDuelist.chronoDuelistAbilityFive;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ChronoReaver.futureStep;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.EclipsePhantasm.voidDrift;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.FleshDevourer.grotesqueGrowth;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.InfernalDuelist.flareDash;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RuinBladeAscendant.overload;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilityFourUsed;
@@ -56,6 +57,7 @@ public class SKeyPressAbilityFourUsed {
         futureStep(player,level,serverLevel);
         overclock(player,serverLevel);
         voidAscendantAbilityFour(player,level,serverLevel);
+        grotesqueGrowth(player,serverLevel);
 
     }
 

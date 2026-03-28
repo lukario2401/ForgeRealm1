@@ -32,6 +32,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AstralA
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ChronoDuelist.chronoDuelistAbilityOneUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ChronoReaver.temporalSlash;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.EclipsePhantasm.phaseShift;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.FleshDevourer.fleshDevourerRend;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.InfernalDuelist.flameCut;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.LightBringerAspect.lightBringerAspectAbilityOneUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RuinBladeAscendant.ruinSlash;
@@ -72,5 +73,6 @@ public class SKeyPressAbilityOneUsed {
         temporalSlash(player,level,serverLevel);
         arcSpike(player,level,serverLevel);
         voidAscendantAbilityOne(player,level,serverLevel);
+        fleshDevourerRend(player,level,serverLevel);
     }
 }

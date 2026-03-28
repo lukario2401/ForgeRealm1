@@ -16,6 +16,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AetherW
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AstralArbiter.orbReclaim;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ChronoReaver.timeSnare;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.EclipsePhantasm.phantomStrike;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.FleshDevourer.devour;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.InfernalDuelist.stanceShift;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RuinBladeAscendant.rend;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilityOneUsed;
@@ -54,6 +55,7 @@ public class SKeyPressAbilityTwoUsed {
         timeSnare(player,level,serverLevel);
         discharge(player,level,serverLevel);
         voidAscendantAbilityTwo(player,level,serverLevel);
+        devour(player,level,serverLevel);
 
     }
 }

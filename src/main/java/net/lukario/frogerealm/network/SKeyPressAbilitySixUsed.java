@@ -16,6 +16,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AetherW
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AstralArbiter.cosmicOverdraw;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ChronoReaver.delayedExecution;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.EclipsePhantasm.phaseLock;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.FleshDevourer.bloodFrenzy;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.InfernalDuelist.cataclysmForm;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RuinBladeAscendant.cataclysmState;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilityFourUsed;
@@ -54,6 +55,7 @@ public class SKeyPressAbilitySixUsed {
         delayedExecution(player,level,serverLevel);
         thunderCollapse(player,level,serverLevel);
         voidAscendantAbilitySix(player,level,serverLevel);
+        bloodFrenzy(player,serverLevel);
 
     }
 }
