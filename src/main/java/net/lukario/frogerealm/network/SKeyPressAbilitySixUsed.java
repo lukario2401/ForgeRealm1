@@ -14,6 +14,7 @@ import net.minecraftforge.event.network.CustomPayloadEvent;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AbyssalMonarch.abyssalMonarchAbilitySix;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AetherWarden.aetherWardenAbilitySixUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AstralArbiter.cosmicOverdraw;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ChronoReaver.delayedExecution;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.EclipsePhantasm.phaseLock;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.InfernalDuelist.cataclysmForm;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RuinBladeAscendant.cataclysmState;
@@ -48,6 +49,7 @@ public class SKeyPressAbilitySixUsed {
         cosmicOverdraw(player,serverLevel);
         cataclysmForm(player,serverLevel);
         phaseLock(player,level,serverLevel);
+        delayedExecution(player,level,serverLevel);
 
     }
 }

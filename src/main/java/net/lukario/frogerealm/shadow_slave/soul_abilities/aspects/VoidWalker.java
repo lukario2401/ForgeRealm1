@@ -330,7 +330,7 @@ public class VoidWalker {
 
     public static void voidWalkerAbilityOneUsed(Player player, ServerLevel level) {
         if (level.isClientSide) return;
-        player.sendSystemMessage(Component.literal(String.valueOf(player.getPersistentData().getInt("Ability1CD"))));
+//        player.sendSystemMessage(Component.literal(String.valueOf(player.getPersistentData().getInt("Ability1CD"))));
         if (!validateUse(player, "Ability1CD", 70, 150)) return;
 
         int ascension       = SoulCore.getAscensionStage(player);
@@ -368,7 +368,7 @@ public class VoidWalker {
 
     public static void voidWalkerAbilityTwoUsed(Player player, ServerLevel level) {
         if (level.isClientSide) return;
-        player.sendSystemMessage(Component.literal(String.valueOf(player.getPersistentData().getInt("Ability2CD"))));
+//        player.sendSystemMessage(Component.literal(String.valueOf(player.getPersistentData().getInt("Ability2CD"))));
 
         if (!validateUse(player, "Ability2CD", 200, 250)) return;
 
@@ -402,7 +402,7 @@ public class VoidWalker {
 
     public static void voidWalkerAbilityThreeUsed(Player player, ServerLevel level) {
         if (level.isClientSide) return;
-        player.sendSystemMessage(Component.literal(String.valueOf(player.getPersistentData().getInt("Ability3CD"))));
+//        player.sendSystemMessage(Component.literal(String.valueOf(player.getPersistentData().getInt("Ability3CD"))));
 
         if (!validateUse(player, "Ability3CD", 400, 200)) return;
 
@@ -560,7 +560,7 @@ public class VoidWalker {
 
     public static void voidWalkerAbilitySixUsed(Player player, ServerLevel level) {
         if (level.isClientSide) return;
-        player.sendSystemMessage(Component.literal(String.valueOf(player.getPersistentData().getInt("Ability6CD"))));
+//        player.sendSystemMessage(Component.literal(String.valueOf(player.getPersistentData().getInt("Ability6CD"))));
 
         if (!validateUse(player, "Ability6CD", 300, 350)) return;
 
@@ -613,7 +613,7 @@ public class VoidWalker {
 
     public static void voidWalkerAbilitySevenUsed(Player player, ServerLevel level) {
         if (level.isClientSide) return;
-        player.sendSystemMessage(Component.literal(String.valueOf(player.getPersistentData().getInt("Ability7CD"))));
+//        player.sendSystemMessage(Component.literal(String.valueOf(player.getPersistentData().getInt("Ability7CD"))));
 
         if (!validateUse(player, "Ability7CD", 2400, 1000)) return;
 

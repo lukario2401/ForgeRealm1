@@ -280,6 +280,8 @@ public class AstralArbiter {
                     }
                 }
             }
+//            Component message = Component.literal("§bOrbs: §f" + totalOrbs(player) + " §7| §5Temporary: §f" + getTempOrbs(player) + "s");
+//            player.displayClientMessage(message, true);
         }
     }
 

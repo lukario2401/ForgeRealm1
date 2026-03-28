@@ -14,6 +14,7 @@ import net.minecraftforge.event.network.CustomPayloadEvent;
 
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AetherWarden.aetherWardenAbilityTwoUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AstralArbiter.orbReclaim;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ChronoReaver.timeSnare;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.EclipsePhantasm.phantomStrike;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.InfernalDuelist.stanceShift;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RuinBladeAscendant.rend;
@@ -48,6 +49,7 @@ public class SKeyPressAbilityTwoUsed {
         orbReclaim(player,level,serverLevel);
         stanceShift(player,serverLevel);
         phantomStrike(player,level,serverLevel);
+        timeSnare(player,level,serverLevel);
 
     }
 }

@@ -16,6 +16,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AetherW
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AstralArbiter.orbSplit;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ChronoDuelist.chronoDuelistAbilityFive;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ChronoDuelist.chronoDuelistAbilitySix;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ChronoReaver.timeCollapse;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.EclipsePhantasm.realityFracture;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.InfernalDuelist.overheat;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RuinBladeAscendant.executionDrive;
@@ -48,6 +49,7 @@ public class SKeyPressAbilityFiveUsed {
         orbSplit(player,serverLevel);
         overheat(player,serverLevel);
         realityFracture(player,level,serverLevel);
+        timeCollapse(player,serverLevel);
 
 
     }
