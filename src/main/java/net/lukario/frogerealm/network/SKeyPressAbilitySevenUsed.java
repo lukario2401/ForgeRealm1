@@ -17,6 +17,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AstralA
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ChronoReaver.chronoOverload;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.EclipsePhantasm.eclipseState;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilitySixUsed;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.StormConduit.singularityStorm;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.StormHerald.stormHeraldAbilitySevenUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidWalker.voidWalkerAbilitySevenUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidWalker.voidWalkerAbilitySixUsed;
@@ -41,6 +42,7 @@ public class SKeyPressAbilitySevenUsed {
         astralConvergence(player,serverLevel);
         eclipseState(player,serverLevel);
         chronoOverload(player,serverLevel);
+        singularityStorm(player,serverLevel);
 
     }
 

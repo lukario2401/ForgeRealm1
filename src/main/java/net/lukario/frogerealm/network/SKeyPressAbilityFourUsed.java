@@ -22,6 +22,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RuinBla
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilityFourUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilityTwoUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.SigilReaper.spreadMark;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.StormConduit.overclock;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.StormHerald.stormHeraldAbilityFiveUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidWalker.voidWalkerAbilityFourUsed;
 
@@ -52,6 +53,7 @@ public class SKeyPressAbilityFourUsed {
         flareDash(player,level,serverLevel);
         voidDrift(player,level,serverLevel);
         futureStep(player,level,serverLevel);
+        overclock(player,serverLevel);
 
     }
 
