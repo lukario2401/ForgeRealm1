@@ -23,6 +23,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowS
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.SigilReaper.sigilSurge;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.StormConduit.overloadStrike;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.StormHerald.stormHeraldAbilityFourUsed;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidAscendant.voidAscendantAbilityThree;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidWalker.voidWalkerAbilityThreeUsed;
 
 public class SKeyPressAbilityThreeUsed {
@@ -52,6 +53,7 @@ public class SKeyPressAbilityThreeUsed {
         echoCut(player,level,serverLevel);
         rewindBurst(player,level,serverLevel);
         overloadStrike(player,level,serverLevel);
+        voidAscendantAbilityThree(player,level,serverLevel);
 
 
     }

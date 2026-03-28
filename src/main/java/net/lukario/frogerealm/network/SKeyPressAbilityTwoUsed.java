@@ -23,6 +23,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowS
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.SigilReaper.detonateSigilsAbility;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.StormConduit.discharge;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.StormHerald.stormHeraldAbilityThreeUsed;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidAscendant.voidAscendantAbilityTwo;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidWalker.voidWalkerAbilityTwoUsed;
 
 public class SKeyPressAbilityTwoUsed {
@@ -52,6 +53,7 @@ public class SKeyPressAbilityTwoUsed {
         phantomStrike(player,level,serverLevel);
         timeSnare(player,level,serverLevel);
         discharge(player,level,serverLevel);
+        voidAscendantAbilityTwo(player,level,serverLevel);
 
     }
 }
