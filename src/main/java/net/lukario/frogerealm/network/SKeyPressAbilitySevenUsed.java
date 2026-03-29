@@ -14,6 +14,7 @@ import net.minecraftforge.event.network.CustomPayloadEvent;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AbyssalMonarch.abyssalMonarchAbilitySix;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AetherWarden.aetherWardenAbilitySevenUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AstralArbiter.astralConvergence;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.BloodBoundAscetic.martyrsAscension;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ChronoReaver.chronoOverload;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.EclipsePhantasm.eclipseState;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.FleshDevourer.apexAbomination;
@@ -45,6 +46,7 @@ public class SKeyPressAbilitySevenUsed {
         chronoOverload(player,serverLevel);
         singularityStorm(player,serverLevel);
         apexAbomination(player,serverLevel);
+        martyrsAscension(player,serverLevel);
 
     }
 

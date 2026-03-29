@@ -14,6 +14,7 @@ import net.minecraftforge.event.network.CustomPayloadEvent;
 
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AetherWarden.aetherWardenAbilityThreeUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AstralArbiter.starfallStrike;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.BloodBoundAscetic.hemorrhageBurst;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ChronoDuelist.chronoDuelistAbilityFourUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ChronoReaver.rewindBurst;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.EclipsePhantasm.echoCut;
@@ -56,6 +57,7 @@ public class SKeyPressAbilityThreeUsed {
         overloadStrike(player,level,serverLevel);
         voidAscendantAbilityThree(player,level,serverLevel);
         meatBurst(player,level,serverLevel);
+        hemorrhageBurst(player,level,serverLevel);
 
 
     }

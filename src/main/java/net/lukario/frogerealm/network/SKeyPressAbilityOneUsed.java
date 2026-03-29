@@ -29,6 +29,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AbyssalMonarch.abyssalMonarchAspectAbilityOneUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AetherWarden.aetherWardenAbilityOneUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AstralArbiter.astralBolt;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.BloodBoundAscetic.bloodSlash;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ChronoDuelist.chronoDuelistAbilityOneUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ChronoReaver.temporalSlash;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.EclipsePhantasm.phaseShift;
@@ -74,5 +75,6 @@ public class SKeyPressAbilityOneUsed {
         arcSpike(player,level,serverLevel);
         voidAscendantAbilityOne(player,level,serverLevel);
         fleshDevourerRend(player,level,serverLevel);
+        bloodSlash(player,level,serverLevel);
     }
 }

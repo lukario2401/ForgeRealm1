@@ -14,6 +14,7 @@ import net.minecraftforge.event.network.CustomPayloadEvent;
 
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AetherWarden.aetherWardenAbilityFiveUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AstralArbiter.orbSplit;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.BloodBoundAscetic.lastStand;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ChronoDuelist.chronoDuelistAbilityFive;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ChronoDuelist.chronoDuelistAbilitySix;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ChronoReaver.timeCollapse;
@@ -56,6 +57,7 @@ public class SKeyPressAbilityFiveUsed {
         stormChannel(player,serverLevel);
         voidAscendantAbilityFive(player,level,serverLevel);
         fleshHook(player,level,serverLevel);
+        lastStand(player,serverLevel);
 
 
     }

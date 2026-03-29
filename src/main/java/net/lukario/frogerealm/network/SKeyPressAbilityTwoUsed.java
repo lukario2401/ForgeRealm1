@@ -14,6 +14,7 @@ import net.minecraftforge.event.network.CustomPayloadEvent;
 
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AetherWarden.aetherWardenAbilityTwoUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AstralArbiter.orbReclaim;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.BloodBoundAscetic.crimsonOffering;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ChronoReaver.timeSnare;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.EclipsePhantasm.phantomStrike;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.FleshDevourer.devour;
@@ -56,6 +57,7 @@ public class SKeyPressAbilityTwoUsed {
         discharge(player,level,serverLevel);
         voidAscendantAbilityTwo(player,level,serverLevel);
         devour(player,level,serverLevel);
+        crimsonOffering(player,serverLevel);
 
     }
 }
