@@ -43,6 +43,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.StormCo
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.StormHerald.stormHeraldAbilityOneUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VectorArbiter.vectorSlash;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidAscendant.voidAscendantAbilityOne;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidResonator.voidPulse;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidWalker.voidWalkerAbilityOneUsed;
 
 public class SKeyPressAbilityOneUsed {
@@ -78,5 +79,6 @@ public class SKeyPressAbilityOneUsed {
         fleshDevourerRend(player,level,serverLevel);
         bloodSlash(player,level,serverLevel);
         vectorSlash(player,level,serverLevel);
+        voidPulse(player,level,serverLevel);
     }
 }

@@ -27,6 +27,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.StormCo
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.StormHerald.stormHeraldAbilityFourUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VectorArbiter.intersection;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidAscendant.voidAscendantAbilityThree;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidResonator.shatterPoint;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidWalker.voidWalkerAbilityThreeUsed;
 
 public class SKeyPressAbilityThreeUsed {
@@ -60,6 +61,7 @@ public class SKeyPressAbilityThreeUsed {
         meatBurst(player,level,serverLevel);
         hemorrhageBurst(player,level,serverLevel);
         intersection(player,level,serverLevel);
+        shatterPoint(player,level,serverLevel);
 
 
     }

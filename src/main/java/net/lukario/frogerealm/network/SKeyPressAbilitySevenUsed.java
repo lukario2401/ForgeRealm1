@@ -22,6 +22,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowS
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.StormConduit.singularityStorm;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.StormHerald.stormHeraldAbilitySevenUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VectorArbiter.perfectAlignment;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidResonator.cataclysmEngine;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidWalker.voidWalkerAbilitySevenUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidWalker.voidWalkerAbilitySixUsed;
 
@@ -49,6 +50,8 @@ public class SKeyPressAbilitySevenUsed {
         apexAbomination(player,serverLevel);
         martyrsAscension(player,serverLevel);
         perfectAlignment(player,serverLevel);
+        cataclysmEngine(player,serverLevel);
+
 
     }
 

@@ -28,6 +28,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.StormCo
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.StormHerald.stormHeraldAbilitySixUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VectorArbiter.vectorArbiterBacklinePierce;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidAscendant.voidAscendantAbilityFive;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidResonator.frequencySurge;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidWalker.voidWalkerAbilityFiveUsed;
 
 public class SKeyPressAbilityFiveUsed {
@@ -60,6 +61,7 @@ public class SKeyPressAbilityFiveUsed {
         fleshHook(player,level,serverLevel);
         lastStand(player,serverLevel);
         vectorArbiterBacklinePierce(player,level,serverLevel);
+        frequencySurge(player,serverLevel);
 
 
     }
