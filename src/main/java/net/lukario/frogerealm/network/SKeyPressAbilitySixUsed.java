@@ -25,6 +25,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowS
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.SigilReaper.apocalypseScript;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.StormConduit.thunderCollapse;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.StormHerald.stormHeraldAbilitySevenUsed;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VectorArbiter.fracturePlane;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidAscendant.voidAscendantAbilitySix;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidWalker.voidWalkerAbilitySixUsed;
 
@@ -58,6 +59,7 @@ public class SKeyPressAbilitySixUsed {
         voidAscendantAbilitySix(player,level,serverLevel);
         bloodFrenzy(player,serverLevel);
         bloodBoundAsceticBloodFrenzy(player,serverLevel);
+        fracturePlane(player,level,serverLevel);
 
     }
 }

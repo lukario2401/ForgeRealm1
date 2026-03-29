@@ -26,6 +26,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowS
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.SigilReaper.spreadMark;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.StormConduit.overclock;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.StormHerald.stormHeraldAbilityFiveUsed;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VectorArbiter.pivotStep;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidAscendant.voidAscendantAbilityFour;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidWalker.voidWalkerAbilityFourUsed;
 
@@ -60,6 +61,7 @@ public class SKeyPressAbilityFourUsed {
         voidAscendantAbilityFour(player,level,serverLevel);
         grotesqueGrowth(player,serverLevel);
         sanguineDrain(player,level,serverLevel);
+        pivotStep(player,level,serverLevel);
 
     }
 
