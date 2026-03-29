@@ -19,6 +19,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ChronoR
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.EclipsePhantasm.phaseLock;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.FleshDevourer.bloodFrenzy;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.InfernalDuelist.cataclysmForm;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PlagueSovereign.necroticBurst;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RuinBladeAscendant.cataclysmState;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilityFourUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilitySixUsed;
@@ -62,6 +63,7 @@ public class SKeyPressAbilitySixUsed {
         bloodBoundAsceticBloodFrenzy(player,serverLevel);
         fracturePlane(player,level,serverLevel);
         resonantChain(player,level,serverLevel);
+        necroticBurst(player,level,serverLevel);
 
     }
 }

@@ -21,6 +21,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ChronoR
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.EclipsePhantasm.realityFracture;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.FleshDevourer.fleshHook;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.InfernalDuelist.overheat;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PlagueSovereign.epidemic;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RuinBladeAscendant.executionDrive;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilityFourUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.SigilReaper.delayedCollapse;
@@ -62,6 +63,7 @@ public class SKeyPressAbilityFiveUsed {
         lastStand(player,serverLevel);
         vectorArbiterBacklinePierce(player,level,serverLevel);
         frequencySurge(player,serverLevel);
+        epidemic(player,level,serverLevel);
 
 
     }

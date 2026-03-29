@@ -18,6 +18,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.BloodBo
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ChronoReaver.chronoOverload;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.EclipsePhantasm.eclipseState;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.FleshDevourer.apexAbomination;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PlagueSovereign.sovereignsPlague;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilitySixUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.StormConduit.singularityStorm;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.StormHerald.stormHeraldAbilitySevenUsed;
@@ -51,6 +52,7 @@ public class SKeyPressAbilitySevenUsed {
         martyrsAscension(player,serverLevel);
         perfectAlignment(player,serverLevel);
         cataclysmEngine(player,serverLevel);
+        sovereignsPlague(player,level,serverLevel);
 
 
     }

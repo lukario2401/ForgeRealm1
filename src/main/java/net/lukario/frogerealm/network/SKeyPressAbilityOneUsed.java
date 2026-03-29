@@ -36,6 +36,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.Eclipse
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.FleshDevourer.fleshDevourerRend;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.InfernalDuelist.flameCut;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.LightBringerAspect.lightBringerAspectAbilityOneUsed;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PlagueSovereign.plagueTouch;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RuinBladeAscendant.ruinSlash;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilityOneUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.SigilReaper.sigilCarve;
@@ -80,5 +81,6 @@ public class SKeyPressAbilityOneUsed {
         bloodSlash(player,level,serverLevel);
         vectorSlash(player,level,serverLevel);
         voidPulse(player,level,serverLevel);
+        plagueTouch(player,level,serverLevel);
     }
 }

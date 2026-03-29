@@ -20,6 +20,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ChronoR
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.EclipsePhantasm.echoCut;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.FleshDevourer.meatBurst;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.InfernalDuelist.ignitionBurst;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PlagueSovereign.accelerateDecay;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RuinBladeAscendant.ruinDetonation;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilitySixUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.SigilReaper.sigilSurge;
@@ -62,6 +63,7 @@ public class SKeyPressAbilityThreeUsed {
         hemorrhageBurst(player,level,serverLevel);
         intersection(player,level,serverLevel);
         shatterPoint(player,level,serverLevel);
+        accelerateDecay(player,level,serverLevel);
 
 
     }

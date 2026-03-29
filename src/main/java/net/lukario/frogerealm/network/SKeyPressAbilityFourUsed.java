@@ -20,6 +20,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ChronoR
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.EclipsePhantasm.voidDrift;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.FleshDevourer.grotesqueGrowth;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.InfernalDuelist.flareDash;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PlagueSovereign.harvestSoul;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RuinBladeAscendant.overload;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilityFourUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilityTwoUsed;
@@ -64,6 +65,7 @@ public class SKeyPressAbilityFourUsed {
         sanguineDrain(player,level,serverLevel);
         pivotStep(player,level,serverLevel);
         frequencyShift(player,serverLevel);
+        harvestSoul(player,level,serverLevel);
 
     }
 

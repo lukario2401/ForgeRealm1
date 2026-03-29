@@ -19,6 +19,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ChronoR
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.EclipsePhantasm.phantomStrike;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.FleshDevourer.devour;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.InfernalDuelist.stanceShift;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PlagueSovereign.miasmaCloud;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RuinBladeAscendant.rend;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilityOneUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilityTwoUsed;
@@ -62,6 +63,7 @@ public class SKeyPressAbilityTwoUsed {
         crimsonOffering(player,serverLevel);
         angleBreak(player,level,serverLevel);
         resonanceWave(player,level,serverLevel);
+        miasmaCloud(player,level,serverLevel);
 
     }
 }
