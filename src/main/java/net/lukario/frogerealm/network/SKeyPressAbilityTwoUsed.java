@@ -18,6 +18,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.BloodBo
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ChronoReaver.timeSnare;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.EclipsePhantasm.phantomStrike;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.FleshDevourer.devour;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.GravityArchitect.detonateWellAbility;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.InfernalDuelist.stanceShift;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PlagueSovereign.miasmaCloud;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RuinBladeAscendant.rend;
@@ -64,6 +65,7 @@ public class SKeyPressAbilityTwoUsed {
         angleBreak(player,level,serverLevel);
         resonanceWave(player,level,serverLevel);
         miasmaCloud(player,level,serverLevel);
+        detonateWellAbility(player,level,serverLevel);
 
     }
 }

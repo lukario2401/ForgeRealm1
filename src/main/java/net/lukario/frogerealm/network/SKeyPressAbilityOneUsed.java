@@ -34,6 +34,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ChronoD
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ChronoReaver.temporalSlash;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.EclipsePhantasm.phaseShift;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.FleshDevourer.fleshDevourerRend;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.GravityArchitect.placeGravityWell;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.InfernalDuelist.flameCut;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.LightBringerAspect.lightBringerAspectAbilityOneUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PlagueSovereign.plagueTouch;
@@ -82,5 +83,6 @@ public class SKeyPressAbilityOneUsed {
         vectorSlash(player,level,serverLevel);
         voidPulse(player,level,serverLevel);
         plagueTouch(player,level,serverLevel);
+        placeGravityWell(player,level,serverLevel);
     }
 }
