@@ -16,6 +16,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AetherW
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AstralArbiter.astralConvergence;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.BloodBoundAscetic.martyrsAscension;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ChronoReaver.chronoOverload;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.DeathDescendant.abyssalHarvest;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.EclipsePhantasm.eclipseState;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.FleshDevourer.apexAbomination;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.GravityArchitect.gravitationalSingularity;
@@ -55,6 +56,7 @@ public class SKeyPressAbilitySevenUsed {
         cataclysmEngine(player,serverLevel);
         sovereignsPlague(player,level,serverLevel);
         gravitationalSingularity(player,serverLevel);
+        abyssalHarvest(player,level,serverLevel);
 
 
     }

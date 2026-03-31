@@ -18,6 +18,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.BloodBo
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ChronoDuelist.chronoDuelistAbilityFive;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ChronoDuelist.chronoDuelistAbilitySix;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ChronoReaver.timeCollapse;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.DeathDescendant.soulFracture;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.EclipsePhantasm.realityFracture;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.FleshDevourer.fleshHook;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.GravityArchitect.eventHorizon;
@@ -66,6 +67,7 @@ public class SKeyPressAbilityFiveUsed {
         frequencySurge(player,serverLevel);
         epidemic(player,level,serverLevel);
         eventHorizon(player,serverLevel);
+        soulFracture(player,level,serverLevel);
 
 
     }

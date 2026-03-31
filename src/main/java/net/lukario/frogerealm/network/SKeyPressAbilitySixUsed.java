@@ -16,6 +16,8 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AetherW
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AstralArbiter.cosmicOverdraw;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.BloodBoundAscetic.bloodBoundAsceticBloodFrenzy;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ChronoReaver.delayedExecution;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.DeathDescendant.darkFeast;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.DeathDescendant.shiftMode;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.EclipsePhantasm.phaseLock;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.FleshDevourer.bloodFrenzy;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.GravityArchitect.singularityBeam;
@@ -66,6 +68,8 @@ public class SKeyPressAbilitySixUsed {
         resonantChain(player,level,serverLevel);
         necroticBurst(player,level,serverLevel);
         singularityBeam(player,level,serverLevel);
+        darkFeast(player,serverLevel);
+        shiftMode(player,serverLevel);
 
     }
 }
