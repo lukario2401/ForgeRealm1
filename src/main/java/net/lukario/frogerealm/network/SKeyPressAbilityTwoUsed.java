@@ -21,6 +21,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.Eclipse
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.FleshDevourer.devour;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.GravityArchitect.detonateWellAbility;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.InfernalDuelist.stanceShift;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PhantomSequence.mirageStep;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PlagueSovereign.miasmaCloud;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RuinBladeAscendant.rend;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilityOneUsed;
@@ -68,6 +69,7 @@ public class SKeyPressAbilityTwoUsed {
         miasmaCloud(player,level,serverLevel);
         detonateWellAbility(player,level,serverLevel);
         umbralBind(player,level,serverLevel);
+        mirageStep(player,level,serverLevel);
 
     }
 }

@@ -23,6 +23,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.Eclipse
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.FleshDevourer.fleshHook;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.GravityArchitect.eventHorizon;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.InfernalDuelist.overheat;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PhantomSequence.specterBreak;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PlagueSovereign.epidemic;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RuinBladeAscendant.executionDrive;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilityFourUsed;
@@ -68,6 +69,7 @@ public class SKeyPressAbilityFiveUsed {
         epidemic(player,level,serverLevel);
         eventHorizon(player,serverLevel);
         soulFracture(player,level,serverLevel);
+        specterBreak(player,level,serverLevel);
 
 
     }

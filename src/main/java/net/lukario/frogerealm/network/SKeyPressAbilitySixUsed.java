@@ -22,6 +22,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.Eclipse
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.FleshDevourer.bloodFrenzy;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.GravityArchitect.singularityBeam;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.InfernalDuelist.cataclysmForm;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PhantomSequence.veilOfMirrors;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PlagueSovereign.necroticBurst;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RuinBladeAscendant.cataclysmState;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilityFourUsed;
@@ -70,6 +71,7 @@ public class SKeyPressAbilitySixUsed {
         singularityBeam(player,level,serverLevel);
         darkFeast(player,serverLevel);
         shiftMode(player,serverLevel);
+        veilOfMirrors(player,serverLevel);
 
     }
 }
