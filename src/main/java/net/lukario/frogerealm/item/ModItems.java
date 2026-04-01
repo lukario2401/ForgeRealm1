@@ -8,11 +8,14 @@ import net.lukario.frogerealm.item.custom.ranged.Terminator;
 import net.lukario.frogerealm.item.custom.ranged.TarotDeck;
 import net.lukario.frogerealm.item.custom.swords.ShadowSword;
 import net.lukario.frogerealm.item.custom.StrengthElixir;
+import net.lukario.frogerealm.item.seald_artifacts.BoneDefinersLens;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.food.FoodProperties;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.SwordItem;
-import net.minecraft.world.item.Tiers;
+import net.minecraft.world.item.*;
+import net.minecraftforge.event.entity.living.LivingDeathEvent;
+import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
@@ -71,6 +74,15 @@ public class ModItems {
     public static final RegistryObject<Item> TERMINATOR = ITEMS.register("terminator", ()-> new Terminator(new Item.Properties()));
     public static final RegistryObject<Item> TAROTDECK = ITEMS.register("tarot_deck", ()-> new TarotDeck(new Item.Properties()));
 
+    public static final RegistryObject<Item> BONE_DEFINERS_LENS =
+            ITEMS.register(
+                    "bone_definers_lens",
+                    () -> new BoneDefinersLens(
+                            new Item.Properties()
+                                    .stacksTo(1)
+                                    .rarity(Rarity.EPIC)
+                    )
+            );
     public static void register(IEventBus eventBus){
         ITEMS.register(eventBus);
     }

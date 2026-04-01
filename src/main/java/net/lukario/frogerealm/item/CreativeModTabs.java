@@ -25,6 +25,7 @@ public class CreativeModTabs {
                         output.accept(ModItems.LASER_STAFF.get());
                         output.accept(ModItems.TERMINATOR.get());
                         output.accept(ModItems.TAROTDECK.get());
+                        output.accept(ModItems.BONE_DEFINERS_LENS.get());
 
                     })
                     .build());

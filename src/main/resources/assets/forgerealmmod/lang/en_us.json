@@ -6,6 +6,7 @@
   "item.forgerealmmod.laser_staff": "Laser Staff",
   "item.forgerealmmod.terminator": "Terminator",
   "item.forgerealmmod.tarot_deck": "Tarot Deck",
+  "item.forgerealmmod.bone_definers_lens": "Bone Definers Lens",
 
 
   "item.forgerealmmod.diamond_carrot": "Diamond Carrot",
@@ -29,7 +30,6 @@
   "tooltip.forgerealmmod.terminator.tooltip.shift.13": "§eLeft Click:§r Regular Shot",
   "tooltip.forgerealmmod.terminator.tooltip.shift.14": "Shoots deadly beams",
 
-
   "tooltip.forgerealmmod.terminator.tooltip": "§dTerminator §rthe strongest §4Weapon",
   "tooltip.forgerealmmod.terminator.tooltip.2": "Hold shift for more info",
 
@@ -49,7 +49,6 @@
   "key.forgerealmmod.ability_seven_packet_key": "Soul Ability Seven",
 
   "message.forgerealmmod.example_key_pressed": "Example Key was pressed!",
-
 
   "effect.forgerealmmod.shadow_mark": "Shadow Mark",
   "effect.forgerealmmod.abyssal_monarch_mark": "Abyssal Monarch Mark",
