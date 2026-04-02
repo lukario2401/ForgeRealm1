@@ -45,7 +45,8 @@ public class SoulShardPower {
             if (amplifier==5){
                 amplifier=4;
             }
-            handleEffect(player, MobEffects.DAMAGE_RESISTANCE, amplifier-1);
+            // temp
+            handleEffect(player, MobEffects.DAMAGE_RESISTANCE, amplifier-2);
         }
 
         // TIER 4: Regeneration (5000+ Shards)

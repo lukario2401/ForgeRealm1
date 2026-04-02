@@ -9,6 +9,7 @@ import net.lukario.frogerealm.item.custom.ranged.TarotDeck;
 import net.lukario.frogerealm.item.custom.swords.ShadowSword;
 import net.lukario.frogerealm.item.custom.StrengthElixir;
 import net.lukario.frogerealm.item.seald_artifacts.BoneDefinersLens;
+import net.lukario.frogerealm.item.seald_artifacts.GraveWardenShroud;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.item.*;
@@ -83,6 +84,17 @@ public class ModItems {
                                     .rarity(Rarity.EPIC)
                     )
             );
+
+    public static final RegistryObject<Item> GRAVEWARDEN_SHROUD =
+            ITEMS.register(
+                    "gravewarden_shroud",
+                    () -> new GraveWardenShroud(
+                            new Item.Properties()
+                                    .stacksTo(1)
+                                    .rarity(Rarity.EPIC)
+                    )
+            );
+
     public static void register(IEventBus eventBus){
         ITEMS.register(eventBus);
     }
