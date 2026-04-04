@@ -8,8 +8,7 @@ import net.lukario.frogerealm.item.custom.ranged.Terminator;
 import net.lukario.frogerealm.item.custom.ranged.TarotDeck;
 import net.lukario.frogerealm.item.custom.swords.ShadowSword;
 import net.lukario.frogerealm.item.custom.StrengthElixir;
-import net.lukario.frogerealm.item.seald_artifacts.BoneDefinersLens;
-import net.lukario.frogerealm.item.seald_artifacts.GraveWardenShroud;
+import net.lukario.frogerealm.item.seald_artifacts.*;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.item.*;
@@ -89,6 +88,46 @@ public class ModItems {
             ITEMS.register(
                     "gravewarden_shroud",
                     () -> new GraveWardenShroud(
+                            new Item.Properties()
+                                    .stacksTo(1)
+                                    .rarity(Rarity.EPIC)
+                    )
+            );
+
+    public static final RegistryObject<Item> HOLLOW_NAME =
+            ITEMS.register(
+                    "hollow_name",
+                    () -> new HollowName(
+                            new Item.Properties()
+                                    .stacksTo(1)
+                                    .rarity(Rarity.EPIC)
+                    )
+            );
+
+    public static final RegistryObject<Item> FRACTURED_CHORUS =
+            ITEMS.register(
+                    "fractured_chorus",
+                    () -> new FracturedChorus(
+                            ArmorMaterials.NETHERITE,
+                            new Item.Properties()
+                                    .stacksTo(1)
+                                    .rarity(Rarity.EPIC)
+                    )
+            );
+
+    public static final RegistryObject<Item> UNFINISHED_HOUR_GLASS =
+            ITEMS.register(
+                    "unfinished_hour_glass",
+                    () -> new UnfinishedHourglass(new Item.Properties()
+                            .stacksTo(1)
+                            .rarity(Rarity.EPIC)
+                    )
+            );
+
+    public static final RegistryObject<Item> UNDYING_CANKER =
+            ITEMS.register(
+                    "undying_canker",
+                    () -> new UndyingCanker(
                             new Item.Properties()
                                     .stacksTo(1)
                                     .rarity(Rarity.EPIC)

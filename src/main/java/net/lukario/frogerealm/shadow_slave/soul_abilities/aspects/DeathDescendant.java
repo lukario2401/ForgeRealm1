@@ -93,11 +93,11 @@ public class DeathDescendant {
     private static final float ESSENCE_MAX        = 100f;
     private static final int   ESSENCE_DECAY_TICK = 50;   // 1 essence lost every 2.5s
     private static final int   MARKS_MAX          = 5;
-    private static final int   MODE_BOOST_DUR     = 80;   // 4 seconds
+    private static final int   MODE_BOOST_DUR     = 120;   // 4 seconds
     private static final int   DARK_FEAST_DUR     = 100;  // 5 seconds
     private static final int   ABYSSAL_DUR        = 240;  // 12 seconds
     private static final int   BIND_DURATION      = 60;   // 3 seconds
-    private static final int   BIND_DOT_INTERVAL  = 15;   // bind DoT every 0.75s
+    private static final int   BIND_DOT_INTERVAL  = 10;   // bind DoT every 0.75s
 
     // Execute HP thresholds per mode
     private static final float EXEC_THRESHOLD_BASE       = 0.20f; // 20% HP
@@ -516,7 +516,7 @@ public class DeathDescendant {
      */
     public static void shadowCut(Player player, Level level, ServerLevel sl) {
         if (!SoulCore.getAspect(player).equals("Death Descendant")) return;
-        if (SoulCore.getSoulEssence(player) < 200) return;
+        if (SoulCore.getSoulEssence(player) < 1200) return;
 
         int ascStage = SoulCore.getAscensionStage(player);
         int mode     = getMode(player);
@@ -529,7 +529,7 @@ public class DeathDescendant {
             return;
         }
 
-        SoulCore.setSoulEssence(player, SoulCore.getSoulEssence(player) - 200);
+        SoulCore.setSoulEssence(player, SoulCore.getSoulEssence(player) - 1200);
         if (hasModeBoost(player)) player.getPersistentData().putInt(NBT_MODE_BOOST, 0);
 
         int   marks  = getMarks(target);

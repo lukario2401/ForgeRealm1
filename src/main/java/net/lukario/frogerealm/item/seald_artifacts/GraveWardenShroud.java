@@ -210,6 +210,11 @@ public class GraveWardenShroud extends Item {
     // ── Active: Death's Embrace ───────────────────────────────
 
     @Override
+    public boolean isFoil(ItemStack stack) {
+        return true; // Forces the item to always render with the enchanted glow
+    }
+
+    @Override
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
         if (level.isClientSide) return InteractionResultHolder.success(stack);
