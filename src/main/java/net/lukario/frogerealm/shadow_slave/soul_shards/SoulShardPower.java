@@ -19,7 +19,7 @@ public class SoulShardPower {
         // We check every tick to ensure the 5-tick window is caught immediately
         if (event.phase != TickEvent.Phase.END || event.player.level().isClientSide) return;
 
-        applySoulShardPowers(event.player);
+//        applySoulShardPowers(event.player);
     }
 
     public static void applySoulShardPowers(Player player) {

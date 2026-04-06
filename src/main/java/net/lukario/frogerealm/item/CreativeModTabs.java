@@ -31,6 +31,9 @@ public class CreativeModTabs {
                         output.accept(ModItems.FRACTURED_CHORUS.get());
                         output.accept(ModItems.UNFINISHED_HOUR_GLASS.get());
                         output.accept(ModItems.UNDYING_CANKER.get());
+                        output.accept(ModItems.MIRRORLESS_EYE.get());
+                        output.accept(ModItems.SUNKEN_CODEX.get());
+                        output.accept(ModItems.CRYSTALLIZED_PROPHECY_MONOCLE.get());
 
                     })
                     .build());

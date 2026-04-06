@@ -99,7 +99,7 @@ public class ModItems {
                     "hollow_name",
                     () -> new HollowName(
                             new Item.Properties()
-                                    .stacksTo(1)
+                                    .stacksTo(8)
                                     .rarity(Rarity.EPIC)
                     )
             );
@@ -128,6 +128,36 @@ public class ModItems {
             ITEMS.register(
                     "undying_canker",
                     () -> new UndyingCanker(
+                            new Item.Properties()
+                                    .stacksTo(1)
+                                    .rarity(Rarity.EPIC)
+                    )
+            );
+
+    public static final RegistryObject<Item> MIRRORLESS_EYE =
+            ITEMS.register(
+                    "mirrorless_eye",
+                    () -> new MirrorlessEye(
+                            new Item.Properties()
+                                    .stacksTo(1)
+                                    .rarity(Rarity.EPIC)
+                    )
+            );
+
+    public static final RegistryObject<Item> SUNKEN_CODEX =
+            ITEMS.register(
+                    "sunken_codex",
+                    () -> new SunkenCodex(
+                            new Item.Properties()
+                                    .stacksTo(1)
+                                    .rarity(Rarity.EPIC)
+                    )
+            );
+
+    public static final RegistryObject<Item> CRYSTALLIZED_PROPHECY_MONOCLE =
+            ITEMS.register(
+                    "crystallized_prophecy_monocle",
+                    () -> new CrystallizedProphecyMonocle(
                             new Item.Properties()
                                     .stacksTo(1)
                                     .rarity(Rarity.EPIC)
