@@ -174,6 +174,16 @@ public class ModItems {
                     )
             );
 
+    public static final RegistryObject<Item> HANGED_MAN_CHORD =
+            ITEMS.register(
+                    "hanged_man_chord",
+                    () -> new HangedManChord(
+                            new Item.Properties()
+                                    .stacksTo(1)
+                                    .rarity(Rarity.EPIC)
+                    )
+            );
+
     public static void register(IEventBus eventBus){
         ITEMS.register(eventBus);
     }
