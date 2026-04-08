@@ -164,6 +164,16 @@ public class ModItems {
                     )
             );
 
+    public static final RegistryObject<Item> SCARLET_SUTURE =
+            ITEMS.register(
+                    "scarlet_suture",
+                    () -> new ScarletSuture(
+                            new Item.Properties()
+                                    .stacksTo(1)
+                                    .rarity(Rarity.EPIC)
+                    )
+            );
+
     public static void register(IEventBus eventBus){
         ITEMS.register(eventBus);
     }

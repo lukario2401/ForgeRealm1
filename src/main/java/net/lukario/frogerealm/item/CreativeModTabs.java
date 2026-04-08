@@ -34,6 +34,7 @@ public class CreativeModTabs {
                         output.accept(ModItems.MIRRORLESS_EYE.get());
                         output.accept(ModItems.SUNKEN_CODEX.get());
                         output.accept(ModItems.CRYSTALLIZED_PROPHECY_MONOCLE.get());
+                        output.accept(ModItems.SCARLET_SUTURE.get());
 
                     })
                     .build());
