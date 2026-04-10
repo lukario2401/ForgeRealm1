@@ -231,6 +231,11 @@ public class HangedManChord extends Item {
         super(properties);
     }
 
+    @Override
+    public boolean isFoil(ItemStack stack) {
+        return true; // Forces the item to always render with the enchanted glow
+    }
+
     // ═════════════════════════════════════════════════════════
     // ACTIVE — Sentence
     // ═════════════════════════════════════════════════════════
@@ -242,17 +247,17 @@ public class HangedManChord extends Item {
         var data = player.getPersistentData();
         if (data.getInt("HC_SentenceCD") > 0) {
             int remaining = data.getInt("HC_SentenceCD") / 20;
-            player.displayClientMessage(
+            player.sendSystemMessage(
                     Component.literal("The Chord deliberates. (" + remaining + "s)")
-                            .withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC), true);
+                            .withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC));
             return InteractionResultHolder.pass(stack);
         }
 
         int charge = data.getInt("HC_Verdict");
         if (charge == 0) {
-            player.displayClientMessage(
+            player.sendSystemMessage(
                     Component.literal("No verdict has been reached.")
-                            .withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC), true);
+                            .withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC));
             return InteractionResultHolder.pass(stack);
         }
 
@@ -287,9 +292,9 @@ public class HangedManChord extends Item {
                 target.setDeltaMovement(target.getDeltaMovement().add(pull));
                 target.hurtMarked = true;
             });
-            player.displayClientMessage(
+            player.sendSystemMessage(
                     Component.literal("Binding Sentence. Approach is denied.")
-                            .withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC), true);
+                            .withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC));
 
         } else if (charge <= 4) {
             // ── Inversion Sentence ────────────────────────────
@@ -307,9 +312,9 @@ public class HangedManChord extends Item {
                 e.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 120, 3, false, true));
                 e.addEffect(new MobEffectInstance(MobEffects.BLINDNESS,         120, 0, false, true));
             });
-            player.displayClientMessage(
+            player.sendSystemMessage(
                     Component.literal("Inversion Sentence. Every direction is wrong.")
-                            .withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC), true);
+                            .withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC));
 
         } else if (charge <= 6) {
             // ── Reversal Sentence ─────────────────────────────
@@ -331,9 +336,9 @@ public class HangedManChord extends Item {
                 }
             });
             if (sl != null) silverExplosion(sl, pos, 30, 60);
-            player.displayClientMessage(
+            player.sendSystemMessage(
                     Component.literal("Reversal Sentence. The debt is paid in full.")
-                            .withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC), true);
+                            .withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC));
 
         } else {
             // ── FINAL VERDICT ─────────────────────────────────
@@ -395,7 +400,7 @@ public class HangedManChord extends Item {
         boolean holding = isHolding(player);
 
         // ── Rope returns to inventory if dropped ──────────────
-        ensureRopeReturns(player, level, data);
+//        ensureRopeReturns(player, level, data);
 
         // ── Tick cooldowns ────────────────────────────────────
         tickDown(data, "HC_SentenceCD");
@@ -447,6 +452,10 @@ public class HangedManChord extends Item {
                     p.y + 1.0 + Math.random() * 0.8,
                     p.z + (Math.random() - 0.5) * 0.5,
                     1, 0, 0.02, 0, 0.02);
+        }
+        if (susp%50==0 && susp != 0){
+            player.sendSystemMessage(Component.literal("Suspension: " + susp));
+            data.putInt("HC_Suspension",data.getInt("HC_Suspension")+1);
         }
     }
 
@@ -546,9 +555,9 @@ public class HangedManChord extends Item {
             if (selfMark <= 0) {
                 data.putInt("HC_SelfMarkTicks", SELF_MARK_INT);
                 player.hurt(level.damageSources().magic(), 3f);
-                player.displayClientMessage(
+                player.sendSystemMessage(
                         Component.literal("The Chord collects.")
-                                .withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC), true);
+                                .withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC));
             } else {
                 data.putInt("HC_SelfMarkTicks", selfMark);
             }
@@ -564,9 +573,9 @@ public class HangedManChord extends Item {
                 Vec3 vel = player.getDeltaMovement();
                 player.setDeltaMovement(vel.scale(-0.8).add(0, 0.1, 0));
                 player.hurtMarked = true;
-                player.displayClientMessage(
+                player.sendSystemMessage(
                         Component.literal("The Chord corrects your path.")
-                                .withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC), true);
+                                .withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC));
             } else {
                 data.putInt("HC_InversionTicks", invTicks);
             }
@@ -686,9 +695,9 @@ public class HangedManChord extends Item {
                 silverExplosion(sl, dead.position(), 6, 20);
             }
 
-            player.displayClientMessage(
+            player.sendSystemMessage(
                     Component.literal("Verdict recorded. [" + verdict + "/" + VERDICT_MAX + "]")
-                            .withStyle(ChatFormatting.WHITE, ChatFormatting.ITALIC), true);
+                            .withStyle(ChatFormatting.WHITE, ChatFormatting.ITALIC));
 
             // Splash mark damage to other nearby marked entities
             dead.level().getEntitiesOfClass(LivingEntity.class,
@@ -731,9 +740,9 @@ public class HangedManChord extends Item {
         // Directly grab the registered item from your DeferredRegister
         player.addItem(new ItemStack(ModItems.HANGED_MAN_CHORD.get()));
 
-        player.displayClientMessage(
+        player.sendSystemMessage(
                 Component.literal("It was already tied.")
-                        .withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC), true);
+                        .withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC));
     }
 
     // ── Helpers ───────────────────────────────────────────────

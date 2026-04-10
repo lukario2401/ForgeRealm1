@@ -36,6 +36,10 @@ public class CreativeModTabs {
                         output.accept(ModItems.CRYSTALLIZED_PROPHECY_MONOCLE.get());
                         output.accept(ModItems.SCARLET_SUTURE.get());
                         output.accept(ModItems.HANGED_MAN_CHORD.get());
+                        output.accept(ModItems.BONE_FETISH.get());
+                        output.accept(ModItems.CRACKED_BAROMETER.get());
+                        output.accept(ModItems.SPLICED_COMPASS.get());
+                        output.accept(ModItems.LAST_BREATH.get());
 
                     })
                     .build());

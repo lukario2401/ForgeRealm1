@@ -184,6 +184,46 @@ public class ModItems {
                     )
             );
 
+    public static final RegistryObject<Item> BONE_FETISH =
+            ITEMS.register(
+                    "bone_fetish",
+                    () -> new BoneFetish(
+                            new Item.Properties()
+                                    .stacksTo(1)
+                                    .rarity(Rarity.EPIC)
+                    )
+            );
+
+    public static final RegistryObject<Item> CRACKED_BAROMETER =
+            ITEMS.register(
+                    "cracked_barometer",
+                    () -> new CrackedBarometer(
+                            new Item.Properties()
+                                    .stacksTo(1)
+                                    .rarity(Rarity.EPIC)
+                    )
+            );
+
+    public static final RegistryObject<Item> SPLICED_COMPASS =
+            ITEMS.register(
+                    "spliced_compass",
+                    () -> new SplicedCompass(
+                            new Item.Properties()
+                                    .stacksTo(1)
+                                    .rarity(Rarity.EPIC)
+                    )
+            );
+
+    public static final RegistryObject<Item> LAST_BREATH =
+            ITEMS.register(
+                    "last_breath",
+                    () -> new LastBreath(
+                            new Item.Properties()
+                                    .stacksTo(1)
+                                    .rarity(Rarity.EPIC)
+                    )
+            );
+
     public static void register(IEventBus eventBus){
         ITEMS.register(eventBus);
     }

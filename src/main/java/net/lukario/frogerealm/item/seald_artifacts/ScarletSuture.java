@@ -142,9 +142,9 @@ public class ScarletSuture extends Item {
 
             float debt = player.getPersistentData().getFloat("SS_DebtPool");
             if (debt <= 0) {
-                player.displayClientMessage(
+                player.sendSystemMessage(
                         Component.literal("No blood debt to spend.")
-                                .withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC), true);
+                                .withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC));
                 return InteractionResultHolder.pass(stack);
             }
 
@@ -162,9 +162,9 @@ public class ScarletSuture extends Item {
             // Stitch particles
             spawnStitchParticles(player, target, level);
 
-            player.displayClientMessage(
+            player.sendSystemMessage(
                     Component.literal(String.format("Stitched. %.1f debt spent.", debt))
-                            .withStyle(ChatFormatting.DARK_RED, ChatFormatting.ITALIC), true);
+                            .withStyle(ChatFormatting.DARK_RED, ChatFormatting.ITALIC));
 
             player.getCooldowns().addCooldown(stack.getItem(), WOUND_STITCH_COOLDOWN);
 
@@ -179,18 +179,18 @@ public class ScarletSuture extends Item {
                 // Spend debt, heal HP
                 player.getPersistentData().putFloat("SS_DebtPool", debt - SELF_SUTURE_COST);
                 player.heal(SELF_SUTURE_HEAL);
-                player.displayClientMessage(
+                player.sendSystemMessage(
                         Component.literal("The wound closes. The debt grows.")
-                                .withStyle(ChatFormatting.DARK_RED, ChatFormatting.ITALIC), true);
+                                .withStyle(ChatFormatting.DARK_RED, ChatFormatting.ITALIC));
             } else {
                 // Draw from current HP — net zero but dangerous
                 float cost = SELF_SUTURE_COST - debt;
                 player.getPersistentData().putFloat("SS_DebtPool", 0f);
                 player.hurt(level.damageSources().magic(), cost);
                 player.heal(SELF_SUTURE_HEAL);
-                player.displayClientMessage(
+                player.sendSystemMessage(
                         Component.literal("Insufficient debt. The Suture takes from you directly.")
-                                .withStyle(ChatFormatting.RED, ChatFormatting.BOLD), true);
+                                .withStyle(ChatFormatting.RED, ChatFormatting.BOLD));
             }
 
             // Heal particles on player
@@ -326,9 +326,9 @@ public class ScarletSuture extends Item {
                     12, 0.5, 0.5, 0.5, 0.2);
         }
 
-        owner.displayClientMessage(
+        owner.sendSystemMessage(
                 Component.literal("It rises again.")
-                        .withStyle(ChatFormatting.DARK_RED, ChatFormatting.ITALIC), true);
+                        .withStyle(ChatFormatting.DARK_RED, ChatFormatting.ITALIC));
     }
 
     // ── Server Tick ───────────────────────────────────────────
@@ -381,9 +381,9 @@ public class ScarletSuture extends Item {
             // Bond expired naturally
             if (bondTime == 1) {
                 activeBonds.remove(player.getUUID());
-                player.displayClientMessage(
+                player.sendSystemMessage(
                         Component.literal("The thread goes slack.")
-                                .withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC), true);
+                                .withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC));
             }
         }
     }
@@ -422,9 +422,9 @@ public class ScarletSuture extends Item {
         ).orElse(null);
 
         if (target == null) {
-            player.displayClientMessage(
+            player.sendSystemMessage(
                     Component.literal("The Suture seeks but finds nothing.")
-                            .withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC), true);
+                            .withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC));
             return;
         }
 
@@ -509,6 +509,11 @@ public class ScarletSuture extends Item {
     }
 
     // ── Tooltip ───────────────────────────────────────────────
+
+    @Override
+    public boolean isFoil(ItemStack stack) {
+        return true; // Forces the item to always render with the enchanted glow
+    }
 
     @Override
     public void appendHoverText(ItemStack stack, TooltipContext context,
