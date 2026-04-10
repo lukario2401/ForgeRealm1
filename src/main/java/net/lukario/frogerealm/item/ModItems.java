@@ -219,7 +219,7 @@ public class ModItems {
                     "last_breath",
                     () -> new LastBreath(
                             new Item.Properties()
-                                    .stacksTo(1)
+                                    .stacksTo(8)
                                     .rarity(Rarity.EPIC)
                     )
             );

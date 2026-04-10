@@ -24,7 +24,18 @@ public class CreativeModTabs {
                         output.accept(ModItems.DEPLETED_ENERGY_SHARD.get());
                         output.accept(ModItems.LASER_STAFF.get());
                         output.accept(ModItems.TERMINATOR.get());
+
                         output.accept(ModItems.TAROTDECK.get());
+
+                    })
+                    .build());
+
+    public static final RegistryObject<CreativeModeTab> SEALED_ARTIFACTS = CREATIVE_MODE_TAB.register("sealed_artifacts",
+            () -> CreativeModeTab.builder().icon(() -> new ItemStack(ModItems.HOLLOW_NAME.get()))
+                    .withTabsBefore(SOULTAB.getId())
+                    .title(Component.translatable("creativetab.forgerealmmod.sealed_artifacts"))
+                    .displayItems((itemDisplayParameters, output) -> {
+
                         output.accept(ModItems.BONE_DEFINERS_LENS.get());
                         output.accept(ModItems.GRAVEWARDEN_SHROUD.get());
                         output.accept(ModItems.HOLLOW_NAME.get());
