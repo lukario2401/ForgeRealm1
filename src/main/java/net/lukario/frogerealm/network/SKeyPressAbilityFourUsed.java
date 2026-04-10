@@ -25,6 +25,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.Inferna
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PhantomSequence.echoShade;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PlagueSovereign.harvestSoul;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RuinBladeAscendant.overload;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RunicSequencer.runicSequencerSigilConverge;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilityFourUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilityTwoUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.SigilReaper.spreadMark;
@@ -72,6 +73,7 @@ public class SKeyPressAbilityFourUsed {
         gravityTether(player,level,serverLevel);
         veilStep(player,level,serverLevel);
         echoShade(player,level,serverLevel);
+        runicSequencerSigilConverge(player,level,serverLevel);
 
     }
 

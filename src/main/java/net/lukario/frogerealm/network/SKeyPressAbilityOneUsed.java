@@ -41,6 +41,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.LightBr
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PhantomSequence.phantomSequencePhantomStrike;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PlagueSovereign.plagueTouch;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RuinBladeAscendant.ruinSlash;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RunicSequencer.runicSequencerSigilMark;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilityOneUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.SigilReaper.sigilCarve;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.StormConduit.arcSpike;
@@ -88,5 +89,6 @@ public class SKeyPressAbilityOneUsed {
         placeGravityWell(player,level,serverLevel);
         shadowCut(player,level,serverLevel);
         phantomSequencePhantomStrike(player,level,serverLevel);
+        runicSequencerSigilMark(player,level,serverLevel);
     }
 }

@@ -25,6 +25,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.Inferna
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PhantomSequence.veilOfMirrors;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PlagueSovereign.necroticBurst;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RuinBladeAscendant.cataclysmState;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RunicSequencer.runicSequencerQuickInscription;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilityFourUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilitySixUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.SigilReaper.apocalypseScript;
@@ -72,6 +73,7 @@ public class SKeyPressAbilitySixUsed {
         darkFeast(player,serverLevel);
         shiftMode(player,serverLevel);
         veilOfMirrors(player,serverLevel);
+        runicSequencerQuickInscription(player,serverLevel);
 
     }
 }

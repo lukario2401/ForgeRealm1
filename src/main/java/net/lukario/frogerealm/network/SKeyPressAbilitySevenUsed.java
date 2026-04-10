@@ -22,6 +22,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.FleshDe
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.GravityArchitect.gravitationalSingularity;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PhantomSequence.infinitePhantom;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PlagueSovereign.sovereignsPlague;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RunicSequencer.runicSequencerPerfectRitual;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilitySixUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.StormConduit.singularityStorm;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.StormHerald.stormHeraldAbilitySevenUsed;
@@ -59,6 +60,7 @@ public class SKeyPressAbilitySevenUsed {
         gravitationalSingularity(player,serverLevel);
         abyssalHarvest(player,level,serverLevel);
         infinitePhantom(player,level,serverLevel);
+        runicSequencerPerfectRitual(player,serverLevel);
 
 
     }

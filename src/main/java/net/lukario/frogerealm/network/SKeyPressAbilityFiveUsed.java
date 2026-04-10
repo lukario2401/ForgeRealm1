@@ -26,6 +26,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.Inferna
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PhantomSequence.specterBreak;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PlagueSovereign.epidemic;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RuinBladeAscendant.executionDrive;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RunicSequencer.runicSequencerSigilExecute;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilityFourUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.SigilReaper.delayedCollapse;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.StormConduit.stormChannel;
@@ -70,6 +71,7 @@ public class SKeyPressAbilityFiveUsed {
         eventHorizon(player,serverLevel);
         soulFracture(player,level,serverLevel);
         specterBreak(player,level,serverLevel);
+        runicSequencerSigilExecute(player,level,serverLevel);
 
 
     }

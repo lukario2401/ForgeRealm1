@@ -24,6 +24,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.Inferna
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PhantomSequence.mirageStep;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PlagueSovereign.miasmaCloud;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RuinBladeAscendant.rend;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RunicSequencer.runicSequencerSigilBind;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilityOneUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilityTwoUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.SigilReaper.detonateSigilsAbility;
@@ -70,6 +71,7 @@ public class SKeyPressAbilityTwoUsed {
         detonateWellAbility(player,level,serverLevel);
         umbralBind(player,level,serverLevel);
         mirageStep(player,level,serverLevel);
+        runicSequencerSigilBind(player,level,serverLevel);
 
     }
 }

@@ -25,6 +25,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.Inferna
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PhantomSequence.wraithUppercut;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PlagueSovereign.accelerateDecay;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RuinBladeAscendant.ruinDetonation;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RunicSequencer.runicSequencerSigilAmplify;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilitySixUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.SigilReaper.sigilSurge;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.StormConduit.overloadStrike;
@@ -70,6 +71,7 @@ public class SKeyPressAbilityThreeUsed {
         gravityCollapse(player,level,serverLevel);
         harvest(player,level,serverLevel);
         wraithUppercut(player,level,serverLevel);
+        runicSequencerSigilAmplify(player,level,serverLevel);
 
 
     }
