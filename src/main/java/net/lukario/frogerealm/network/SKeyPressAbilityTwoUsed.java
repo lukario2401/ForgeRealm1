@@ -12,6 +12,7 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.event.network.CustomPayloadEvent;
 
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AbyssalPenitent.abyssalPenitentSacrificialOffering;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AetherWarden.aetherWardenAbilityTwoUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AstralArbiter.orbReclaim;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.BloodBoundAscetic.crimsonOffering;
@@ -72,6 +73,7 @@ public class SKeyPressAbilityTwoUsed {
         umbralBind(player,level,serverLevel);
         mirageStep(player,level,serverLevel);
         runicSequencerSigilBind(player,level,serverLevel);
+        abyssalPenitentSacrificialOffering(player,serverLevel);
 
     }
 }

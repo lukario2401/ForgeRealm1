@@ -12,6 +12,7 @@ import net.minecraft.world.level.Level;
 import net.minecraftforge.event.network.CustomPayloadEvent;
 
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AbyssalMonarch.abyssalMonarchAbilitySix;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AbyssalPenitent.abyssalPenitentAbyssalRelease;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AetherWarden.aetherWardenAbilitySixUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AstralArbiter.cosmicOverdraw;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.BloodBoundAscetic.bloodBoundAsceticBloodFrenzy;
@@ -74,6 +75,7 @@ public class SKeyPressAbilitySixUsed {
         shiftMode(player,serverLevel);
         veilOfMirrors(player,serverLevel);
         runicSequencerQuickInscription(player,serverLevel);
+        abyssalPenitentAbyssalRelease(player,level,serverLevel);
 
     }
 }

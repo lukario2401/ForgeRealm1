@@ -711,26 +711,54 @@ public class RunicSequencer {
      *   - Every completed Execute creates an aftershock ring
      * Cost: 5000 essence.  Requires stage ≥ 7.
      */
-    public static void runicSequencerPerfectRitual(Player player, ServerLevel sl) {
+    public static void runicSequencerPerfectRitual(Player player, Level level, ServerLevel sl) {
         if (!SoulCore.getAspect(player).equals("Runic Sequencer")) return;
         if (SoulCore.getSoulEssence(player) < 5000) return;
         if (SoulCore.getAscensionStage(player) < 7) return;
+        if (inRitual(player)) {
+            if (player instanceof ServerPlayer sp)
+                sp.sendSystemMessage(Component.literal("§cThe Perfect Ritual is already active."));
+            return;
+        }
+
+        // Consume ultimate cost
         SoulCore.setSoulEssence(player, SoulCore.getSoulEssence(player) - 5000);
 
+        // Initialize Ritual State
         player.getPersistentData().putInt(NBT_RITUAL, RITUAL_DUR);
         player.getPersistentData().putInt(NBT_LOOPS, 0);
 
-        sl.sendParticles(ParticleTypes.ENCHANT,
-                player.getX(), player.getY() + 1, player.getZ(), 60, 1.0, 1.0, 1.0, 0.06);
-        sl.sendParticles(ParticleTypes.REVERSE_PORTAL,
-                player.getX(), player.getY() + 1, player.getZ(), 30, 0.8, 0.8, 0.8, 0.04);
-        sl.playSound(null, player.blockPosition(),
-                SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 1.5f, 0.3f);
-        sl.playSound(null, player.blockPosition(),
-                SoundEvents.ENCHANTMENT_TABLE_USE, SoundSource.PLAYERS, 1f, 0.5f);
+        // If the player isn't in a sequence yet, ensure they are at STEP_NONE so the auto-loop catches them
+        if (getStep(player) == STEP_NONE) {
+            setStep(player, STEP_NONE);
+            player.getPersistentData().putFloat(NBT_ENERGY, 0f);
+        }
 
-        if (player instanceof ServerPlayer sp)
-            sp.sendSystemMessage(Component.literal(
-                    "§5§l✦ PERFECT RITUAL ✦ §r§dSequence loops. Damage scales per loop. 12s."));
+        // Massive visual and audio feedback for Ultimate activation
+        sl.playSound(null, player.blockPosition(),
+                SoundEvents.END_PORTAL_SPAWN, SoundSource.PLAYERS, 1.0f, 0.8f);
+        sl.playSound(null, player.blockPosition(),
+                SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 1.5f, 1.5f);
+
+        // Create an expanding dome of runes and soul particles
+        for (int i = 0; i < 150; i++) {
+            double phi = Math.acos(1 - 2 * Math.random());
+            double theta = 2 * Math.PI * Math.random();
+            double radius = 4.0;
+
+            double x = player.getX() + radius * Math.sin(phi) * Math.cos(theta);
+            double y = player.getY() + 1.0 + radius * Math.cos(phi);
+            double z = player.getZ() + radius * Math.sin(phi) * Math.sin(theta);
+
+            sl.sendParticles(ParticleTypes.ENCHANT, x, y, z, 1, 0, 0, 0, 0.05);
+            if (i % 3 == 0) {
+                sl.sendParticles(ParticleTypes.WITCH, x, y, z, 1, 0.1, 0.1, 0.1, 0.02);
+            }
+        }
+
+        if (player instanceof ServerPlayer sp) {
+            sp.sendSystemMessage(Component.literal("§d§l[PERFECT RITUAL INITIATED]"));
+            sp.sendSystemMessage(Component.literal("§5The sequence is unbroken. The flow of essence bends to your will."));
+        }
     }
 }

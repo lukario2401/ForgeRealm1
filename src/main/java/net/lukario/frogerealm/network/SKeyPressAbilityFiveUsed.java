@@ -12,6 +12,7 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.event.network.CustomPayloadEvent;
 
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AbyssalPenitent.abyssalPenitentForbiddenInsight;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AetherWarden.aetherWardenAbilityFiveUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AstralArbiter.orbSplit;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.BloodBoundAscetic.lastStand;
@@ -72,6 +73,7 @@ public class SKeyPressAbilityFiveUsed {
         soulFracture(player,level,serverLevel);
         specterBreak(player,level,serverLevel);
         runicSequencerSigilExecute(player,level,serverLevel);
+        abyssalPenitentForbiddenInsight(player,serverLevel);
 
 
     }

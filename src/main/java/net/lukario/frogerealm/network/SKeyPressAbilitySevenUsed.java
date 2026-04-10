@@ -12,6 +12,7 @@ import net.minecraft.world.level.Level;
 import net.minecraftforge.event.network.CustomPayloadEvent;
 
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AbyssalMonarch.abyssalMonarchAbilitySix;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AbyssalPenitent.abyssalPenitentDescentIntoTheAbyss;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AetherWarden.aetherWardenAbilitySevenUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AstralArbiter.astralConvergence;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.BloodBoundAscetic.martyrsAscension;
@@ -60,7 +61,8 @@ public class SKeyPressAbilitySevenUsed {
         gravitationalSingularity(player,serverLevel);
         abyssalHarvest(player,level,serverLevel);
         infinitePhantom(player,level,serverLevel);
-        runicSequencerPerfectRitual(player,serverLevel);
+        runicSequencerPerfectRitual(player,level,serverLevel);
+        abyssalPenitentDescentIntoTheAbyss(player,serverLevel);
 
 
     }

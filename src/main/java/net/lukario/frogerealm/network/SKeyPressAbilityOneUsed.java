@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AbyssalMonarch.abyssalMonarchAspectAbilityOneUsed;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AbyssalPenitent.abyssalPenitentProfaneCut;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AetherWarden.aetherWardenAbilityOneUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AstralArbiter.astralBolt;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.BloodBoundAscetic.bloodSlash;
@@ -90,5 +91,6 @@ public class SKeyPressAbilityOneUsed {
         shadowCut(player,level,serverLevel);
         phantomSequencePhantomStrike(player,level,serverLevel);
         runicSequencerSigilMark(player,level,serverLevel);
+        abyssalPenitentProfaneCut(player,level,serverLevel);
     }
 }

@@ -12,6 +12,7 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.event.network.CustomPayloadEvent;
 
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AbyssalPenitent.abyssalPenitentChainsOfRepentance;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AetherWarden.aetherWardenAbilityFourUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AstralArbiter.astralPulse;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.BloodBoundAscetic.sanguineDrain;
@@ -74,6 +75,7 @@ public class SKeyPressAbilityFourUsed {
         veilStep(player,level,serverLevel);
         echoShade(player,level,serverLevel);
         runicSequencerSigilConverge(player,level,serverLevel);
+        abyssalPenitentChainsOfRepentance(player,level,serverLevel);
 
     }
 

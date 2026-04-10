@@ -12,6 +12,7 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.event.network.CustomPayloadEvent;
 
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AbyssalPenitent.abyssalPenitentBlasphemousBurst;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AetherWarden.aetherWardenAbilityThreeUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AstralArbiter.starfallStrike;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.BloodBoundAscetic.hemorrhageBurst;
@@ -72,6 +73,7 @@ public class SKeyPressAbilityThreeUsed {
         harvest(player,level,serverLevel);
         wraithUppercut(player,level,serverLevel);
         runicSequencerSigilAmplify(player,level,serverLevel);
+        abyssalPenitentBlasphemousBurst(player,level,serverLevel);
 
 
     }
