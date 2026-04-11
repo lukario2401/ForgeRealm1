@@ -22,6 +22,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.DeathDe
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.EclipsePhantasm.echoCut;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.FleshDevourer.meatBurst;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.GravityArchitect.gravityCollapse;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.HangedAscetic.hangedAsceticShadowLurk;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.InfernalDuelist.ignitionBurst;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PhantomSequence.wraithUppercut;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PlagueSovereign.accelerateDecay;
@@ -74,6 +75,7 @@ public class SKeyPressAbilityThreeUsed {
         wraithUppercut(player,level,serverLevel);
         runicSequencerSigilAmplify(player,level,serverLevel);
         abyssalPenitentBlasphemousBurst(player,level,serverLevel);
+        hangedAsceticShadowLurk(player,level,serverLevel,false);
 
 
     }

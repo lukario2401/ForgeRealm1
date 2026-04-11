@@ -21,6 +21,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.DeathDe
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.EclipsePhantasm.eclipseState;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.FleshDevourer.apexAbomination;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.GravityArchitect.gravitationalSingularity;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.HangedAscetic.hangedAsceticDescentIntoDepravity;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PhantomSequence.infinitePhantom;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PlagueSovereign.sovereignsPlague;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RunicSequencer.runicSequencerPerfectRitual;
@@ -49,7 +50,7 @@ public class SKeyPressAbilitySevenUsed {
 
         voidWalkerAbilitySevenUsed(player,serverLevel);
         aetherWardenAbilitySevenUsed(player,serverLevel);
-        astralConvergence(player,serverLevel);
+        astralConvergence(player,serverLevel,false);
         eclipseState(player,serverLevel);
         chronoOverload(player,serverLevel);
         singularityStorm(player,serverLevel);
@@ -63,6 +64,7 @@ public class SKeyPressAbilitySevenUsed {
         infinitePhantom(player,level,serverLevel);
         runicSequencerPerfectRitual(player,level,serverLevel);
         abyssalPenitentDescentIntoTheAbyss(player,serverLevel);
+        hangedAsceticDescentIntoDepravity(player,level,serverLevel,false);
 
 
     }

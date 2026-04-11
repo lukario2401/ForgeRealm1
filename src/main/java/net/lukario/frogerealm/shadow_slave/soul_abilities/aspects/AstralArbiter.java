@@ -645,8 +645,8 @@ public class AstralArbiter {
      *  - Every orb spent chains damage to nearby enemies
      * Cost: 5000 soul essence.  Requires stage ≥ 6.
      */
-    public static void astralConvergence(Player player, ServerLevel sl) {
-        if (!SoulCore.getAspect(player).equals("Astral Arbiter")) return;
+    public static void astralConvergence(Player player, ServerLevel sl, Boolean dontCheck) {
+        if (!canUseClassAstralArbiter(player,dontCheck)) return;
         if (SoulCore.getSoulEssence(player) < 5000) return;
         if (SoulCore.getAscensionStage(player) < 6) return;
         SoulCore.setSoulEssence(player, SoulCore.getSoulEssence(player) - 5000);
@@ -668,4 +668,11 @@ public class AstralArbiter {
                     "§e§l★ Astral Convergence! §r§6Orbs regenerate. Cap +2. Abilities cheaper. Every orb chains. "
                             + orbStatus(player)));
     }
+
+    private static boolean canUseClassAstralArbiter(Player player, Boolean dontCheck){
+        if (dontCheck)return true;
+        return SoulCore.getAspect(player).equals("Astral Arbiter");
+    }
+
+
 }

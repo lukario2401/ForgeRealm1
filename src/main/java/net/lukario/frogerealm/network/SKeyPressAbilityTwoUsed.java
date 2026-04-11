@@ -21,6 +21,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.DeathDe
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.EclipsePhantasm.phantomStrike;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.FleshDevourer.devour;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.GravityArchitect.detonateWellAbility;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.HangedAscetic.hangedAsceticFleshBomb;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.InfernalDuelist.stanceShift;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PhantomSequence.mirageStep;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PlagueSovereign.miasmaCloud;
@@ -74,6 +75,7 @@ public class SKeyPressAbilityTwoUsed {
         mirageStep(player,level,serverLevel);
         runicSequencerSigilBind(player,level,serverLevel);
         abyssalPenitentSacrificialOffering(player,serverLevel);
+        hangedAsceticFleshBomb(player,level,serverLevel, false);
 
     }
 }
