@@ -51,6 +51,7 @@ public class CreativeModTabs {
                         output.accept(ModItems.CRACKED_BAROMETER.get());
                         output.accept(ModItems.SPLICED_COMPASS.get());
                         output.accept(ModItems.LAST_BREATH.get());
+                        output.accept(ModItems.COLLAPSAR_BEAD.get());
 
                     })
                     .build());

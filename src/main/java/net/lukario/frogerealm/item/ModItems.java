@@ -224,6 +224,16 @@ public class ModItems {
                     )
             );
 
+    public static final RegistryObject<Item> COLLAPSAR_BEAD =
+            ITEMS.register(
+                    "collapsar_bead",
+                    () -> new CollapsarBead(
+                            new Item.Properties()
+                                    .stacksTo(8)
+                                    .rarity(Rarity.EPIC)
+                    )
+            );
+
     public static void register(IEventBus eventBus){
         ITEMS.register(eventBus);
     }

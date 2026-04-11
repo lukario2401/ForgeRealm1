@@ -565,7 +565,7 @@ public class HangedAscetic {
         if (SoulCore.getSoulEssence(player) < 250) return;
 
         int   ascStage = SoulCore.getAscensionStage(player);
-        int   range    = inDescent(player) ? 20 + ascStage : 12 + ascStage;
+        int   range    = inDescent(player) ? 20 + ascStage : 12 + ascStage + getGrazedSouls(player);
         boolean empower = isEmpowered(player);
 
         LivingEntity target = rayCastFirst(player, level, range);
