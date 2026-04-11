@@ -680,7 +680,7 @@ public class HangedAscetic {
         float ratio      = empowerRatio(consumed);
         int   range      = inDescent(player) ? 20 + ascStage : 12 + ascStage;
         float radius     = 4f + ascStage * 0.5f + (isEnhanced(player) ? 2f : 0f)
-                + (empower ? ratio * 3f : 0f);     // up to +3 radius
+                + (empower ? ratio * 3f : 0f) +getGrazedSouls(player) + getGrazedSouls(player)/2;     // up to +3 radius
         float dmg        = (14f + ascStage * 2.5f) * depravityMult(player);
         boolean shrapnel = empower && ratio >= 0.50f;
         boolean blind    = empower && ratio >= 0.80f;
@@ -1174,7 +1174,7 @@ public class HangedAscetic {
         SoulCore.setSoulEssence(player, SoulCore.getSoulEssence(player) - 450);
         addDepravity(player, 10f);
 
-        float radius    = 5f + ascStage * 0.3f + (empower ? ratio * 3f : 0f); // up to +3
+        float radius    = 5f + ascStage * 0.3f + (empower ? ratio * 3f : 0f) + getGrazedSouls(player)/2; // up to +3
         float dmgMult   = 1f + (empower && ratio >= 0.25f ? 0.30f : 0f);
         boolean field   = empower && ratio >= 0.50f;
         boolean implode = empower && ratio >= 0.80f;
@@ -1306,7 +1306,7 @@ public class HangedAscetic {
         setDepravity(player, DEP_MAX);
 
         int   ascStage   = SoulCore.getAscensionStage(player);
-        float novaRadius = 18f + ascStage + (empower ? ratio * 4f : 0f);
+        float novaRadius = 18f + ascStage + (empower ? ratio * 4f : 0f) + getGrazedSouls(player);
 
         var dmgAttr = player.getAttribute(Attributes.ATTACK_DAMAGE);
         if (dmgAttr != null) {
