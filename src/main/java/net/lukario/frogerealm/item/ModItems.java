@@ -9,13 +9,10 @@ import net.lukario.frogerealm.item.custom.ranged.TarotDeck;
 import net.lukario.frogerealm.item.custom.swords.ShadowSword;
 import net.lukario.frogerealm.item.custom.StrengthElixir;
 import net.lukario.frogerealm.item.seald_artifacts.*;
-import net.minecraft.world.entity.player.Player;
+import net.lukario.frogerealm.item.seald_artifacts.IronCoif;
 import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.item.*;
-import net.minecraftforge.event.entity.living.LivingDeathEvent;
-import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
@@ -233,6 +230,16 @@ public class ModItems {
                                     .rarity(Rarity.EPIC)
                     )
             );
+
+    public static final RegistryObject<Item> IRON_COIF =
+            ITEMS.register("iron_coif",
+                    () -> new IronCoif(
+                            ArmorMaterials.GOLD,
+                            new Item.Properties()
+                                    .stacksTo(1)
+                                    .rarity(Rarity.EPIC)
+//                                    .durability(480) // Durability is now set here!
+                    ));
 
     public static void register(IEventBus eventBus){
         ITEMS.register(eventBus);

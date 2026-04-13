@@ -52,6 +52,7 @@ public class CreativeModTabs {
                         output.accept(ModItems.SPLICED_COMPASS.get());
                         output.accept(ModItems.LAST_BREATH.get());
                         output.accept(ModItems.COLLAPSAR_BEAD.get());
+                        output.accept(ModItems.IRON_COIF.get());
 
                     })
                     .build());
