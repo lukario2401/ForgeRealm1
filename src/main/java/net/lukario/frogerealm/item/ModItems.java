@@ -8,14 +8,22 @@ import net.lukario.frogerealm.item.custom.ranged.Terminator;
 import net.lukario.frogerealm.item.custom.ranged.TarotDeck;
 import net.lukario.frogerealm.item.custom.swords.ShadowSword;
 import net.lukario.frogerealm.item.custom.StrengthElixir;
+import net.lukario.frogerealm.item.custom.swords.ShepardsBlade;
 import net.lukario.frogerealm.item.seald_artifacts.*;
 import net.lukario.frogerealm.item.seald_artifacts.IronCoif;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.item.*;
+import net.minecraft.world.item.crafting.Ingredient;
+import net.minecraft.world.level.block.Block;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
+
+import static net.lukario.frogerealm.item.tiers.ModTiers.SHEPARDS_TIER;
+
 
 public class ModItems {
     public static final DeferredRegister<Item> ITEMS =
@@ -62,6 +70,19 @@ public class ModItems {
                                     -1.2F   // attack speed
                             )
                     )
+            )
+    );
+
+    public static final RegistryObject<Item> SHEPARDS_BLADE = ITEMS.register(
+            "shepards_blade",
+            () -> new ShepardsBlade(
+                    SHEPARDS_TIER, // <-- Put your custom tier here
+                    new Item.Properties()
+                            // You no longer need .durability(5) here, the Tier handles it!
+                            .component(
+                                    DataComponents.ATTRIBUTE_MODIFIERS,
+                                    SwordItem.createAttributes(SHEPARDS_TIER, 14, -0.8F)
+                            )
             )
     );
 

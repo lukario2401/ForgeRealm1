@@ -30,6 +30,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RuinBla
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RunicSequencer.runicSequencerSigilConverge;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilityFourUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilityTwoUsed;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.Shepard.shepardGrazing;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.SigilReaper.spreadMark;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.StormConduit.overclock;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.StormHerald.stormHeraldAbilityFiveUsed;
@@ -78,6 +79,7 @@ public class SKeyPressAbilityFourUsed {
         runicSequencerSigilConverge(player,level,serverLevel);
         abyssalPenitentChainsOfRepentance(player,level,serverLevel);
         hangedAsceticGraze(player,level,serverLevel,false);
+        shepardGrazing(player,level,serverLevel,false);
 
     }
 

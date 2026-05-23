@@ -45,6 +45,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PlagueS
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RuinBladeAscendant.ruinSlash;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RunicSequencer.runicSequencerSigilMark;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilityOneUsed;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.Shepard.shepardShadowLurk;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.SigilReaper.sigilCarve;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.StormConduit.arcSpike;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.StormHerald.stormHeraldAbilityOneUsed;
@@ -94,5 +95,6 @@ public class SKeyPressAbilityOneUsed {
         runicSequencerSigilMark(player,level,serverLevel);
         abyssalPenitentProfaneCut(player,level,serverLevel);
         hangedAsceticShadowCurse(player,level,serverLevel,false);
+        shepardShadowLurk(player,level,serverLevel,false);
     }
 }

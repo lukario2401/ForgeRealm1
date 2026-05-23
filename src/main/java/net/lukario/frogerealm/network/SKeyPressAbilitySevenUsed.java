@@ -26,6 +26,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.Phantom
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PlagueSovereign.sovereignsPlague;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RunicSequencer.runicSequencerPerfectRitual;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilitySixUsed;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.Shepard.shepardShadowChrysalis;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.StormConduit.singularityStorm;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.StormHerald.stormHeraldAbilitySevenUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VectorArbiter.perfectAlignment;
@@ -65,6 +66,7 @@ public class SKeyPressAbilitySevenUsed {
         runicSequencerPerfectRitual(player,level,serverLevel);
         abyssalPenitentDescentIntoTheAbyss(player,serverLevel);
         hangedAsceticDescentIntoDepravity(player,level,serverLevel,false);
+        shepardShadowChrysalis(player,level,serverLevel,false);
 
 
     }

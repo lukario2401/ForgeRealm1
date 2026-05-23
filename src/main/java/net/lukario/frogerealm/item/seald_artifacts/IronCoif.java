@@ -217,7 +217,7 @@ public class IronCoif extends ArmorItem {
         }
 
         // ── Drawback — Glowing (lawful visibility) ────────────
-        player.addEffect(new MobEffectInstance(MobEffects.GLOWING, 40, 0, false, false));
+//        player.addEffect(new MobEffectInstance(MobEffects.GLOWING, 40, 0, false, false));
 
         // ── Drawback — Strip Invisibility ─────────────────────
         if (player.hasEffect(MobEffects.INVISIBILITY)) {
@@ -321,17 +321,17 @@ public class IronCoif extends ArmorItem {
         player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED, 40, 0, false, false));
 
         // Ring particles at enforcement radius
-        if (level instanceof ServerLevel sl && (player.tickCount % 6) == 0) {
-            double angle = (player.tickCount * 0.15) % (Math.PI * 2);
-            for (int i = 0; i < 5; i++) {
-                double a = angle + (Math.PI * 2.0 / 5) * i;
-                sl.sendParticles(ParticleTypes.END_ROD,
-                        pos.x + Math.cos(a) * ENFORCE_RANGE * 0.7,
-                        pos.y + 0.3,
-                        pos.z + Math.sin(a) * ENFORCE_RANGE * 0.7,
-                        1, 0, 0.05, 0, 0.01);
-            }
-        }
+//        if (level instanceof ServerLevel sl && (player.tickCount % 6) == 0) {
+//            double angle = (player.tickCount * 0.15) % (Math.PI * 2);
+//            for (int i = 0; i < 5; i++) {
+//                double a = angle + (Math.PI * 2.0 / 5) * i;
+//                sl.sendParticles(ParticleTypes.END_ROD,
+//                        pos.x + Math.cos(a) * ENFORCE_RANGE * 0.7,
+//                        pos.y + 0.3,
+//                        pos.z + Math.sin(a) * ENFORCE_RANGE * 0.7,
+//                        1, 0, 0.05, 0, 0.01);
+//            }
+//        }
     }
 
     // ── Event: extra Ender Pearl damage ──────────────────────
@@ -349,7 +349,7 @@ public class IronCoif extends ArmorItem {
             // Ender pearls cause fall damage — we can't perfectly distinguish,
             // but we add a modest fine here as a flavor penalty
             // A cleaner approach would use an item use event for the pearl itself
-            event.setAmount(event.getAmount() + 2f);
+            event.setAmount(event.getAmount() + 10f);
         }
     }
 
@@ -395,7 +395,6 @@ public class IronCoif extends ArmorItem {
         ItemStack helmet = player.getItemBySlot(EquipmentSlot.HEAD);
         return helmet.getItem() instanceof IronCoif;
     }
-
 
 
     // ── Tooltip ───────────────────────────────────────────────

@@ -30,6 +30,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PlagueS
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RuinBladeAscendant.executionDrive;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RunicSequencer.runicSequencerSigilExecute;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilityFourUsed;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.Shepard.shepardCommandeerShadow;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.SigilReaper.delayedCollapse;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.StormConduit.stormChannel;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.StormHerald.stormHeraldAbilitySixUsed;
@@ -76,6 +77,7 @@ public class SKeyPressAbilityFiveUsed {
         runicSequencerSigilExecute(player,level,serverLevel);
         abyssalPenitentForbiddenInsight(player,serverLevel);
         hangedAsceticCullOfSpiritualFlesh(player,level,serverLevel, false);
+        shepardCommandeerShadow(player,level,serverLevel, false);
 
 
     }

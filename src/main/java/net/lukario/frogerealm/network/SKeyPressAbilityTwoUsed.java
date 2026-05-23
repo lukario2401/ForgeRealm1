@@ -29,6 +29,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RuinBla
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RunicSequencer.runicSequencerSigilBind;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilityOneUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilityTwoUsed;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.Shepard.shepardShadowShaping;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.SigilReaper.detonateSigilsAbility;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.StormConduit.discharge;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.StormHerald.stormHeraldAbilityThreeUsed;
@@ -76,6 +77,7 @@ public class SKeyPressAbilityTwoUsed {
         runicSequencerSigilBind(player,level,serverLevel);
         abyssalPenitentSacrificialOffering(player,serverLevel);
         hangedAsceticFleshBomb(player,level,serverLevel, false);
+        shepardShadowShaping(player,level,serverLevel, false);
 
     }
 }

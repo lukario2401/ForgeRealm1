@@ -29,6 +29,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PlagueS
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RuinBladeAscendant.ruinDetonation;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RunicSequencer.runicSequencerSigilAmplify;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilitySixUsed;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.Shepard.shepardFleshHealing;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.SigilReaper.sigilSurge;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.StormConduit.overloadStrike;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.StormHerald.stormHeraldAbilityFourUsed;
@@ -76,6 +77,7 @@ public class SKeyPressAbilityThreeUsed {
         runicSequencerSigilAmplify(player,level,serverLevel);
         abyssalPenitentBlasphemousBurst(player,level,serverLevel);
         hangedAsceticShadowLurk(player,level,serverLevel,false);
+        shepardFleshHealing(player,level,serverLevel,false);
 
 
     }

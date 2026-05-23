@@ -30,6 +30,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RuinBla
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RunicSequencer.runicSequencerQuickInscription;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilityFourUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilitySixUsed;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.Shepard.shepardCullOfSpiritualFlesh;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.SigilReaper.apocalypseScript;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.StormConduit.thunderCollapse;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.StormHerald.stormHeraldAbilitySevenUsed;
@@ -78,6 +79,7 @@ public class SKeyPressAbilitySixUsed {
         runicSequencerQuickInscription(player,serverLevel);
         abyssalPenitentAbyssalRelease(player,level,serverLevel);
         hangedAsceticShadowSweep(player,level,serverLevel,false);
+        shepardCullOfSpiritualFlesh(player,level,serverLevel,false);
 
     }
 }

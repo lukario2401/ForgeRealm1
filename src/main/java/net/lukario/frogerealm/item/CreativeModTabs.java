@@ -66,6 +66,7 @@ public class CreativeModTabs {
                         output.accept(ModItems.COIN.get());
                         output.accept(ModItems.DIAMOND_CARROT.get());
                         output.accept(ModItems.STRENGTH_ELIXIR.get());
+                        output.accept(ModItems.SHEPARDS_BLADE.get());
 
                     })
                     .build());
