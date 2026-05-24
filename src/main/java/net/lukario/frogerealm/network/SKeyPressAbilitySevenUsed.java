@@ -22,6 +22,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.Eclipse
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.FleshDevourer.apexAbomination;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.GravityArchitect.gravitationalSingularity;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.HangedAscetic.hangedAsceticDescentIntoDepravity;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.KeyOfStars.keyOfStarsCosmicPlague;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PhantomSequence.infinitePhantom;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PlagueSovereign.sovereignsPlague;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RunicSequencer.runicSequencerPerfectRitual;
@@ -67,6 +68,7 @@ public class SKeyPressAbilitySevenUsed {
         abyssalPenitentDescentIntoTheAbyss(player,serverLevel);
         hangedAsceticDescentIntoDepravity(player,level,serverLevel,false);
         shepardShadowChrysalis(player,level,serverLevel,false);
+        keyOfStarsCosmicPlague(player,level,serverLevel,false);
 
 
     }

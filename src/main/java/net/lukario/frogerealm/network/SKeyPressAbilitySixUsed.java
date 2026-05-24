@@ -24,6 +24,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.FleshDe
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.GravityArchitect.singularityBeam;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.HangedAscetic.hangedAsceticShadowSweep;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.InfernalDuelist.cataclysmForm;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.KeyOfStars.keyOfStarsOrbital;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PhantomSequence.veilOfMirrors;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PlagueSovereign.necroticBurst;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RuinBladeAscendant.cataclysmState;
@@ -80,6 +81,7 @@ public class SKeyPressAbilitySixUsed {
         abyssalPenitentAbyssalRelease(player,level,serverLevel);
         hangedAsceticShadowSweep(player,level,serverLevel,false);
         shepardCullOfSpiritualFlesh(player,level,serverLevel,false);
+        keyOfStarsOrbital(player,level,serverLevel,false);
 
     }
 }

@@ -27,6 +27,7 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
 import java.util.List;
+import java.util.UUID;
 
 public class KeyOfStars {
 
@@ -40,10 +41,22 @@ public class KeyOfStars {
     private static final String NBT_KEY_OF_STARS_IS_SEALED_DEFENSE_DURATION = "key_of_stars_is_sealed_defense_duration";
     private static final String NBT_KEY_OF_STARS_IS_SEALED_DEFENSE_DAMAGE_STORED = "key_of_stars_is_sealed_defense_damage_stored";
 
+    private static final String NBT_ORBITAL_TARGET = "key_of_stars_orbital_target_uuid";
+    private static final String NBT_ORBITAL_STAR_COUNT = "key_of_stars_orbital_star_count";
+    private static final String NBT_ORBITAL_TICK = "key_of_stars_orbital_tick";
+    private static final String NBT_ORBITAL_ACTIVE = "key_of_stars_orbital_active";
+    private static final String NBT_ORBITAL_COLLAPSE_CD = "key_of_stars_orbital_collapse_cd";
+    private static final String NBT_ORBITAL_BLOCK_X = "key_of_stars_orbital_block_x";
+    private static final String NBT_ORBITAL_BLOCK_Y = "key_of_stars_orbital_block_y";
+    private static final String NBT_ORBITAL_BLOCK_Z = "key_of_stars_orbital_block_z";
+    private static final String NBT_ORBITAL_IS_BLOCK = "key_of_stars_orbital_is_block";
+
+    private static final String NBT_COSMIC_PLAGUE_DURATION = "key_of_stars_cosmic_plague_duration";
+
     @Mod.EventBusSubscriber(modid = ForgeRealm.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
     public static class KeyOfStarsEvents {
         @SubscribeEvent
-        public static void onShepardTick(TickEvent.PlayerTickEvent event) {
+        public static void onKeyOfStarsTick(TickEvent.PlayerTickEvent event) {
             if (event.phase != TickEvent.Phase.END) return;
             Player player = event.player;
             if (!(player.level() instanceof ServerLevel sl)) return;
@@ -84,11 +97,63 @@ public class KeyOfStars {
                     livingEntity.hurt(player.level().damageSources().playerAttack(player),24);
                 }
             }
+            int orbitalCollapseCD = player.getPersistentData().getInt(NBT_ORBITAL_COLLAPSE_CD);
+            if (orbitalCollapseCD > 0) {
+                player.getPersistentData().putInt(NBT_ORBITAL_COLLAPSE_CD, orbitalCollapseCD - 1);
+            }
+
+            if (player.getPersistentData().getBoolean(NBT_ORBITAL_ACTIVE)) {
+                tickOrbitalStars(player, sl);
+            }
         }
         @SubscribeEvent
         public static void onMobTick(LivingEvent.LivingTickEvent event) {
             LivingEntity entity = event.getEntity();
             if (entity.level().isClientSide()) return;
+            if (entity.getPersistentData().contains(NBT_COSMIC_PLAGUE_DURATION)) {
+
+                float duration = entity.getPersistentData().getFloat(NBT_COSMIC_PLAGUE_DURATION);
+
+                if (duration > 0) {
+                    entity.getPersistentData().putFloat(NBT_COSMIC_PLAGUE_DURATION, duration - 1);
+
+                    if (entity.level() instanceof ServerLevel sl && duration % 5 == 0) {
+                        sl.sendParticles(ParticleTypes.GLOW,
+                                entity.getX(), entity.getY() + 1.0, entity.getZ(),
+                                4, 0.3, 0.5, 0.3, 0.02);
+                    }
+                    if (entity.level() instanceof ServerLevel sl && duration % 20 == 0) {
+
+                        List<LivingEntity> hits = entity.level().getEntitiesOfClass(
+                                LivingEntity.class, new AABB(entity.position(), entity.position()).inflate(1.5),
+                                e -> e != entity && e.isAlive());
+
+                        for (LivingEntity targets : hits){
+
+                            targets.getPersistentData().putFloat(NBT_COSMIC_PLAGUE_DURATION,targets.getPersistentData().getFloat(NBT_COSMIC_PLAGUE_DURATION)+400);
+
+                        }
+                    }
+                    if (entity.level() instanceof ServerLevel sl && duration % 60 == 0) {
+                        List<LivingEntity> hits = entity.level().getEntitiesOfClass(
+                                LivingEntity.class, new AABB(entity.position(), entity.position()).inflate(8),
+                                e -> e != entity && e.isAlive());
+
+                        for (LivingEntity targets : hits) {
+                            // Only process actual players
+                            if (!(targets instanceof Player player)) continue;
+                            if (!SoulCore.getAspect(player).equals("Key Of Stars")) continue;
+
+                            int current = player.getPersistentData().getInt(NBT_KEY_OF_STARS_STAR_COUNT);
+                            int max = SoulCore.getAscensionStage(player); // stars cap at ascension stage
+                            if (current < max) {
+                                player.getPersistentData().putInt(NBT_KEY_OF_STARS_STAR_COUNT, current + 1);
+                                player.sendSystemMessage(Component.literal("§bPlague feeds you a star §e[" + (current + 1) + "/" + max + "]"));
+                            }
+                        }
+                    }
+                }
+            }
             if (entity.getPersistentData().contains(NBT_KEY_OF_STARS_IS_SEALED_OFFENSE_DURATION)) {
 
                 float duration = entity.getPersistentData().getFloat(NBT_KEY_OF_STARS_IS_SEALED_OFFENSE_DURATION);
@@ -306,6 +371,301 @@ public class KeyOfStars {
             target.getPersistentData().putBoolean(NBT_KEY_OF_STARS_IS_SEALED_OFFENSE,true);
             target.getPersistentData().putFloat(NBT_KEY_OF_STARS_IS_SEALED_OFFENSE_DURATION,100);
         }
+    }
+
+    // Ability 5
+    public static void keyOfStarsTransport(Player player, Level level, ServerLevel sl, boolean bypassClassCheck) {
+        if (!canUseClassKeyOfStars(player, bypassClassCheck)) return;
+        if (SoulCore.getSoulEssence(player) < 250) return;
+        if (SoulCore.getAscensionStage(player) < 2) return;
+
+        SoulCore.setSoulEssence(player,SoulCore.getSoulEssence(player)-250);
+        player.playNotifySound(SoundEvents.ZOMBIE_VILLAGER_CURE,SoundSource.PLAYERS,1,1);
+
+        if (player.isShiftKeyDown()) {
+            LivingEntity target = getTarget(player, sl, level, 32);
+            target.teleportTo(player.getX(),player.getY(),player.getZ());
+        } else {
+            LivingEntity target = getTarget(player, sl, level, 32);
+            player.teleportTo(target.getX(),target.getY(),target.getZ());
+        }
+    }
+
+    // Ability 6 — Orbital Stars: throw stars that orbit target, shift to collapse and explode
+    public static void keyOfStarsOrbital(Player player, Level level, ServerLevel sl, boolean bypassClassCheck) {
+        if (!canUseClassKeyOfStars(player, bypassClassCheck)) return;
+        if (SoulCore.getAscensionStage(player) < 4) return;
+        if (SoulCore.getSoulEssence(player) < 500) return;
+
+        net.minecraft.nbt.CompoundTag data = player.getPersistentData();
+
+        // Shift + ability = collapse if stars are currently orbiting
+        if (player.isShiftKeyDown()) {
+            if (!data.getBoolean(NBT_ORBITAL_ACTIVE)) {
+                player.sendSystemMessage(Component.literal("§8No stars currently orbiting."));
+                return;
+            }
+            collapseOrbitalStars(player, sl);
+            return;
+        }
+
+        // Can't launch new orbital while one is active
+        if (data.getBoolean(NBT_ORBITAL_ACTIVE)) {
+            player.sendSystemMessage(Component.literal("§8Stars already orbiting — shift to collapse first."));
+            return;
+        }
+
+        int collapseCD = data.getInt(NBT_ORBITAL_COLLAPSE_CD);
+        if (collapseCD > 0) {
+            player.sendSystemMessage(Component.literal("§8Orbital on cooldown: §7" + (collapseCD / 20) + "s"));
+            return;
+        }
+
+        int currentStars = data.getInt(NBT_KEY_OF_STARS_STAR_COUNT);
+        if (currentStars <= 0) {
+            player.sendSystemMessage(Component.literal("§8No stars to throw."));
+            return;
+        }
+
+        SoulCore.setSoulEssence(player, SoulCore.getSoulEssence(player) - 500);
+
+        // Raycast forward to find hit target or block
+        Vec3 start = player.getEyePosition();
+        Vec3 direction = player.getLookAngle().normalize();
+        Vec3 current = start;
+        boolean hitSomething = false;
+
+        for (float i = 0; i < 24; i += 0.5f) {
+            current = current.add(direction.scale(0.5));
+
+            // Particle trail as stars travel
+            sl.sendParticles(ParticleTypes.END_ROD,
+                    current.x, current.y, current.z, 1, 0.05, 0.05, 0.05, 0.01);
+
+            // Check entity hit
+            List<LivingEntity> hits = level.getEntitiesOfClass(LivingEntity.class,
+                    new AABB(current, current).inflate(0.6),
+                    e -> e != player && e.isAlive());
+
+            if (!hits.isEmpty()) {
+                LivingEntity hitTarget = hits.get(0);
+                data.putUUID(NBT_ORBITAL_TARGET, hitTarget.getUUID());
+                data.putBoolean(NBT_ORBITAL_IS_BLOCK, false);
+                data.putBoolean(NBT_ORBITAL_ACTIVE, true);
+                data.putInt(NBT_ORBITAL_STAR_COUNT, currentStars);
+                data.putInt(NBT_ORBITAL_TICK, 0);
+                data.putInt(NBT_KEY_OF_STARS_STAR_COUNT, 0); // consume all stars
+
+                player.sendSystemMessage(Component.literal("§bStars orbiting: §e" + currentStars + " §bstars locked on §7" + hitTarget.getName().getString()));
+                player.playNotifySound(SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 1.0f, 1.5f);
+                hitSomething = true;
+                break;
+            }
+
+            // Check block hit
+            BlockPos blockPos = BlockPos.containing(current);
+            if (level.getBlockState(blockPos).isSolid()) {
+                data.putInt(NBT_ORBITAL_BLOCK_X, blockPos.getX());
+                data.putInt(NBT_ORBITAL_BLOCK_Y, blockPos.getY());
+                data.putInt(NBT_ORBITAL_BLOCK_Z, blockPos.getZ());
+                data.putBoolean(NBT_ORBITAL_IS_BLOCK, true);
+                data.putBoolean(NBT_ORBITAL_ACTIVE, true);
+                data.putInt(NBT_ORBITAL_STAR_COUNT, currentStars);
+                data.putInt(NBT_ORBITAL_TICK, 0);
+                data.putInt(NBT_KEY_OF_STARS_STAR_COUNT, 0);
+
+                player.sendSystemMessage(Component.literal("§bStars orbiting block — §e" + currentStars + " §bstars locked."));
+                player.playNotifySound(SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 1.0f, 1.5f);
+                hitSomething = true;
+                break;
+            }
+        }
+
+        if (!hitSomething) {
+            player.sendSystemMessage(Component.literal("§8No target found."));
+            // Refund essence
+            SoulCore.setSoulEssence(player, SoulCore.getSoulEssence(player) + 500);
+        }
+    }
+
+    private static void tickOrbitalStars(Player player, ServerLevel sl) {
+        net.minecraft.nbt.CompoundTag data = player.getPersistentData();
+        int starCount = data.getInt(NBT_ORBITAL_STAR_COUNT);
+        if (starCount <= 0) {
+            data.putBoolean(NBT_ORBITAL_ACTIVE, false);
+            return;
+        }
+
+        int tick = data.getInt(NBT_ORBITAL_TICK) + 1;
+        data.putInt(NBT_ORBITAL_TICK, tick);
+
+        boolean isBlock = data.getBoolean(NBT_ORBITAL_IS_BLOCK);
+        double cx, cy, cz;
+
+        if (isBlock) {
+            cx = data.getInt(NBT_ORBITAL_BLOCK_X) + 0.5;
+            cy = data.getInt(NBT_ORBITAL_BLOCK_Y) + 0.5;
+            cz = data.getInt(NBT_ORBITAL_BLOCK_Z) + 0.5;
+        } else {
+            // Track living entity
+            if (!data.contains(NBT_ORBITAL_TARGET)) {
+                data.putBoolean(NBT_ORBITAL_ACTIVE, false);
+                return;
+            }
+            UUID targetUUID = data.getUUID(NBT_ORBITAL_TARGET);
+            LivingEntity target = (LivingEntity) sl.getEntity(targetUUID);
+            if (target == null || target.isDeadOrDying()) {
+                data.putBoolean(NBT_ORBITAL_ACTIVE, false);
+                player.sendSystemMessage(Component.literal("§8Orbital target lost."));
+                return;
+            }
+            cx = target.getX();
+            cy = target.getY() + 1.0;
+            cz = target.getZ();
+
+            // Tick damage to entity every 20 ticks per orbiting star
+            if (tick % 20 == 0) {
+                float orbitDmg = 0.75f * starCount;
+                target.hurt(sl.damageSources().magic(), orbitDmg);
+            }
+        }
+
+        // Spawn particles for each orbiting star
+        for (int s = 0; s < starCount; s++) {
+            double angleOffset = (2 * Math.PI / starCount) * s;
+            double angle = Math.toRadians(tick * 6) + angleOffset; // 6 degrees per tick
+            double radius = 2.5;
+
+            double px = cx + Math.cos(angle) * radius;
+            double py = cy + Math.sin(tick * 0.05 + angleOffset) * 0.4; // gentle vertical bob
+            double pz = cz + Math.sin(angle) * radius;
+
+            sl.sendParticles(ParticleTypes.END_ROD, px, py, pz, 1, 0, 0, 0, 0);
+            sl.sendParticles(ParticleTypes.ELECTRIC_SPARK, px, py, pz, 1, 0.05, 0.05, 0.05, 0.01);
+        }
+    }
+
+    private static void collapseOrbitalStars(Player player, ServerLevel sl) {
+        net.minecraft.nbt.CompoundTag data = player.getPersistentData();
+        int starCount = data.getInt(NBT_ORBITAL_STAR_COUNT);
+        boolean isBlock = data.getBoolean(NBT_ORBITAL_IS_BLOCK);
+
+        double cx, cy, cz;
+        LivingEntity target = null;
+
+        if (isBlock) {
+            cx = data.getInt(NBT_ORBITAL_BLOCK_X) + 0.5;
+            cy = data.getInt(NBT_ORBITAL_BLOCK_Y) + 0.5;
+            cz = data.getInt(NBT_ORBITAL_BLOCK_Z) + 0.5;
+        } else {
+            if (!data.contains(NBT_ORBITAL_TARGET)) {
+                data.putBoolean(NBT_ORBITAL_ACTIVE, false);
+                return;
+            }
+            UUID targetUUID = data.getUUID(NBT_ORBITAL_TARGET);
+            target = (LivingEntity) sl.getEntity(targetUUID);
+            if (target == null || target.isDeadOrDying()) {
+                data.putBoolean(NBT_ORBITAL_ACTIVE, false);
+                return;
+            }
+            cx = target.getX();
+            cy = target.getY() + 1.0;
+            cz = target.getZ();
+        }
+
+        // Explosion damage — scales with star count
+        float explosionDamage = 8.0f + (starCount * 5.0f);
+        float explosionRadius = 2.5f + (starCount * 0.4f);
+
+        AABB blastArea = new AABB(
+                cx - explosionRadius, cy - explosionRadius, cz - explosionRadius,
+                cx + explosionRadius, cy + explosionRadius, cz + explosionRadius);
+
+        List<LivingEntity> blastTargets = sl.getEntitiesOfClass(LivingEntity.class, blastArea, e ->
+                e != player && !e.isDeadOrDying());
+
+        for (LivingEntity blastTarget : blastTargets) {
+            double dist = Math.sqrt(blastTarget.distanceToSqr(cx, cy, cz));
+            float falloff = 1.0f - (float)(dist / explosionRadius);
+            float actualDmg = Math.max(explosionDamage * falloff, 4.0f);
+            blastTarget.hurt(sl.damageSources().magic(), actualDmg);
+
+            // Knockback away from center
+            Vec3 knockDir = blastTarget.position().subtract(cx, cy, cz).normalize();
+            blastTarget.setDeltaMovement(blastTarget.getDeltaMovement().add(
+                    knockDir.x * 1.2, 0.5, knockDir.z * 1.2));
+            blastTarget.hurtMarked = true;
+        }
+
+        // Implosion particle spiral inward then burst
+        for (int ring = 0; ring < 3; ring++) {
+            double r = explosionRadius - ring * 0.5;
+            for (int p = 0; p < 16; p++) {
+                double angle = (2 * Math.PI / 16) * p;
+                sl.sendParticles(ParticleTypes.END_ROD,
+                        cx + Math.cos(angle) * r,
+                        cy,
+                        cz + Math.sin(angle) * r,
+                        1, 0, 0, 0, 0.15); // velocity toward center via speed
+            }
+        }
+        // Central detonation burst
+        sl.sendParticles(ParticleTypes.FLASH, cx, cy, cz, 1, 0, 0, 0, 0);
+        sl.sendParticles(ParticleTypes.END_ROD, cx, cy, cz, 40, explosionRadius * 0.3, explosionRadius * 0.3, explosionRadius * 0.3, 0.2);
+        sl.sendParticles(ParticleTypes.ELECTRIC_SPARK, cx, cy, cz, 60, explosionRadius * 0.2, explosionRadius * 0.2, explosionRadius * 0.2, 0.15);
+
+        player.playNotifySound(SoundEvents.BEACON_POWER_SELECT, SoundSource.PLAYERS, 1.5f, 0.5f);
+        player.sendSystemMessage(Component.literal("§bOrbital Stars collapsed — §e" + starCount + " §bstars detonated."));
+
+        // Clean up
+        data.putBoolean(NBT_ORBITAL_ACTIVE, false);
+        data.putInt(NBT_ORBITAL_STAR_COUNT, 0);
+        data.putInt(NBT_ORBITAL_TICK, 0);
+        data.remove(NBT_ORBITAL_TARGET);
+        data.putBoolean(NBT_ORBITAL_IS_BLOCK, false);
+        player.getPersistentData().putInt(NBT_ORBITAL_COLLAPSE_CD, 40); // 10s before can orbit again
+    }
+
+    // ability 7
+    public static void keyOfStarsCosmicPlague(Player player, Level level, ServerLevel sl, boolean bypassClassCheck) {
+        if (!canUseClassKeyOfStars(player, bypassClassCheck)) return;
+        if (SoulCore.getSoulEssence(player) < 250) return;
+        if (SoulCore.getAscensionStage(player) < 6) return;
+
+        SoulCore.setSoulEssence(player,SoulCore.getSoulEssence(player)-250);
+
+        if (player.isShiftKeyDown()){
+
+
+
+        }else{
+            int radius = 4;
+
+            List<LivingEntity> hits = sl.getEntitiesOfClass(
+                    LivingEntity.class,
+                    new AABB(player.position(), player.position()).inflate(radius, 1, radius),
+                    e -> e != player && e.isAlive()
+            );
+
+            Vec3 center = player.position();
+            for (int i = 0; i < 16; i++) {
+                double angle = (i * 2 * Math.PI) / 16;
+                double offsetX = Math.cos(angle) * (radius+1);
+                double offsetZ = Math.sin(angle) * (radius+1);
+
+                sl.sendParticles(ParticleTypes.END_ROD,
+                        center.x + offsetX, center.y + 0.1, center.z + offsetZ,
+                        1, 0, 0, 0, 0);
+            }
+
+            for (LivingEntity target : hits){
+                effectAddCosmicPlague(target);
+            }
+        }
+    }
+
+    private static void effectAddCosmicPlague(LivingEntity target){
+        target.getPersistentData().putFloat(NBT_COSMIC_PLAGUE_DURATION,target.getPersistentData().getFloat(NBT_COSMIC_PLAGUE_DURATION)+400);
     }
 
     private static LivingEntity getTarget(Player player, ServerLevel sl, Level level, float distance){

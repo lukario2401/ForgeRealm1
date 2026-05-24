@@ -25,6 +25,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.FleshDe
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.GravityArchitect.eventHorizon;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.HangedAscetic.hangedAsceticCullOfSpiritualFlesh;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.InfernalDuelist.overheat;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.KeyOfStars.keyOfStarsTransport;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PhantomSequence.specterBreak;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PlagueSovereign.epidemic;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RuinBladeAscendant.executionDrive;
@@ -78,6 +79,7 @@ public class SKeyPressAbilityFiveUsed {
         abyssalPenitentForbiddenInsight(player,serverLevel);
         hangedAsceticCullOfSpiritualFlesh(player,level,serverLevel, false);
         shepardCommandeerShadow(player,level,serverLevel, false);
+        keyOfStarsTransport(player,level,serverLevel, false);
 
 
     }
