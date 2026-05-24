@@ -278,6 +278,7 @@ public class Shepard {
 
         float blastRadius = 4.0f + ascensionStage * 0.5f;
         float blastDamage = storedDamage * (0.5f + ascensionStage * 0.1f); // stored damage scales with ascension
+//        target.hurt(player.level().damageSources().playerAttack(player), blastDamage);
 
         // Hit all nearby entities in blast radius except the player
         AABB blastArea = new AABB(ex - blastRadius, ey - blastRadius, ez - blastRadius,

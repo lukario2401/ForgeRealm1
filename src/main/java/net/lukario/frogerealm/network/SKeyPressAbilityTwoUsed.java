@@ -23,6 +23,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.FleshDe
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.GravityArchitect.detonateWellAbility;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.HangedAscetic.hangedAsceticFleshBomb;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.InfernalDuelist.stanceShift;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.KeyOfStars.keyOfStarsDash;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PhantomSequence.mirageStep;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PlagueSovereign.miasmaCloud;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RuinBladeAscendant.rend;
@@ -78,6 +79,7 @@ public class SKeyPressAbilityTwoUsed {
         abyssalPenitentSacrificialOffering(player,serverLevel);
         hangedAsceticFleshBomb(player,level,serverLevel, false);
         shepardShadowShaping(player,level,serverLevel, false);
+        keyOfStarsDash(player,level,serverLevel, false);
 
     }
 }

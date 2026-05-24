@@ -39,6 +39,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.FleshDe
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.GravityArchitect.placeGravityWell;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.HangedAscetic.hangedAsceticShadowCurse;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.InfernalDuelist.flameCut;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.KeyOfStars.keyOfStarsStarBurst;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.LightBringerAspect.lightBringerAspectAbilityOneUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PhantomSequence.phantomSequencePhantomStrike;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PlagueSovereign.plagueTouch;
@@ -96,5 +97,6 @@ public class SKeyPressAbilityOneUsed {
         abyssalPenitentProfaneCut(player,level,serverLevel);
         hangedAsceticShadowCurse(player,level,serverLevel,false);
         shepardShadowLurk(player,level,serverLevel,false);
+        keyOfStarsStarBurst(player,level,serverLevel,false);
     }
 }

@@ -24,6 +24,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.FleshDe
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.GravityArchitect.gravityTether;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.HangedAscetic.hangedAsceticGraze;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.InfernalDuelist.flareDash;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.KeyOfStars.keyOfStarsSeal;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PhantomSequence.echoShade;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PlagueSovereign.harvestSoul;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RuinBladeAscendant.overload;
@@ -80,6 +81,7 @@ public class SKeyPressAbilityFourUsed {
         abyssalPenitentChainsOfRepentance(player,level,serverLevel);
         hangedAsceticGraze(player,level,serverLevel,false);
         shepardGrazing(player,level,serverLevel,false);
+        keyOfStarsSeal(player,level,serverLevel,false);
 
     }
 

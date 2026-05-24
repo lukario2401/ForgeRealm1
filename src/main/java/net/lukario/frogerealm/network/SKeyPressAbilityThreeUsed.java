@@ -24,6 +24,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.FleshDe
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.GravityArchitect.gravityCollapse;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.HangedAscetic.hangedAsceticShadowLurk;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.InfernalDuelist.ignitionBurst;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.KeyOfStars.keyOfStarsBuff;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PhantomSequence.wraithUppercut;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PlagueSovereign.accelerateDecay;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RuinBladeAscendant.ruinDetonation;
@@ -78,6 +79,7 @@ public class SKeyPressAbilityThreeUsed {
         abyssalPenitentBlasphemousBurst(player,level,serverLevel);
         hangedAsceticShadowLurk(player,level,serverLevel,false);
         shepardFleshHealing(player,level,serverLevel,false);
+        keyOfStarsBuff(player,level,serverLevel,false);
 
 
     }
