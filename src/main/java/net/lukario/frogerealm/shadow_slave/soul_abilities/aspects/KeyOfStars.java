@@ -10,6 +10,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.Mth;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.damagesource.DamageSources;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -636,7 +637,9 @@ public class KeyOfStars {
 
         if (player.isShiftKeyDown()){
 
-
+            for (int i = -25; i <= 25; i+=5){
+                cosmicPlagueShift(level,player, (double) i);
+            }
 
         }else{
             int radius = 4;
@@ -709,5 +712,54 @@ public class KeyOfStars {
     private static boolean canUseClassKeyOfStars(Player player, Boolean dontCheck) {
         if (dontCheck) return true;
         return SoulCore.getAspect(player).equals("Key Of Stars");
+    }
+
+    private static void cosmicPlagueShift(Level level, Player player, Double offset){
+
+        if (!(level instanceof ServerLevel serverLevel)) return;
+
+        Vec3 start = player.getEyePosition();
+        Vec3 direction = player.getLookAngle().normalize();
+        double distanceToTravel = 32.0;
+
+        double yaw = (float)Math.toDegrees(Math.atan2(-direction.x, direction.z));
+        double pitch = (float)Math.toDegrees(Math.asin(-direction.y));
+
+        yaw += offset;
+
+        float fYaw = (float) yaw;
+        float fPitch = (float) pitch;
+
+        direction = Vec3.directionFromRotation(fPitch, fYaw);
+
+        Vec3 step = direction.scale(0.5);
+
+        Vec3 c = start;
+        for (double distance = 0; distance <= distanceToTravel; distance +=0.5 ){
+
+            BlockPos blockPos = new BlockPos(Mth.floor(c.x), Mth.floor(c.y), Mth.floor(c.z));
+            BlockState blockState = level.getBlockState(blockPos);
+
+            if (blockState.getBlock().defaultBlockState().isSolid()){
+                break;
+            }
+
+            serverLevel.sendParticles(ParticleTypes.END_ROD, c.x, c.y, c.z, 1, 0, 0, 0, 0);
+
+            List<LivingEntity> entities = level.getEntitiesOfClass(
+                    LivingEntity.class,
+                    new AABB(c, c).inflate(0.5),
+                    e -> e != player && e.isAlive()
+            );
+
+            for (LivingEntity entity : entities){
+                effectAddCosmicPlague(entity);
+            }
+
+            c = c.add(step);
+            if (!entities.isEmpty()){
+                break;
+            }
+        }
     }
 }
