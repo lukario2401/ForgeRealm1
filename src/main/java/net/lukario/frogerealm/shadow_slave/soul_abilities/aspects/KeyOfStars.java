@@ -26,7 +26,6 @@ import net.minecraftforge.event.entity.living.LivingDamageEvent;
 import net.minecraftforge.event.entity.living.LivingEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
-
 import java.util.List;
 import java.util.UUID;
 
@@ -261,13 +260,13 @@ public class KeyOfStars {
                 Vec3 direction = player.getLookAngle().normalize();
                 Vec3 current = start;
 
-                for (int i = 0; i < 16; i++){
+                for (int i = 0; i < 32; i++){
                     current = current.add(direction);
                     sl.sendParticles(ParticleTypes.END_ROD,
                             current.x, current.y, current.z, 4, 0.2, 0.2, 0.2, 0.03);
 
                     List<LivingEntity> hits = level.getEntitiesOfClass(
-                            LivingEntity.class, new AABB(current, current).inflate(0.5),
+                            LivingEntity.class, new AABB(current, current).inflate(1),
                             e -> e != player && e.isAlive());
 
                     for (LivingEntity livingEntity : hits){
@@ -638,11 +637,11 @@ public class KeyOfStars {
         if (player.isShiftKeyDown()){
 
             for (int i = -25; i <= 25; i+=5){
-                cosmicPlagueShift(level,player, (double) i);
+                cosmicPlagueShift(level,player, Double.valueOf((double) i));
             }
 
         }else{
-            int radius = 4;
+            int radius = 6;
 
             List<LivingEntity> hits = sl.getEntitiesOfClass(
                     LivingEntity.class,
@@ -709,7 +708,7 @@ public class KeyOfStars {
         }
     }
 
-    private static boolean canUseClassKeyOfStars(Player player, Boolean dontCheck) {
+    private static boolean canUseClassKeyOfStars(Player player, boolean dontCheck) {
         if (dontCheck) return true;
         return SoulCore.getAspect(player).equals("Key Of Stars");
     }
@@ -720,12 +719,12 @@ public class KeyOfStars {
 
         Vec3 start = player.getEyePosition();
         Vec3 direction = player.getLookAngle().normalize();
-        double distanceToTravel = 32.0;
+        double distanceToTravel = 16.0;
 
         double yaw = (float)Math.toDegrees(Math.atan2(-direction.x, direction.z));
         double pitch = (float)Math.toDegrees(Math.asin(-direction.y));
 
-        yaw += offset;
+        yaw = yaw + offset;
 
         float fYaw = (float) yaw;
         float fPitch = (float) pitch;
