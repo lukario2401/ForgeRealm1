@@ -15,6 +15,7 @@ import net.minecraftforge.event.network.CustomPayloadEvent;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AbyssalPenitent.abyssalPenitentSacrificialOffering;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AetherWarden.aetherWardenAbilityTwoUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AstralArbiter.orbReclaim;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AttendantOfMysteries.attendantOfMysteriesFlamingJump;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.BloodBoundAscetic.crimsonOffering;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ChronoReaver.timeSnare;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.DeathDescendant.umbralBind;
@@ -80,6 +81,7 @@ public class SKeyPressAbilityTwoUsed {
         hangedAsceticFleshBomb(player,level,serverLevel, false);
         shepardShadowShaping(player,level,serverLevel, false);
         keyOfStarsDash(player,level,serverLevel, false);
+        attendantOfMysteriesFlamingJump(player,level,serverLevel, false);
 
     }
 }

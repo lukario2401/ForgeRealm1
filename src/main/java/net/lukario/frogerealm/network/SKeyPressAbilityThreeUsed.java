@@ -15,6 +15,7 @@ import net.minecraftforge.event.network.CustomPayloadEvent;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AbyssalPenitent.abyssalPenitentBlasphemousBurst;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AetherWarden.aetherWardenAbilityThreeUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AstralArbiter.starfallStrike;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AttendantOfMysteries.attendantOfMysteriesDamageTransfer;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.BloodBoundAscetic.hemorrhageBurst;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ChronoDuelist.chronoDuelistAbilityFourUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ChronoReaver.rewindBurst;
@@ -80,6 +81,7 @@ public class SKeyPressAbilityThreeUsed {
         hangedAsceticShadowLurk(player,level,serverLevel,false);
         shepardFleshHealing(player,level,serverLevel,false);
         keyOfStarsBuff(player,level,serverLevel,false);
+        attendantOfMysteriesDamageTransfer(player,level,serverLevel,false);
 
 
     }
