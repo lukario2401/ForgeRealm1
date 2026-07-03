@@ -1,18 +1,14 @@
-package net.lukario.frogerealm.shadow_slave.soul_abilities.aspects;
+package net.lukario.frogerealm.shadow_slave.soul_abilities.beyonder_characteristics;
 
 import net.lukario.frogerealm.ForgeRealm;
 import net.lukario.frogerealm.shadow_slave.soul_shards.SoulCore;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
-import net.minecraft.core.Position;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
-import net.minecraft.world.damagesource.DamageSource;
-import net.minecraft.world.damagesource.DamageSources;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;

@@ -1,13 +1,8 @@
 package net.lukario.frogerealm.network;
 
-import net.lukario.frogerealm.shadow_slave.soul_shards.SoulCore;
-import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.event.network.CustomPayloadEvent;
 
@@ -24,12 +19,11 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.FleshDe
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.GravityArchitect.singularityBeam;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.HangedAscetic.hangedAsceticShadowSweep;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.InfernalDuelist.cataclysmForm;
-import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.KeyOfStars.keyOfStarsOrbital;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.beyonder_characteristics.KeyOfStars.keyOfStarsOrbital;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PhantomSequence.veilOfMirrors;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PlagueSovereign.necroticBurst;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RuinBladeAscendant.cataclysmState;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RunicSequencer.runicSequencerQuickInscription;
-import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilityFourUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilitySixUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.Shepard.shepardCullOfSpiritualFlesh;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.SigilReaper.apocalypseScript;

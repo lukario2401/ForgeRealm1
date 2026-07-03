@@ -1,36 +1,16 @@
 package net.lukario.frogerealm.network;
 
-import net.lukario.frogerealm.particles.ModParticles;
-import net.lukario.frogerealm.shadow_slave.soul_shards.SoulCore;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvent;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
-import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraft.world.effect.MobEffects;
-import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.phys.AABB;
 import net.minecraftforge.event.network.CustomPayloadEvent;
-import net.minecraftforge.registries.ForgeRegistries;
-
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ThreadLocalRandom;
 
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AbyssalMonarch.abyssalMonarchAspectAbilityOneUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AbyssalPenitent.abyssalPenitentProfaneCut;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AetherWarden.aetherWardenAbilityOneUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AstralArbiter.astralBolt;
-import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AttendantOfMysteries.attendantOfMysteriesPaperDagger;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.beyonder_characteristics.AttendantOfMysteries.attendantOfMysteriesPaperDagger;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.BloodBoundAscetic.bloodSlash;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ChronoDuelist.chronoDuelistAbilityOneUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ChronoReaver.temporalSlash;
@@ -40,7 +20,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.FleshDe
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.GravityArchitect.placeGravityWell;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.HangedAscetic.hangedAsceticShadowCurse;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.InfernalDuelist.flameCut;
-import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.KeyOfStars.keyOfStarsStarBurst;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.beyonder_characteristics.KeyOfStars.keyOfStarsStarBurst;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.LightBringerAspect.lightBringerAspectAbilityOneUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PhantomSequence.phantomSequencePhantomStrike;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PlagueSovereign.plagueTouch;

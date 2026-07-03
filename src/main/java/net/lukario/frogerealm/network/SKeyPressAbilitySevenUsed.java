@@ -1,17 +1,11 @@
 package net.lukario.frogerealm.network;
 
-import net.lukario.frogerealm.shadow_slave.soul_shards.SoulCore;
-import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.event.network.CustomPayloadEvent;
 
-import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AbyssalMonarch.abyssalMonarchAbilitySix;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AbyssalPenitent.abyssalPenitentDescentIntoTheAbyss;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AetherWarden.aetherWardenAbilitySevenUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AstralArbiter.astralConvergence;
@@ -22,18 +16,15 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.Eclipse
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.FleshDevourer.apexAbomination;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.GravityArchitect.gravitationalSingularity;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.HangedAscetic.hangedAsceticDescentIntoDepravity;
-import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.KeyOfStars.keyOfStarsCosmicPlague;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.beyonder_characteristics.KeyOfStars.keyOfStarsCosmicPlague;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PhantomSequence.infinitePhantom;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PlagueSovereign.sovereignsPlague;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RunicSequencer.runicSequencerPerfectRitual;
-import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilitySixUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.Shepard.shepardShadowChrysalis;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.StormConduit.singularityStorm;
-import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.StormHerald.stormHeraldAbilitySevenUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VectorArbiter.perfectAlignment;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidResonator.cataclysmEngine;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidWalker.voidWalkerAbilitySevenUsed;
-import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidWalker.voidWalkerAbilitySixUsed;
 
 public class SKeyPressAbilitySevenUsed {
 

@@ -1,21 +1,16 @@
 package net.lukario.frogerealm.network;
 
 import net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ChronoDuelist;
-import net.lukario.frogerealm.shadow_slave.soul_shards.SoulCore;
-import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.event.network.CustomPayloadEvent;
 
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AbyssalPenitent.abyssalPenitentSacrificialOffering;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AetherWarden.aetherWardenAbilityTwoUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AstralArbiter.orbReclaim;
-import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AttendantOfMysteries.attendantOfMysteriesFlamingJump;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.beyonder_characteristics.AttendantOfMysteries.attendantOfMysteriesFlamingJump;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.BloodBoundAscetic.crimsonOffering;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ChronoReaver.timeSnare;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.DeathDescendant.umbralBind;
@@ -24,12 +19,11 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.FleshDe
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.GravityArchitect.detonateWellAbility;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.HangedAscetic.hangedAsceticFleshBomb;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.InfernalDuelist.stanceShift;
-import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.KeyOfStars.keyOfStarsDash;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.beyonder_characteristics.KeyOfStars.keyOfStarsDash;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PhantomSequence.mirageStep;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PlagueSovereign.miasmaCloud;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RuinBladeAscendant.rend;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RunicSequencer.runicSequencerSigilBind;
-import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilityOneUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ShadowSlaveAspect.shadowSlaveAspectAbilityTwoUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.Shepard.shepardShadowShaping;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.SigilReaper.detonateSigilsAbility;

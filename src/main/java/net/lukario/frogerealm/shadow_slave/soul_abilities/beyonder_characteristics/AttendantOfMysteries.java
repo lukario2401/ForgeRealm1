@@ -1,4 +1,4 @@
-package net.lukario.frogerealm.shadow_slave.soul_abilities.aspects;
+package net.lukario.frogerealm.shadow_slave.soul_abilities.beyonder_characteristics;
 
 import net.lukario.frogerealm.ForgeRealm;
 import net.lukario.frogerealm.shadow_slave.soul_shards.SoulCore;
@@ -110,7 +110,7 @@ public class AttendantOfMysteries {
         SoulCore.setSoulEssence(player,SoulCore.getSoulEssence(player)-250);
 
         if (player.isShiftKeyDown()){
-            shootProjectiles(player,sl,90,6,12 ,12);
+            shootProjectiles(player,sl,90,7,12 ,12);
         }else{
             shootProjectiles(player,sl,30,3, 32, 32);
         }
