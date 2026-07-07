@@ -25,6 +25,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.StormCo
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VectorArbiter.perfectAlignment;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidResonator.cataclysmEngine;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidWalker.voidWalkerAbilitySevenUsed;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.expeditioners.Verso.crescendoBladeEndBringer;
 
 public class SKeyPressAbilitySevenUsed {
 
@@ -60,6 +61,7 @@ public class SKeyPressAbilitySevenUsed {
         hangedAsceticDescentIntoDepravity(player,level,serverLevel,false);
         shepardShadowChrysalis(player,level,serverLevel,false);
         keyOfStarsCosmicPlague(player,level,serverLevel,false);
+        crescendoBladeEndBringer(player,level,serverLevel);
 
 
     }

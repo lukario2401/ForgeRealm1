@@ -33,6 +33,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VectorA
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidAscendant.voidAscendantAbilitySix;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidResonator.resonantChain;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidWalker.voidWalkerAbilitySixUsed;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.expeditioners.Verso.crescendoBladeFromFire;
 
 public class SKeyPressAbilitySixUsed {
 
@@ -76,6 +77,7 @@ public class SKeyPressAbilitySixUsed {
         hangedAsceticShadowSweep(player,level,serverLevel,false);
         shepardCullOfSpiritualFlesh(player,level,serverLevel,false);
         keyOfStarsOrbital(player,level,serverLevel,false);
+        crescendoBladeFromFire(player,level,serverLevel);
 
     }
 }

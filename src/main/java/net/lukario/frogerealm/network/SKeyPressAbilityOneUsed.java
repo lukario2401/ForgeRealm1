@@ -35,6 +35,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VectorA
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidAscendant.voidAscendantAbilityOne;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidResonator.voidPulse;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidWalker.voidWalkerAbilityOneUsed;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.expeditioners.Verso.crescendoBladeQuickStrike;
 
 public class SKeyPressAbilityOneUsed {
 
@@ -80,6 +81,7 @@ public class SKeyPressAbilityOneUsed {
         shepardShadowLurk(player,level,serverLevel,false);
         keyOfStarsStarBurst(player,level,serverLevel,false);
         attendantOfMysteriesPaperDagger(player,level,serverLevel,false);
+        crescendoBladeQuickStrike(player,level,serverLevel);
 
     }
 }

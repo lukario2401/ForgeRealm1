@@ -34,6 +34,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VectorA
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidAscendant.voidAscendantAbilityFour;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidResonator.frequencyShift;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidWalker.voidWalkerAbilityFourUsed;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.expeditioners.Verso.crescendoBladeSteelStrike;
 
 public class SKeyPressAbilityFourUsed {
 
@@ -78,6 +79,7 @@ public class SKeyPressAbilityFourUsed {
         shepardGrazing(player,level,serverLevel,false);
         keyOfStarsSeal(player,level,serverLevel,false);
         attendantOfMysteriesAirCannon(player,level,serverLevel,false);
+        crescendoBladeSteelStrike(player,level,serverLevel);
 
     }
 

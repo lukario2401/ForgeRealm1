@@ -33,6 +33,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VectorA
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidAscendant.voidAscendantAbilityThree;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidResonator.shatterPoint;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidWalker.voidWalkerAbilityThreeUsed;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.expeditioners.Verso.crescendoBladeStrikeStorm;
 
 public class SKeyPressAbilityThreeUsed {
 
@@ -76,6 +77,7 @@ public class SKeyPressAbilityThreeUsed {
         shepardFleshHealing(player,level,serverLevel,false);
         keyOfStarsBuff(player,level,serverLevel,false);
         attendantOfMysteriesDamageTransfer(player,level,serverLevel,false);
+        crescendoBladeStrikeStorm(player,level,serverLevel);
 
 
     }

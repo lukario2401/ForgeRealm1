@@ -31,6 +31,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VectorA
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidAscendant.voidAscendantAbilityFive;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidResonator.frequencySurge;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidWalker.voidWalkerAbilityFiveUsed;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.expeditioners.Verso.crescendoBladeOverload;
 
 public class SKeyPressAbilityFiveUsed {
 
@@ -72,6 +73,7 @@ public class SKeyPressAbilityFiveUsed {
         hangedAsceticCullOfSpiritualFlesh(player,level,serverLevel, false);
         shepardCommandeerShadow(player,level,serverLevel, false);
         keyOfStarsTransport(player,level,serverLevel, false);
+        crescendoBladeOverload(player,serverLevel);
 
 
     }
