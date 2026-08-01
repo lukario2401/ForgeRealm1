@@ -89,7 +89,7 @@ public class ModItems {
     public static final RegistryObject<Item> LASER_STAFF = ITEMS.register("laser_staff",
             () -> new LaserStaff(new Item.Properties()));
 
-    public static final RegistryObject<Item> TERMINATOR = ITEMS.register("terminator", ()-> new Terminator(new Item.Properties()));
+    public static final RegistryObject<Item> TERMINATOR = ITEMS.register("terminator", ()-> new Terminator(new Item.Properties().stacksTo(1)));
     public static final RegistryObject<Item> TAROTDECK = ITEMS.register("tarot_deck", ()-> new TarotDeck(new Item.Properties()));
 
     public static final RegistryObject<Item> BONE_DEFINERS_LENS =

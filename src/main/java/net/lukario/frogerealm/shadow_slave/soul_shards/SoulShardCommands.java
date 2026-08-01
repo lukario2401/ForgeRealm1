@@ -37,6 +37,7 @@ public class SoulShardCommands {
                                     int shards = SoulCore.getSoulShards(player);
                                     int tier = SoulCore.getAspectTier(player);
                                     int stage = SoulCore.getAscensionStage(player);
+                                    int corruption = SoulCore.getCorruption(player);
                                     float soulEssence = SoulCore.getSoulEssence(player);
                                     String aspectName = SoulCore.getAspect(player);
 
@@ -45,6 +46,7 @@ public class SoulShardCommands {
                                                             + " / Ascension Stage: " + stage
                                                             + " / Aspect Name: " + aspectName
                                                             + " / Tier: " + tier
+                                                            + " / Corruption: " + corruption
                                                             + " / SoulShards: " + shards
                                                             + " / Soul Essence: " + soulEssence
                                                     ),
@@ -133,6 +135,27 @@ public class SoulShardCommands {
 
                                             ctx.getSource().sendSuccess(() ->
                                                             Component.literal("Set Aspect Tier to " + SoulCore.getAspectTier(player)),
+                                                    false
+                                            );
+                                            return 1;
+                                        })
+                                )
+                        )
+                )
+                // =========================
+                // /soul corruption <player> <amount>
+                // =========================
+                .then(Commands.literal("corruption")
+                        .then(Commands.argument("player", EntityArgument.player())
+                                .then(Commands.argument("amount", IntegerArgumentType.integer(1))
+                                        .executes(ctx -> {
+                                            Player player = EntityArgument.getPlayer(ctx, "player");
+                                            int amount = IntegerArgumentType.getInteger(ctx, "amount");
+
+                                            SoulCore.setCorruption(player, amount);
+
+                                            ctx.getSource().sendSuccess(() ->
+                                                            Component.literal("Set Corruption to " + SoulCore.getCorruption(player)),
                                                     false
                                             );
                                             return 1;

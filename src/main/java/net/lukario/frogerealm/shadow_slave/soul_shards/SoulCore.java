@@ -1,6 +1,7 @@
 package net.lukario.frogerealm.shadow_slave.soul_shards;
 
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -93,6 +94,38 @@ public class SoulCore {
         getModData(player).putInt("aspect_level", clamped);
 
         setSoulShards(player, getSoulShards(player));
+    }
+
+    // =========================
+    // Corruption
+    // =========================
+
+    private static CompoundTag getModDataCorruption(LivingEntity entity) {
+        CompoundTag persistentData = entity.getPersistentData();
+
+        if (!persistentData.contains(MOD_TAG)) {
+            persistentData.put(MOD_TAG, new CompoundTag());
+        }
+
+        return persistentData.getCompound(MOD_TAG);
+    }
+
+    public static int getCorruption(LivingEntity livingEntity) {
+        CompoundTag tag = getModDataCorruption(livingEntity);
+
+        if (!tag.contains("corruption_level")) {
+            tag.putInt("corruption_level", 0);
+        }
+
+        return tag.getInt("corruption_level");
+    }
+
+    public static void setCorruption(LivingEntity livingEntity, int value) {
+        int clamped = Math.min(100, Math.max(0, value));
+
+        getModDataCorruption(livingEntity).putInt("corruption_level", clamped);
+
+        setCorruption(livingEntity, getCorruption(livingEntity));
     }
 
     public static float getSoulEssence(Player player) {
