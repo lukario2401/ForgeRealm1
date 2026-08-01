@@ -124,15 +124,13 @@ public class SoulCore {
         int clamped = Math.min(100, Math.max(0, value));
 
         getModDataCorruption(livingEntity).putInt("corruption_level", clamped);
-
-        setCorruption(livingEntity, getCorruption(livingEntity));
     }
 
     public static float getSoulEssence(Player player) {
         CompoundTag tag = getModData(player);
 
         if (!tag.contains("soul_essence")) {
-            tag.putFloat("soul_essence", 0); // default tier
+            tag.putFloat("soul_essence", 0);
         }
 
         return tag.getFloat("soul_essence");

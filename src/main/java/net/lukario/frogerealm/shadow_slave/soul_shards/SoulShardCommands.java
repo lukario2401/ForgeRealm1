@@ -147,7 +147,8 @@ public class SoulShardCommands {
                 // =========================
                 .then(Commands.literal("corruption")
                         .then(Commands.argument("player", EntityArgument.player())
-                                .then(Commands.argument("amount", IntegerArgumentType.integer(1))
+                                // Restrict command inputs to exactly 0 - 100
+                                .then(Commands.argument("amount", IntegerArgumentType.integer(0, 100))
                                         .executes(ctx -> {
                                             Player player = EntityArgument.getPlayer(ctx, "player");
                                             int amount = IntegerArgumentType.getInteger(ctx, "amount");
@@ -155,8 +156,8 @@ public class SoulShardCommands {
                                             SoulCore.setCorruption(player, amount);
 
                                             ctx.getSource().sendSuccess(() ->
-                                                            Component.literal("Set Corruption to " + SoulCore.getCorruption(player)),
-                                                    false
+                                                            Component.literal("Set Corruption for " + player.getName().getString() + " to " + SoulCore.getCorruption(player)),
+                                                    true // Changed to true so server admins see the command execution
                                             );
                                             return 1;
                                         })

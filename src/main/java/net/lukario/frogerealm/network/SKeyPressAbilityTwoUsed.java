@@ -33,6 +33,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VectorA
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidAscendant.voidAscendantAbilityTwo;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidResonator.resonanceWave;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidWalker.voidWalkerAbilityTwoUsed;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.beyonder_characteristics.PrinceOfAbolition.princeOfAbolitionCorrosion;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.expeditioners.Verso.crescendoBladeMarkingShot;
 
 public class SKeyPressAbilityTwoUsed {
@@ -78,6 +79,7 @@ public class SKeyPressAbilityTwoUsed {
         keyOfStarsDash(player,level,serverLevel, false);
         attendantOfMysteriesFlamingJump(player,level,serverLevel, false);
         crescendoBladeMarkingShot(player,level,serverLevel);
+        princeOfAbolitionCorrosion(player,level,serverLevel,false);
 
     }
 }

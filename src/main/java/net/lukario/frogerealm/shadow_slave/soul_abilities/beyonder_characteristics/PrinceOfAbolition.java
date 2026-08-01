@@ -27,9 +27,15 @@ public class PrinceOfAbolition {
         if (livingEntity==null)return;
 
         if (player.isShiftKeyDown()){
-            player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST, 120, 1));
-            player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED, 120, 1));
-            player.addEffect(new MobEffectInstance(MobEffects.DIG_SPEED, 120, 1));
+            player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST, 520, 1));
+            player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED, 520, 1));
+            player.addEffect(new MobEffectInstance(MobEffects.DIG_SPEED, 520, 1));
+            player.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 520, 1));
+            player.addEffect(new MobEffectInstance(MobEffects.NIGHT_VISION, 520, 1));
+            player.addEffect(new MobEffectInstance(MobEffects.SATURATION, 520, 1));
+            player.addEffect(new MobEffectInstance(MobEffects.DOLPHINS_GRACE, 520, 1));
+            player.addEffect(new MobEffectInstance(MobEffects.CONDUIT_POWER, 520, 1));
+            player.addEffect(new MobEffectInstance(MobEffects.ABSORPTION, 520, 1));
         }else{
             livingEntity.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 120, 1));
             livingEntity.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 120, 1));
@@ -47,9 +53,8 @@ public class PrinceOfAbolition {
         if (livingEntity==null)return;
 
         if (player.isShiftKeyDown()){
-            if (livingEntity instanceof Player){
-                SoulCore.setCorruption((Player) livingEntity,SoulCore.getCorruption((Player) livingEntity)+10);
-            }
+            SoulCore.setCorruption(livingEntity,SoulCore.getCorruption(livingEntity)+10);
+
         }else{
             livingEntity.addEffect(new MobEffectInstance(MobEffects.WITHER, 180, 2));
             livingEntity.addEffect(new MobEffectInstance(MobEffects.POISON, 180, 2));
