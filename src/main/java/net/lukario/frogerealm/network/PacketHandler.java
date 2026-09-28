@@ -73,6 +73,12 @@ public class PacketHandler {
                 .decoder(CShowHudOverlayPacket::new)
                 .consumerMainThread(CShowHudOverlayPacket::handle)
                 .add();
+
+        INSTANCE.messageBuilder(CSyncAspectPacket.class, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(CSyncAspectPacket::encode)
+                .decoder(CSyncAspectPacket::new)
+                .consumerMainThread(CSyncAspectPacket::handle)
+                .add();
     }
 
     public static void sendToServer(Object msg) {

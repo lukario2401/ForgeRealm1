@@ -9,7 +9,6 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.event.CustomizeGuiOverlayEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -19,7 +18,7 @@ import net.minecraftforge.fml.common.Mod;
  * (countdown numbers, textures, ...). The server triggers it with CShowHudOverlayPacket.
  *
  * To add a new kind of overlay: add a value to CShowHudOverlayPacket.Mode,
- * a factory method there, and a case in onRenderHud below.
+ * a factory method there, and a case in render() below.
  */
 @Mod.EventBusSubscriber(modid = ForgeRealm.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE, value = Dist.CLIENT)
 public class AbilityHudOverlay {
@@ -72,16 +71,13 @@ public class AbilityHudOverlay {
         if (ticksLeft <= 0) clear();
     }
 
-    // Forge 1.21 (51.x) doesn't fire RenderGuiEvent, so we draw during the chat layer of the HUD.
-    // It runs every frame while the HUD is visible (hidden with F1 or while the chat screen is open).
-    @SubscribeEvent
-    public static void onAbilityHudRender(CustomizeGuiOverlayEvent.Chat event) {
+    // Called every frame by HudLayerHook.
+    public static void render(GuiGraphics guiGraphics) {
         if (mode == null) return;
 
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player == null) return;
 
-        GuiGraphics guiGraphics = event.getGuiGraphics();
         float partialTick = minecraft.getTimer().getGameTimeDeltaPartialTick(false);
         float age = (totalTicks - ticksLeft) + partialTick; // ticks since it appeared
         float remaining = ticksLeft - partialTick;          // ticks until it disappears
