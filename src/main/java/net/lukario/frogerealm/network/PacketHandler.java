@@ -66,6 +66,13 @@ public class PacketHandler {
                 .decoder(SKeyPressAbilitySevenUsed::new)
                 .consumerMainThread(SKeyPressAbilitySevenUsed::handle)
                 .add();
+
+        // Server -> Client
+        INSTANCE.messageBuilder(CShowHudOverlayPacket.class, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(CShowHudOverlayPacket::encode)
+                .decoder(CShowHudOverlayPacket::new)
+                .consumerMainThread(CShowHudOverlayPacket::handle)
+                .add();
     }
 
     public static void sendToServer(Object msg) {

@@ -1,10 +1,14 @@
 package net.lukario.frogerealm.shadow_slave.soul_abilities.beyonder_characteristics;
 
 import net.lukario.frogerealm.ForgeRealm;
+import net.lukario.frogerealm.network.CShowHudOverlayPacket;
+import net.lukario.frogerealm.network.PacketHandler;
 import net.lukario.frogerealm.shadow_slave.soul_shards.SoulCore;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
@@ -28,6 +32,15 @@ public class AttendantOfMysteries {
     private static final String DAMAGE_DURATION = "attendant_of_mysteries_damage_duration";
     private static final String DAMAGE_TARGET_UUID = "attendant_of_mysteries_target_uuid";
 
+    // Ability 5
+    private static final String COUNTDOWN_TICKS = "attendant_of_mysteries_countdown_ticks";
+    private static final String COUNTDOWN_SNEAKING = "attendant_of_mysteries_countdown_sneaking";
+    private static final int COUNTDOWN_SECONDS = 5;
+    private static final int COUNTDOWN_COLOR = 0xE8C872;      // pale gold
+    private static final int COUNTDOWN_LAST_COLOR = 0xD83A4A; // the final "1"
+    private static final ResourceLocation SNEAK_TEXTURE =
+            ResourceLocation.fromNamespaceAndPath(ForgeRealm.MOD_ID, "textures/gui/attendant_of_mysteries_sneak.png");
+
     @Mod.EventBusSubscriber(modid = ForgeRealm.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
     public static class KeyOfStarsEvents {
 
@@ -44,6 +57,9 @@ public class AttendantOfMysteries {
                     player.getPersistentData().putInt(DAMAGE_DURATION, duration - 1);
                 }
             }
+
+            // Ability 5 countdown (5, 4, 3, 2, 1)
+            tickAbilityFiveCountdown(player, sl);
 
             if (!SoulCore.getAspect(player).equals("Attendant Of Mysteries")) return;
 
@@ -200,6 +216,62 @@ public class AttendantOfMysteries {
             player.hurtMarked = true;
         }
 
+    }
+
+    //Ability 5
+    public static void attendantOfMysteriesCountdown(Player player, Level level, ServerLevel sl, boolean bypassClassCheck) {
+        if (!canUseClassKeyOfStars(player, bypassClassCheck)) return;
+        if (!(player instanceof ServerPlayer serverPlayer)) return;
+        if (SoulCore.getSoulEssence(player) < 3000) return;
+        if (SoulCore.getAscensionStage(player) < 4) return;
+        if (player.getPersistentData().getInt(COUNTDOWN_TICKS) > 0) return; // already running
+
+        SoulCore.setSoulEssence(player, SoulCore.getSoulEssence(player) - 3000);
+
+        boolean sneaking = player.isShiftKeyDown();
+        player.getPersistentData().putInt(COUNTDOWN_TICKS, COUNTDOWN_SECONDS * 20);
+        player.getPersistentData().putBoolean(COUNTDOWN_SNEAKING, sneaking);
+
+        if (sneaking){
+            PacketHandler.sendToPlayer(CShowHudOverlayPacket.texture(SNEAK_TEXTURE, COUNTDOWN_SECONDS * 20), serverPlayer);
+        }else{
+            showCountdownNumber(player, COUNTDOWN_SECONDS);
+        }
+    }
+
+    // Runs when the 5,4,3,2,1 countdown hits 0. Put what the ability actually does here.
+    private static void onAbilityFiveCountdownFinished(Player player, ServerLevel sl) {
+
+    }
+
+    // Runs when the sneak version's texture has finished showing (same 5 seconds).
+    private static void onAbilityFiveSneakFinished(Player player, ServerLevel sl) {
+
+    }
+
+    private static void tickAbilityFiveCountdown(Player player, ServerLevel sl) {
+        int ticks = player.getPersistentData().getInt(COUNTDOWN_TICKS);
+        if (ticks <= 0) return;
+
+        ticks--;
+        player.getPersistentData().putInt(COUNTDOWN_TICKS, ticks);
+        boolean sneaking = player.getPersistentData().getBoolean(COUNTDOWN_SNEAKING);
+
+        if (ticks == 0) {
+            if (sneaking) {
+                onAbilityFiveSneakFinished(player, sl);
+            } else {
+                onAbilityFiveCountdownFinished(player, sl);
+            }
+        } else if (!sneaking && ticks % 20 == 0) {
+            showCountdownNumber(player, ticks / 20); // 80 -> 4, 60 -> 3, 40 -> 2, 20 -> 1
+        }
+    }
+
+    private static void showCountdownNumber(Player player, int number) {
+        if (!(player instanceof ServerPlayer serverPlayer)) return;
+        int color = number == 1 ? COUNTDOWN_LAST_COLOR : COUNTDOWN_COLOR;
+        PacketHandler.sendToPlayer(CShowHudOverlayPacket.number(number, color, 20), serverPlayer);
     }
 
     private static LivingEntity getTarget(Player player, ServerLevel sl, Level level, float distance){
