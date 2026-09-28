@@ -42,10 +42,10 @@ public class AttendantOfMysteries {
             ResourceLocation.fromNamespaceAndPath(ForgeRealm.MOD_ID, "textures/gui/attendant_of_mysteries_sneak.png");
 
     @Mod.EventBusSubscriber(modid = ForgeRealm.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
-    public static class KeyOfStarsEvents {
+    public static class AttendantOfMysteriesEvents {
 
         @SubscribeEvent
-        public static void onKeyOfStarsTick(TickEvent.PlayerTickEvent event) {
+        public static void onAttendantOfMysteriesTick(TickEvent.PlayerTickEvent event) {
             if (event.phase != TickEvent.Phase.END) return;
             Player player = event.player;
             if (!(player.level() instanceof ServerLevel sl)) return;
@@ -72,7 +72,7 @@ public class AttendantOfMysteries {
         }
 
         @SubscribeEvent
-        public static void onMobTick(LivingEvent.LivingTickEvent event) {
+        public static void onAttendantOfMysteriesMobTick(LivingEvent.LivingTickEvent event) {
             LivingEntity entity = event.getEntity();
             if (entity.level().isClientSide()) return;
 
@@ -87,7 +87,7 @@ public class AttendantOfMysteries {
         }
 
         @SubscribeEvent
-        public static void onPlayerTakeDamage(LivingDamageEvent event) {
+        public static void onAttendantOfMysteriesPlayerTakeDamage(LivingDamageEvent event) {
             if (!(event.getEntity() instanceof Player player)) return;
             if (player.level().isClientSide()) return;
 
