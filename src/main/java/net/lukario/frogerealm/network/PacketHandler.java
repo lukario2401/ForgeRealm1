@@ -79,6 +79,12 @@ public class PacketHandler {
                 .decoder(CSyncAspectPacket::new)
                 .consumerMainThread(CSyncAspectPacket::handle)
                 .add();
+
+        INSTANCE.messageBuilder(CScreenImagePacket.class, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(CScreenImagePacket::encode)
+                .decoder(CScreenImagePacket::new)
+                .consumerMainThread(CScreenImagePacket::handle)
+                .add();
     }
 
     public static void sendToServer(Object msg) {

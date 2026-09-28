@@ -33,6 +33,7 @@ public class HudLayerHook {
 
     private static void renderAll(GuiGraphics guiGraphics) {
         AspectHudIcon.render(guiGraphics);
+        ScreenImageRenderer.render(guiGraphics);
         AbilityHudOverlay.render(guiGraphics);
     }
 

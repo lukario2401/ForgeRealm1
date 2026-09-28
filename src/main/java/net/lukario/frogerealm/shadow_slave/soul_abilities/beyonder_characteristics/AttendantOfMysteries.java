@@ -3,12 +3,15 @@ package net.lukario.frogerealm.shadow_slave.soul_abilities.beyonder_characterist
 import net.lukario.frogerealm.ForgeRealm;
 import net.lukario.frogerealm.network.CShowHudOverlayPacket;
 import net.lukario.frogerealm.network.PacketHandler;
+import net.lukario.frogerealm.screen.ScreenAnchor;
+import net.lukario.frogerealm.screen.ScreenImages;
 import net.lukario.frogerealm.shadow_slave.soul_shards.SoulCore;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
@@ -21,6 +24,7 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.living.LivingDamageEvent;
 import net.minecraftforge.event.entity.living.LivingEvent;
+import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
@@ -38,8 +42,19 @@ public class AttendantOfMysteries {
     private static final int COUNTDOWN_SECONDS = 5;
     private static final int COUNTDOWN_COLOR = 0xE8C872;      // pale gold
     private static final int COUNTDOWN_LAST_COLOR = 0xD83A4A; // the final "1"
-    private static final ResourceLocation SNEAK_TEXTURE =
-            ResourceLocation.fromNamespaceAndPath(ForgeRealm.MOD_ID, "textures/gui/attendant_of_mysteries_sneak.png");
+    private static final String SNEAK_IMAGE = "attendant_of_mysteries_sneak"; // textures/gui/attendant_of_mysteries_sneak.png
+
+    // Stacks: every ability used adds one picture next to the hotbar, the 5th one explodes
+    private static final String STACKS = "attendant_of_mysteries_stacks";
+    private static final String STACK_IMAGE_KEY = "attendant_of_mysteries_stack_image_"; // + slot number
+    private static final String STACK_IMAGE_ID = "aom_stack_";                           // screen image ids
+    private static final int MAX_STACKS = 5;
+    private static final float STACK_BURST_DAMAGE = 40f;
+    private static final double STACK_BURST_RADIUS = 8.0;
+    // Pictures for the stacks, from assets/forgerealmmod/textures/gui/ (without .png). One is picked at random.
+    private static final List<String> STACK_IMAGES = List.of(
+            "attendant_stack_orb"
+    );
 
     @Mod.EventBusSubscriber(modid = ForgeRealm.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
     public static class AttendantOfMysteriesEvents {
@@ -115,6 +130,17 @@ public class AttendantOfMysteries {
                 }
             }
         }
+
+        // pictures on screen don't survive relogging/respawning, so redraw them from the saved stack count
+        @SubscribeEvent
+        public static void onAttendantOfMysteriesLogin(PlayerEvent.PlayerLoggedInEvent event) {
+            refreshStackImages(event.getEntity());
+        }
+
+        @SubscribeEvent
+        public static void onAttendantOfMysteriesRespawn(PlayerEvent.PlayerRespawnEvent event) {
+            refreshStackImages(event.getEntity());
+        }
     }
 
     //Ability 1
@@ -130,6 +156,8 @@ public class AttendantOfMysteries {
         }else{
             shootProjectiles(player,sl,30,3, 32, 32);
         }
+
+        addStack(player, sl);
     }
 
     //Ability 2
@@ -157,6 +185,8 @@ public class AttendantOfMysteries {
                 player.teleportTo(x,y,z);
             }
         }
+
+        addStack(player, sl);
     }
 
     //Ability 3
@@ -188,6 +218,8 @@ public class AttendantOfMysteries {
             player.getPersistentData().putInt(DAMAGE_DURATION, 100);
             player.getPersistentData().putUUID(DAMAGE_TARGET_UUID, target.getUUID());
         }
+
+        addStack(player, sl);
     }
 
     //Ability 4
@@ -216,6 +248,7 @@ public class AttendantOfMysteries {
             player.hurtMarked = true;
         }
 
+        addStack(player, sl);
     }
 
     //Ability 5
@@ -233,9 +266,72 @@ public class AttendantOfMysteries {
         player.getPersistentData().putBoolean(COUNTDOWN_SNEAKING, sneaking);
 
         if (sneaking){
-            PacketHandler.sendToPlayer(CShowHudOverlayPacket.texture(SNEAK_TEXTURE, COUNTDOWN_SECONDS * 20), serverPlayer);
+            ScreenImages.show(player, "aom_sneak", SNEAK_IMAGE, 128, COUNTDOWN_SECONDS * 20);
         }else{
             showCountdownNumber(player, COUNTDOWN_SECONDS);
+        }
+
+        addStack(player, sl);
+    }
+
+    // =========================
+    // Stacks
+    // =========================
+
+    private static void addStack(Player player, ServerLevel sl) {
+        int slot = player.getPersistentData().getInt(STACKS); // 0..4
+        String image = STACK_IMAGES.get(player.getRandom().nextInt(STACK_IMAGES.size()));
+        player.getPersistentData().putString(STACK_IMAGE_KEY + slot, image);
+        showStackImage(player, slot, image);
+
+        int stacks = slot + 1;
+        if (stacks >= MAX_STACKS) {
+            unleashStacks(player, sl);
+            ScreenImages.hide(player, STACK_IMAGE_ID + "*", 10); // let the 5th show for a moment, then all fade
+            stacks = 0;
+        }
+        player.getPersistentData().putInt(STACKS, stacks);
+    }
+
+    // Runs when the 5th stack is added. Big hit on everything around the player.
+    private static void unleashStacks(Player player, ServerLevel sl) {
+        List<LivingEntity> targets = sl.getEntitiesOfClass(
+                LivingEntity.class,
+                player.getBoundingBox().inflate(STACK_BURST_RADIUS),
+                e -> e != player && e.isAlive());
+
+        for (LivingEntity target : targets) {
+            target.invulnerableTime = 0; // so it still hits right after the ability that triggered it
+            target.hurt(player.damageSources().playerAttack(player), STACK_BURST_DAMAGE);
+        }
+
+        double x = player.getX(), y = player.getY() + 1, z = player.getZ();
+        sl.sendParticles(ParticleTypes.EXPLOSION_EMITTER, x, y, z, 1, 0, 0, 0, 0);
+        for (int i = 0; i < 48; i++) {
+            double angle = i * Math.PI * 2 / 48;
+            sl.sendParticles(ParticleTypes.END_ROD,
+                    x + Math.cos(angle) * STACK_BURST_RADIUS, y, z + Math.sin(angle) * STACK_BURST_RADIUS,
+                    1, 0, 0, 0, 0);
+        }
+        sl.playSound(null, player.blockPosition(),
+                SoundEvents.GENERIC_EXPLODE.value(), SoundSource.PLAYERS, 1.5f, 0.6f);
+    }
+
+    // Stacks sit to the right of the hotbar, 18px apart like hotbar slots
+    private static void showStackImage(Player player, int slot, String image) {
+        ScreenImages.show(player, STACK_IMAGE_ID + slot, image,
+                ScreenAnchor.BOTTOM, 103 + slot * 18, -3, 16, ScreenImages.FOREVER);
+    }
+
+    private static void refreshStackImages(Player player) {
+        int stacks = player.getPersistentData().getInt(STACKS);
+        for (int slot = 0; slot < MAX_STACKS; slot++) {
+            if (slot < stacks) {
+                String image = player.getPersistentData().getString(STACK_IMAGE_KEY + slot);
+                showStackImage(player, slot, image.isEmpty() ? STACK_IMAGES.get(0) : image);
+            } else {
+                ScreenImages.hide(player, STACK_IMAGE_ID + slot);
+            }
         }
     }
 
