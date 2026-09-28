@@ -151,6 +151,9 @@ public class AttendantOfMysteries {
 
         SoulCore.setSoulEssence(player,SoulCore.getSoulEssence(player)-250);
 
+        ScreenImages.show(player, "my_pic_1", "amber_material",
+                ScreenAnchor.TOP_RIGHT, -10, 10, 24, 60);
+
         if (player.isShiftKeyDown()){
             shootProjectiles(player,sl,90,7,12 ,12);
         }else{
