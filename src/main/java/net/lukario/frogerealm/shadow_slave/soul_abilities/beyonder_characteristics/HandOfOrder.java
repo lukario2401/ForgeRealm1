@@ -41,6 +41,24 @@ public class HandOfOrder {
     private static final double EDICT_LONG_ANGLE = 16.0;
     private static final float EDICT_LONG_DAMAGE = 18f;
 
+
+    public static final ParticleFx MUSHROOMS = ParticleFx.of("fx/hand_of_order_mushroom")
+            .size(0.2f).endSize(0.2f)
+            .lifetime(0, 20)
+            .gravity(0.12f)
+            .friction(0.9f)
+            .glow()
+            .collide();
+
+    public static final ParticleFx MUSHROOMS_V2 = ParticleFx.of("fx/hand_of_order_mushroom")
+            .size(0.6f).endSize(0f)
+            .lifetime(0, 40)
+            .friction(0.9f)
+            .glow()
+            .spin(15).randomRotation()
+            .collide();
+
+
     // Particles (textures in assets/forgerealmmod/textures/particle/fx/)
     private static final ParticleFx GOLD_SHARD = ParticleFx.of("fx/shard")
             .color(0xFFFFD86B).endColor(0x00FF9A3C)
@@ -92,7 +110,6 @@ public class HandOfOrder {
 
             int duration = player.getPersistentData().getInt("Hand_Of_order_damage_boost");
             if (duration > 0) {
-                player.sendSystemMessage(Component.literal(""+duration));
                 player.getPersistentData().putInt("Hand_Of_order_damage_boost", duration - 1);
             }
         }
@@ -100,7 +117,6 @@ public class HandOfOrder {
         if (player.getPersistentData().contains("Hand_Of_order_defense_boost")) {
             int duration = player.getPersistentData().getInt("Hand_Of_order_defense_boost");
             if (duration > 0) {
-                player.sendSystemMessage(Component.literal(""+duration));
                 player.getPersistentData().putInt("Hand_Of_order_defense_boost", duration - 1);
             }
         }
@@ -143,8 +159,6 @@ public class HandOfOrder {
             player.getPersistentData().putInt("Hand_Of_order_damage_boost",  60);
         }
     }
-
-
 
 
     //Ability 2
@@ -262,10 +276,41 @@ public class HandOfOrder {
         }
     }
 
+
+    //Ability 3
+    public static void handOfOrderAbility4(Player player, Level level, ServerLevel sl, boolean bypassClassCheck) {
+        if (!canUseCharacteristic(player, bypassClassCheck)) return;
+        if (SoulCore.getSoulEssence(player) < 6000) return;
+        if (SoulCore.getAscensionStage(player) < 3) return;
+
+        SoulCore.setSoulEssence(player, SoulCore.getSoulEssence(player) - 12000);
+
+        if (!player.isShiftKeyDown()) {
+            ParticleShapes.sphere(sl, MUSHROOMS, getPos(player,3), 0.35, 16);
+
+        } else {
+            ParticleShapes.sphere(sl, MUSHROOMS_V2, getPos(player,3), 0.35, 16);
+
+        }
+    }
+
     /**
      * Living entities inside a cone in front of the player that the player can see.
      * angleDegrees is the full opening angle. Big mobs count if any part of them is roughly inside.
      */
+
+    private static Vec3 getPos(Player player, int distance) {
+        Vec3 location = player.getEyePosition();
+        Vec3 baseDirection = player.getLookAngle().normalize();
+
+        Vec3 c = null;
+
+        for (float j = 0; j <= distance; j += 0.5f) {
+            c = location.add(baseDirection.scale(j));
+        }
+        return c;
+    }
+
     private static List<LivingEntity> entitiesInCone(Player player, ServerLevel sl, double range, double angleDegrees) {
         Vec3 eye = player.getEyePosition();
         Vec3 look = player.getLookAngle().normalize();

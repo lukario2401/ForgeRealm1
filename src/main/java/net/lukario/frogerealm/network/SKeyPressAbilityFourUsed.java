@@ -20,6 +20,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.FleshDe
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.GravityArchitect.gravityTether;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.HangedAscetic.hangedAsceticGraze;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.InfernalDuelist.flareDash;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.beyonder_characteristics.HandOfOrder.handOfOrderAbility4;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.beyonder_characteristics.KeyOfStars.keyOfStarsSeal;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PhantomSequence.echoShade;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PlagueSovereign.harvestSoul;
@@ -80,7 +81,7 @@ public class SKeyPressAbilityFourUsed {
         keyOfStarsSeal(player,level,serverLevel,false);
         attendantOfMysteriesAirCannon(player,level,serverLevel,false);
         crescendoBladeSteelStrike(player,level,serverLevel);
-
+        handOfOrderAbility4(player,level,serverLevel,false);
     }
 
 }
