@@ -11,6 +11,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.Abyssal
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AetherWarden.aetherWardenAbilityTwoUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AstralArbiter.orbReclaim;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.beyonder_characteristics.AttendantOfMysteries.attendantOfMysteriesFlamingJump;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.beyonder_characteristics.HandOfOrder.handOfOrderDecree;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.BloodBoundAscetic.crimsonOffering;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ChronoReaver.timeSnare;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.DeathDescendant.umbralBind;
@@ -78,6 +79,7 @@ public class SKeyPressAbilityTwoUsed {
         shepardShadowShaping(player,level,serverLevel, false);
         keyOfStarsDash(player,level,serverLevel, false);
         attendantOfMysteriesFlamingJump(player,level,serverLevel, false);
+        handOfOrderDecree(player,level,serverLevel, false);
         crescendoBladeMarkingShot(player,level,serverLevel);
         princeOfAbolitionCorrosion(player,level,serverLevel,false);
 

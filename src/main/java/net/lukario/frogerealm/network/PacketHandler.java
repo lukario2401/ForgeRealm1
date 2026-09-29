@@ -85,6 +85,19 @@ public class PacketHandler {
                 .decoder(CScreenImagePacket::new)
                 .consumerMainThread(CScreenImagePacket::handle)
                 .add();
+
+        INSTANCE.messageBuilder(COpenAbilityMenuPacket.class, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(COpenAbilityMenuPacket::encode)
+                .decoder(COpenAbilityMenuPacket::new)
+                .consumerMainThread(COpenAbilityMenuPacket::handle)
+                .add();
+
+        // Client -> Server
+        INSTANCE.messageBuilder(SAbilityMenuChoicePacket.class, NetworkDirection.PLAY_TO_SERVER)
+                .encoder(SAbilityMenuChoicePacket::encode)
+                .decoder(SAbilityMenuChoicePacket::new)
+                .consumerMainThread(SAbilityMenuChoicePacket::handle)
+                .add();
     }
 
     public static void sendToServer(Object msg) {
