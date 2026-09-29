@@ -3,6 +3,7 @@ package net.lukario.frogerealm.client;
 import net.lukario.frogerealm.ForgeRealm;
 import net.lukario.frogerealm.particles.ModParticles;
 import net.lukario.frogerealm.particles.VoidRiftParticle;
+import net.lukario.frogerealm.particles.fx.ParticleFxParticle;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.RegisterParticleProvidersEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -21,5 +22,8 @@ public class ClientParticleHandler {
                 ModParticles.VOID_RIFT.get(),
                 VoidRiftParticle.Provider::new
         );
+
+        // all ParticleFx particles (no JSON needed: textures come straight from textures/particle/)
+        event.registerSpecial(ModParticles.FX.get(), ParticleFxParticle::create);
     }
 }

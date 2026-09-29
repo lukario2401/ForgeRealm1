@@ -2,6 +2,8 @@ package net.lukario.frogerealm.shadow_slave.soul_abilities.beyonder_characterist
 
 import net.lukario.frogerealm.ForgeRealm;
 import net.lukario.frogerealm.menu.AbilityMenu;
+import net.lukario.frogerealm.particles.fx.ParticleFx;
+import net.lukario.frogerealm.particles.fx.ParticleShapes;
 import net.lukario.frogerealm.screen.ScreenAnchor;
 import net.lukario.frogerealm.screen.ScreenImages;
 import net.lukario.frogerealm.shadow_slave.soul_shards.SoulCore;
@@ -24,7 +26,39 @@ import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class HandOfOrder {
+
+    // Ability 3 - Edict: normal = close wide cone, sneaking = long narrow cone
+    private static final int EDICT_COST = 1250;
+    private static final double EDICT_CLOSE_RANGE = 6.0;
+    private static final double EDICT_CLOSE_ANGLE = 90.0;    // full cone angle in degrees
+    private static final float EDICT_CLOSE_DAMAGE = 14f;
+    private static final double EDICT_CLOSE_KNOCKBACK = 0.8;
+    private static final double EDICT_LONG_RANGE = 24.0;
+    private static final double EDICT_LONG_ANGLE = 16.0;
+    private static final float EDICT_LONG_DAMAGE = 18f;
+
+    // Particles (textures in assets/forgerealmmod/textures/particle/fx/)
+    private static final ParticleFx GOLD_SHARD = ParticleFx.of("fx/shard")
+            .color(0xFFFFD86B).endColor(0x00FF9A3C)
+            .size(0.18f).endSize(0.06f).sizeRandom(0.3f)
+            .lifetime(8, 3).friction(1f)
+            .glow().spin(25f).randomRotation();
+    private static final ParticleFx GOLD_GLOW = ParticleFx.of("fx/glow")
+            .color(0xCCFFE9A8).fadeOut()
+            .size(0.35f).endSize(0.1f)
+            .lifetime(6, 2).friction(1f)
+            .glow();
+    private static final ParticleFx WHITE_SPARK = ParticleFx.of("fx/spark")
+            .color(0xFFFFF6D8).endColor(0x00FFD86B)
+            .size(0.14f).endSize(0.04f)
+            .lifetime(14, 2).friction(1f)
+            .glow().spin(-20f).randomRotation();
+    private static final ParticleFx LANCE_CORE = GOLD_GLOW.size(0.22f).endSize(0.02f).lifetime(8, 4);
+    private static final ParticleFx HIT_SHARD = GOLD_SHARD.friction(0.8f).gravity(0.6f).lifetime(12, 6);
 
     // Ability 2 - Decree (menu with 3 choices)
     private static final int DECREE_COST = 1250;
@@ -183,6 +217,78 @@ public class HandOfOrder {
             }
         }
         return closest;
+    }
+
+    //Ability 3
+    public static void handOfOrderEdict(Player player, Level level, ServerLevel sl, boolean bypassClassCheck) {
+        if (!canUseCharacteristic(player, bypassClassCheck)) return;
+        if (SoulCore.getSoulEssence(player) < EDICT_COST) return;
+        if (SoulCore.getAscensionStage(player) < 2) return;
+
+        SoulCore.setSoulEssence(player, SoulCore.getSoulEssence(player) - EDICT_COST);
+
+        Vec3 look = player.getLookAngle().normalize();
+        Vec3 origin = player.getEyePosition().add(look.scale(0.4)).add(0, -0.25, 0);
+
+        if (player.isShiftKeyDown()) {
+            // Long range narrow cone
+            double speed = EDICT_LONG_RANGE / WHITE_SPARK.lifetimeTicks(); // reach the end of the range
+            ParticleShapes.cone(sl, WHITE_SPARK, origin, look, EDICT_LONG_ANGLE, 90, speed * 0.7, speed);
+
+            Vec3 end = player.getEyePosition().add(look.scale(EDICT_LONG_RANGE));
+            end = sl.clip(new ClipContext(player.getEyePosition(), end, ClipContext.Block.COLLIDER,
+                    ClipContext.Fluid.NONE, player)).getLocation();
+            ParticleShapes.line(sl, LANCE_CORE, origin, end, 3);
+
+            sl.playSound(null, player.blockPosition(), SoundEvents.ILLUSIONER_CAST_SPELL, SoundSource.PLAYERS, 1f, 1.4f);
+
+            for (LivingEntity target : entitiesInCone(player, sl, EDICT_LONG_RANGE, EDICT_LONG_ANGLE)) {
+                target.hurt(player.damageSources().playerAttack(player), EDICT_LONG_DAMAGE);
+                ParticleShapes.burst(sl, HIT_SHARD, target.getBoundingBox().getCenter(), 14, 0.1, 0.3);
+            }
+        } else {
+            // Close range wide cone
+            double speed = EDICT_CLOSE_RANGE / GOLD_SHARD.lifetimeTicks();
+            ParticleShapes.cone(sl, GOLD_SHARD, origin, look, EDICT_CLOSE_ANGLE, 140, speed * 0.3, speed);
+            ParticleShapes.cone(sl, GOLD_GLOW, origin, look, EDICT_CLOSE_ANGLE, 40, speed * 0.4, speed);
+
+            sl.playSound(null, player.blockPosition(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 1f, 0.8f);
+
+            for (LivingEntity target : entitiesInCone(player, sl, EDICT_CLOSE_RANGE, EDICT_CLOSE_ANGLE)) {
+                target.hurt(player.damageSources().playerAttack(player), EDICT_CLOSE_DAMAGE);
+                target.knockback(EDICT_CLOSE_KNOCKBACK, player.getX() - target.getX(), player.getZ() - target.getZ());
+                ParticleShapes.burst(sl, HIT_SHARD, target.getBoundingBox().getCenter(), 10, 0.1, 0.25);
+            }
+        }
+    }
+
+    /**
+     * Living entities inside a cone in front of the player that the player can see.
+     * angleDegrees is the full opening angle. Big mobs count if any part of them is roughly inside.
+     */
+    private static List<LivingEntity> entitiesInCone(Player player, ServerLevel sl, double range, double angleDegrees) {
+        Vec3 eye = player.getEyePosition();
+        Vec3 look = player.getLookAngle().normalize();
+        double halfAngle = Math.toRadians(angleDegrees / 2.0);
+
+        List<LivingEntity> result = new ArrayList<>();
+        for (LivingEntity entity : sl.getEntitiesOfClass(LivingEntity.class, player.getBoundingBox().inflate(range),
+                e -> e != player && e.isAlive())) {
+            Vec3 toTarget = entity.getBoundingBox().getCenter().subtract(eye);
+            double distance = toTarget.length();
+            double radius = entity.getBbWidth() * 0.5;
+            if (distance - radius > range) continue;
+
+            if (distance > 0.01) {
+                double angle = Math.acos(Math.max(-1, Math.min(1, toTarget.normalize().dot(look))));
+                double allowance = Math.atan2(radius + 0.3, distance); // widen a bit for the entity's size
+                if (angle > halfAngle + allowance) continue;
+            }
+            if (!player.hasLineOfSight(entity)) continue;
+
+            result.add(entity);
+        }
+        return result;
     }
 
     private static boolean payEssence(Player player, float cost) {

@@ -1,6 +1,7 @@
 package net.lukario.frogerealm.particles;
 
 import net.lukario.frogerealm.ForgeRealm;
+import net.lukario.frogerealm.particles.fx.ParticleFxType;
 import net.minecraft.core.particles.ParticleType;
 import net.minecraft.core.particles.SimpleParticleType;
 import net.minecraftforge.registries.DeferredRegister;
@@ -15,4 +16,8 @@ public class ModParticles {
     public static final RegistryObject<SimpleParticleType> VOID_RIFT =
             PARTICLES.register("void_rift",
                     () -> new SimpleParticleType(true));
+
+    // One type for every ParticleFx (see particles/fx/ParticleFx) — new particles don't need registering
+    public static final RegistryObject<ParticleFxType> FX =
+            PARTICLES.register("fx", ParticleFxType::new);
 }

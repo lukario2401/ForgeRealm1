@@ -11,6 +11,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.Abyssal
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AetherWarden.aetherWardenAbilityThreeUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.AstralArbiter.starfallStrike;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.beyonder_characteristics.AttendantOfMysteries.attendantOfMysteriesDamageTransfer;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.beyonder_characteristics.HandOfOrder.handOfOrderEdict;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.BloodBoundAscetic.hemorrhageBurst;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ChronoDuelist.chronoDuelistAbilityFourUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.ChronoReaver.rewindBurst;
@@ -77,6 +78,7 @@ public class SKeyPressAbilityThreeUsed {
         shepardFleshHealing(player,level,serverLevel,false);
         keyOfStarsBuff(player,level,serverLevel,false);
         attendantOfMysteriesDamageTransfer(player,level,serverLevel,false);
+        handOfOrderEdict(player,level,serverLevel,false);
         crescendoBladeStrikeStorm(player,level,serverLevel);
 
 
