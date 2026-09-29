@@ -20,6 +20,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.FleshDe
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.GravityArchitect.placeGravityWell;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.HangedAscetic.hangedAsceticShadowCurse;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.InfernalDuelist.flameCut;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.beyonder_characteristics.HandOfOrder.handOfOrderBuff;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.beyonder_characteristics.KeyOfStars.keyOfStarsStarBurst;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.LightBringerAspect.lightBringerAspectAbilityOneUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PhantomSequence.phantomSequencePhantomStrike;
@@ -84,6 +85,7 @@ public class SKeyPressAbilityOneUsed {
         attendantOfMysteriesPaperDagger(player,level,serverLevel,false);
         crescendoBladeQuickStrike(player,level,serverLevel);
         princeOfAbolitionBribe(player,level,serverLevel,false);
+        handOfOrderBuff(player,level,serverLevel,false);
 
     }
 }

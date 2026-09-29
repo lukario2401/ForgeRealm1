@@ -17,6 +17,7 @@ import java.util.List;
 
 public class PrinceOfAbolition {
 
+    // Ability 1
     public static void princeOfAbolitionBribe(Player player, Level level, ServerLevel sl, boolean bypassClassCheck) {
         if (!canUseClass(player, bypassClassCheck)) return;
         if (SoulCore.getSoulEssence(player) < 250) return;
@@ -43,10 +44,30 @@ public class PrinceOfAbolition {
         }
     }
 
+    // ability 2
     public static void princeOfAbolitionCorrosion(Player player, Level level, ServerLevel sl, boolean bypassClassCheck) {
         if (!canUseClass(player, bypassClassCheck)) return;
         if (SoulCore.getSoulEssence(player) < 250) return;
-        if (SoulCore.getAscensionStage(player) < 0) return;
+        if (SoulCore.getAscensionStage(player) < 1) return;
+
+        SoulCore.setSoulEssence(player,SoulCore.getSoulEssence(player)-250);
+        LivingEntity livingEntity = rayCast(player,sl);
+        if (livingEntity==null)return;
+
+        if (player.isShiftKeyDown()){
+            SoulCore.setCorruption(livingEntity,SoulCore.getCorruption(livingEntity)+10);
+
+        }else{
+            livingEntity.addEffect(new MobEffectInstance(MobEffects.WITHER, 180, 2));
+            livingEntity.addEffect(new MobEffectInstance(MobEffects.POISON, 180, 2));
+        }
+    }
+
+    //Ability 3
+    public static void princeOfAbolitionDistortion(Player player, Level level, ServerLevel sl, boolean bypassClassCheck) {
+        if (!canUseClass(player, bypassClassCheck)) return;
+        if (SoulCore.getSoulEssence(player) < 250) return;
+        if (SoulCore.getAscensionStage(player) < 2) return;
 
         SoulCore.setSoulEssence(player,SoulCore.getSoulEssence(player)-250);
         LivingEntity livingEntity = rayCast(player,sl);
