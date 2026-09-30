@@ -684,9 +684,9 @@ public class HandOfOrder {
     private static void comboCrescent(ServerPlayer player, LivingEntity target, ServerLevel sl) {
         Vec3 hit = target.getBoundingBox().getCenter();
         Vec3 center = hit.subtract(flatLook(player).scale(1.1)); // arc's middle passes just behind the target
-        SlashFx slash = player.getRandom().nextBoolean() ? COMBO_CRESCENT : COMBO_CRESCENT.arc(-170f);
-        float tilt = (player.getRandom().nextFloat() - 0.5f) * 24f;
-        ParticleShapes.slash(sl, slash, center, player.getYRot(), 0f, tilt);
+        // left or right swing, slightly tilted/angled each time
+        SlashFx slash = COMBO_CRESCENT.varied(player.getRandom(), 12f, 8f, 18f);
+        ParticleShapes.slash(sl, slash, center, player.getYRot(), 0f, 0f);
         sl.playSound(null, target.blockPosition(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 0.8f, 1.2f);
     }
 
@@ -694,15 +694,18 @@ public class HandOfOrder {
     private static void comboRisingClaws(ServerPlayer player, LivingEntity target, ServerLevel sl) {
         Vec3 hit = target.getBoundingBox().getCenter();
         Vec3 center = hit.subtract(flatLook(player).scale(0.8));
-        float tilt = (player.getRandom().nextFloat() - 0.5f) * 16f;
-        ParticleShapes.slash(sl, COMBO_CLAW, center, player.getYRot(), 0f, tilt);
+        // rising to the right or (mirrored) to the left, steeper or flatter
+        SlashFx claws = COMBO_CLAW.varied(player.getRandom(), 10f, 10f, 20f);
+        ParticleShapes.slash(sl, claws, center, player.getYRot(), 0f, 0f);
         sl.playSound(null, target.blockPosition(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 0.8f, 1.4f);
     }
 
     // Hit 3 (a): a crescent moon standing up around the target
     private static void comboMoon(ServerPlayer player, LivingEntity target, ServerLevel sl) {
         Vec3 hit = target.getBoundingBox().getCenter();
-        ParticleShapes.slash(sl, COMBO_MOON, hit.add(0, 0.15, 0), player.getYRot(), 0f, 0f);
+        // either direction, turned and leaned a little
+        ParticleShapes.slash(sl, COMBO_MOON.varied(player.getRandom(), 25f, 12f, 0f), hit.add(0, 0.15, 0),
+                player.getYRot(), 0f, 0f);
         ParticleShapes.burst(sl, COMBO_SPARKLE, hit, 12, 0.05, 0.2);
         sl.playSound(null, target.blockPosition(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 0.9f, 0.9f);
         sl.playSound(null, target.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1f, 1.5f);
@@ -711,8 +714,13 @@ public class HandOfOrder {
     // Hit 3 (b): two spirals whirling around the target
     private static void comboVortex(ServerPlayer player, LivingEntity target, ServerLevel sl) {
         Vec3 base = target.position().add(0, 0.7, 0).add(flatLook(player).scale(0.3)); // a bit away from the attacker
-        ParticleShapes.slash(sl, COMBO_VORTEX, base, player.getYRot(), 0f, 6f);
-        ParticleShapes.slash(sl, COMBO_VORTEX.layers(2).delay(3), base.add(0, 0.5, 0), player.getYRot() + 180f, 0f, -8f);
+        // starts at any angle, spins either way, both spirals always spin the same way
+        var random = player.getRandom();
+        SlashFx vortex = random.nextBoolean() ? COMBO_VORTEX : COMBO_VORTEX.mirrored();
+        float start = random.nextFloat() * 360f;
+        ParticleShapes.slash(sl, vortex.jittered(random, 0f, 0f, 8f), base, start, 0f, 6f);
+        ParticleShapes.slash(sl, vortex.layers(2).delay(3).jittered(random, 0f, 0f, 8f), base.add(0, 0.5, 0),
+                start + 180f, 0f, -8f);
         ParticleShapes.burst(sl, COMBO_SPARKLE, target.getBoundingBox().getCenter(), 20, 0.05, 0.3);
         sl.playSound(null, target.blockPosition(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 1f, 0.6f);
     }

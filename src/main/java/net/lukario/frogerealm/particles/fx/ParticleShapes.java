@@ -98,11 +98,12 @@ public final class ParticleShapes {
                               double innerRadius, double outerRadius, double turns, double swirlSpeed) {
         RandomSource random = level.getRandom();
         arms = Math.max(1, arms);
+        double phase = random.nextDouble() * Math.PI * 2; // every spiral starts at a different angle
         for (int i = 0; i < count; i++) {
             int arm = i % arms;
             double along = random.nextDouble(); // 0 = inside, 1 = outside
             double radius = innerRadius + (outerRadius - innerRadius) * along + (random.nextDouble() - 0.5) * 0.3;
-            double angle = Math.PI * 2 * ((double) arm / arms + turns * along) + (random.nextDouble() - 0.5) * 0.2;
+            double angle = phase + Math.PI * 2 * ((double) arm / arms + turns * along) + (random.nextDouble() - 0.5) * 0.2;
             Vec3 out = new Vec3(Math.cos(angle), 0, Math.sin(angle));
             Vec3 sideways = new Vec3(-Math.sin(angle), 0, Math.cos(angle));
             double speed = swirlSpeed * radius / Math.max(outerRadius, 0.001);

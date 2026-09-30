@@ -11,6 +11,7 @@ import net.minecraft.core.particles.ParticleType;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.Locale;
@@ -43,6 +44,9 @@ import java.util.Locale;
  *
  * The ribbon always turns its full width toward the camera (like real sword trails), so it reads well
  * from any angle. .flat() makes it lie flat in its plane instead (ground rings, shockwaves...).
+ *
+ * Random but sensible orientation: .varied(random, yaw, pitch, roll) (maybe mirrored + small random tilt),
+ * .mirrored() (sweep the other way), .jittered(...) (tilt only).
  *
  * Orientation (rotation(yaw, pitch, roll), in degrees, added to what you pass when playing it):
  *   yaw   = which way it faces (like an entity's yaw)
@@ -192,6 +196,33 @@ public final class SlashFx implements ParticleOptions {
     /** Set the orientation (degrees). See the class comment. */
     public SlashFx rotation(float yaw, float pitch, float roll) {
         SlashFx c = copy(); c.yaw = yaw; c.pitch = pitch; c.roll = roll; return c;
+    }
+
+    /**
+     * The same slash mirrored left/right: sweeps the other way, tilts to the other side, spins the other way.
+     * Still looks like the same move, just done with the other hand.
+     */
+    public SlashFx mirrored() {
+        SlashFx c = copy();
+        c.arc = -arc; c.spin = -spin; c.yaw = -yaw; c.roll = -roll;
+        return c;
+    }
+
+    /**
+     * A believable random version: 50% chance to be mirrored, then turned by a random amount of
+     * up to +-yaw / +-pitch / +-roll degrees. Small numbers = subtle variety, big numbers = wild.
+     *   SWING.varied(random, 20, 10, 15)
+     */
+    public SlashFx varied(RandomSource random, float yaw, float pitch, float roll) {
+        SlashFx fx = random.nextBoolean() ? mirrored() : this;
+        return fx.jittered(random, yaw, pitch, roll);
+    }
+
+    /** Like varied(...) but never mirrored (keeps the sweep direction). */
+    public SlashFx jittered(RandomSource random, float yaw, float pitch, float roll) {
+        return rotated((random.nextFloat() * 2f - 1f) * yaw,
+                (random.nextFloat() * 2f - 1f) * pitch,
+                (random.nextFloat() * 2f - 1f) * roll);
     }
 
     /** Add to the current orientation. */

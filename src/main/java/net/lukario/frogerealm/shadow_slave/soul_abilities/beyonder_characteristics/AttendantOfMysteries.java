@@ -532,24 +532,31 @@ public class AttendantOfMysteries {
     // Hit 1: a ring sweeping around the player
     private static void comboRing(ServerPlayer player, LivingEntity target, ServerLevel sl) {
         Vec3 center = player.position().add(0, 0.9, 0);
-        float tilt = (player.getRandom().nextFloat() - 0.5f) * 10f;
-        ParticleShapes.slash(sl, COMBO_RING, center, player.getYRot(), 0f, tilt);
+        // sweeps either way, starts from a different side each time, slightly tilted
+        SlashFx ring = COMBO_RING.varied(player.getRandom(), 60f, 8f, 12f);
+        ParticleShapes.slash(sl, ring, center, player.getYRot(), 0f, 0f);
         sl.playSound(null, player.blockPosition(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 1f, 0.8f);
     }
 
     // Hit 2: a tilted, almost upright ring around the player
     private static void comboTiltedRing(ServerPlayer player, LivingEntity target, ServerLevel sl) {
         Vec3 center = player.position().add(0, 1.1, 0);
-        ParticleShapes.slash(sl, COMBO_TILTED_RING, center, player.getYRot(), 0f, 0f);
+        // tilted to the left or right side (mirrored), leaning a bit more or less each time
+        SlashFx ring = COMBO_TILTED_RING.varied(player.getRandom(), 25f, 10f, 15f);
+        ParticleShapes.slash(sl, ring, center, player.getYRot(), 0f, 0f);
         sl.playSound(null, player.blockPosition(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 1f, 1.1f);
     }
 
     // Hit 3 (a): spiral whirling on the ground around the player
     private static void comboGroundSpiral(ServerPlayer player, LivingEntity target, ServerLevel sl) {
         Vec3 center = player.position().add(0, 0.15, 0);
-        ParticleShapes.slash(sl, COMBO_GROUND_SPIRAL, center, player.getYRot(), 0f, 0f);
-        ParticleShapes.slash(sl, COMBO_GROUND_SPIRAL.layers(2).radius(0.8f).endRadius(2.6f).delay(3),
-                center.add(0, 0.05, 0), player.getYRot() + 180f, 0f, 0f);   // second, smaller spiral
+        // starts at any angle and spins either way (both spirals the same way)
+        var random = player.getRandom();
+        SlashFx spiral = random.nextBoolean() ? COMBO_GROUND_SPIRAL : COMBO_GROUND_SPIRAL.mirrored();
+        float start = random.nextFloat() * 360f;
+        ParticleShapes.slash(sl, spiral, center, start, 0f, 0f);
+        ParticleShapes.slash(sl, spiral.layers(2).radius(0.8f).endRadius(2.6f).delay(3),
+                center.add(0, 0.05, 0), start + 180f, 0f, 0f);   // second, smaller spiral
         sl.playSound(null, player.blockPosition(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 1f, 0.6f);
     }
 
@@ -557,8 +564,10 @@ public class AttendantOfMysteries {
     private static void comboCrystalCross(ServerPlayer player, LivingEntity target, ServerLevel sl) {
         Vec3 hit = target.getBoundingBox().getCenter();
         var random = player.getRandom();
+        float xTurn = (random.nextFloat() * 2f - 1f) * 25f;   // the whole X turned a bit
+        float xOpen = 35f + random.nextFloat() * 20f;          // wide or narrow X
         for (int bundle = 0; bundle < 2; bundle++) {
-            float baseRoll = bundle == 0 ? 45f : -45f;   // "/" and ""
+            float baseRoll = xTurn + (bundle == 0 ? xOpen : -xOpen);   // the two diagonals
             for (int i = 0; i < 4; i++) {
                 Vec3 center = hit.add((random.nextDouble() - 0.5) * 0.4, (random.nextDouble() - 0.5) * 0.4,
                         (random.nextDouble() - 0.5) * 0.4);
