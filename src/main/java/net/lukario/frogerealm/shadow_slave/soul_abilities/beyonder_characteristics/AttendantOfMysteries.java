@@ -1,8 +1,12 @@
 package net.lukario.frogerealm.shadow_slave.soul_abilities.beyonder_characteristics;
 
 import net.lukario.frogerealm.ForgeRealm;
+import net.lukario.frogerealm.combat.MeleeCombo;
 import net.lukario.frogerealm.network.CShowHudOverlayPacket;
 import net.lukario.frogerealm.network.PacketHandler;
+import net.lukario.frogerealm.particles.fx.ParticleFx;
+import net.lukario.frogerealm.particles.fx.ParticleShapes;
+import net.lukario.frogerealm.particles.fx.SlashFx;
 import net.lukario.frogerealm.screen.ScreenAnchor;
 import net.lukario.frogerealm.screen.ScreenImages;
 import net.lukario.frogerealm.shadow_slave.soul_shards.SoulCore;
@@ -55,6 +59,42 @@ public class AttendantOfMysteries {
     private static final List<String> STACK_IMAGES = List.of(
             "attendant_stack_orb"
     );
+
+    // Melee combo (hitting mobs as Attendant Of Mysteries), registered in combat/MeleeCombos:
+    // 1 = ring sweeping around you, 2 = tilted ring around you, 3 = ground spiral around you OR crystal X on the target
+    private static final int COMBO_HEAD = 0xF2F4F2C9;   // cream front
+    private static final int COMBO_MID = 0xEE52E3C4;    // mint cyan middle
+    private static final int COMBO_TAIL = 0xA05B3B33;   // dark brown fading tail
+
+    private static final SlashFx COMBO_RING = SlashFx.arc("slash/band")
+            .color(COMBO_MID).tailColor(COMBO_TAIL).headColor(COMBO_HEAD)
+            .translucent()
+            .radius(2.6f).arc(320f).width(1.1f).taper(SlashFx.Taper.COMET)
+            .layers(3).spread(0.28f)
+            .lifetime(12).sweep(5).spin(10f);             // draws itself, keeps spinning, then wipes away
+    private static final SlashFx COMBO_TILTED_RING = COMBO_RING
+            .radius(2.4f).arc(-270f).width(1.2f)          // negative arc = sweeps the other way
+            .sweep(4).spin(-8f)
+            .rotation(0f, -35f, 30f);                     // big arch over and around you, tilted
+    private static final SlashFx COMBO_GROUND_SPIRAL = COMBO_RING.flat()
+            .radius(1.2f).endRadius(3.6f).arc(540f).width(1.3f)   // lies on the ground, winds outward
+            .spread(0.4f)
+            .lifetime(14).sweep(6).spin(9f);
+    private static final SlashFx COMBO_CRYSTAL = SlashFx.line("slash/crystal")
+            .color(0xC89CFFE6).core(0x70FFFFFF)
+            .radius(1.9f).width(0.32f).taper(SlashFx.Taper.CRESCENT)   // pointed at both ends
+            .lifetime(16).sweep(2).fromCenter();                       // shoots out, holds, fades
+    private static final ParticleFx COMBO_STAR = ParticleFx.of("fx/spark")
+            .color(0xFFB8FFEE).fadeOut()
+            .size(0.12f).endSize(0.03f).sizeRandom(0.4f)
+            .lifetime(28, 14).friction(0.96f)
+            .glow().spin(12f).randomRotation();
+    private static final ParticleFx COMBO_STAR_WHITE = COMBO_STAR.color(0xFFFFFFFF).fadeOut();
+
+    public static final MeleeCombo MELEE_COMBO = MeleeCombo.forAspect("Attendant Of Mysteries")
+            .step(AttendantOfMysteries::comboRing)
+            .step(AttendantOfMysteries::comboTiltedRing)
+            .randomStep(AttendantOfMysteries::comboGroundSpiral, AttendantOfMysteries::comboCrystalCross);
 
     @Mod.EventBusSubscriber(modid = ForgeRealm.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
     public static class AttendantOfMysteriesEvents {
@@ -483,6 +523,59 @@ public class AttendantOfMysteries {
                 }
             }
         }
+    }
+
+    // =========================
+    // Melee combo hits
+    // =========================
+
+    // Hit 1: a ring sweeping around the player
+    private static void comboRing(ServerPlayer player, LivingEntity target, ServerLevel sl) {
+        Vec3 center = player.position().add(0, 0.9, 0);
+        float tilt = (player.getRandom().nextFloat() - 0.5f) * 10f;
+        ParticleShapes.slash(sl, COMBO_RING, center, player.getYRot(), 0f, tilt);
+        sl.playSound(null, player.blockPosition(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 1f, 0.8f);
+    }
+
+    // Hit 2: a tilted, almost upright ring around the player
+    private static void comboTiltedRing(ServerPlayer player, LivingEntity target, ServerLevel sl) {
+        Vec3 center = player.position().add(0, 1.1, 0);
+        ParticleShapes.slash(sl, COMBO_TILTED_RING, center, player.getYRot(), 0f, 0f);
+        sl.playSound(null, player.blockPosition(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 1f, 1.1f);
+    }
+
+    // Hit 3 (a): spiral whirling on the ground around the player
+    private static void comboGroundSpiral(ServerPlayer player, LivingEntity target, ServerLevel sl) {
+        Vec3 center = player.position().add(0, 0.15, 0);
+        ParticleShapes.slash(sl, COMBO_GROUND_SPIRAL, center, player.getYRot(), 0f, 0f);
+        ParticleShapes.slash(sl, COMBO_GROUND_SPIRAL.layers(2).radius(0.8f).endRadius(2.6f).delay(3),
+                center.add(0, 0.05, 0), player.getYRot() + 180f, 0f, 0f);   // second, smaller spiral
+        sl.playSound(null, player.blockPosition(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 1f, 0.6f);
+    }
+
+    // Hit 3 (b): crossed crystal blades in an X on the target + a swirling galaxy of sparkles under it
+    private static void comboCrystalCross(ServerPlayer player, LivingEntity target, ServerLevel sl) {
+        Vec3 hit = target.getBoundingBox().getCenter();
+        var random = player.getRandom();
+        for (int bundle = 0; bundle < 2; bundle++) {
+            float baseRoll = bundle == 0 ? 45f : -45f;   // "/" and ""
+            for (int i = 0; i < 4; i++) {
+                Vec3 center = hit.add((random.nextDouble() - 0.5) * 0.4, (random.nextDouble() - 0.5) * 0.4,
+                        (random.nextDouble() - 0.5) * 0.4);
+                SlashFx blade = COMBO_CRYSTAL
+                        .radius(1.5f + random.nextFloat() * 0.7f)
+                        .width(0.24f + random.nextFloat() * 0.14f)
+                        .delay(bundle * 2 + i / 2);      // blades appear in quick stages
+                float yaw = player.getYRot() + (random.nextFloat() - 0.5f) * 20f;
+                float roll = baseRoll + (random.nextFloat() - 0.5f) * 16f;
+                ParticleShapes.slash(sl, blade, center, yaw, 0f, roll);
+            }
+        }
+        Vec3 ground = target.position().add(0, 0.15, 0);
+        ParticleShapes.spiral(sl, COMBO_STAR, ground, 4, 220, 0.6, 4.0, 0.8, 0.06);
+        ParticleShapes.spiral(sl, COMBO_STAR_WHITE, ground, 4, 90, 0.6, 4.0, 0.8, 0.06);
+        sl.playSound(null, target.blockPosition(), SoundEvents.AMETHYST_CLUSTER_BREAK, SoundSource.PLAYERS, 1.2f, 1.2f);
+        sl.playSound(null, target.blockPosition(), SoundEvents.PLAYER_ATTACK_CRIT, SoundSource.PLAYERS, 1f, 1f);
     }
 
     private static boolean canUseClassKeyOfStars(Player player, boolean dontCheck) {

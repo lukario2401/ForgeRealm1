@@ -16,6 +16,7 @@ import net.minecraft.world.phys.Vec3;
  *   ParticleShapes.line(sl, GOLD_SPARK, from, to, 4);
  *   ParticleShapes.ring(sl, GOLD_SPARK, center, 3.0, 40, 0.0);
  *   ParticleShapes.sphere(sl, GOLD_SPARK, center, 2.0, 80);
+ *   ParticleShapes.spiral(sl, GOLD_SPARK, feet, 4, 150, 0.5, 4.0, 0.8, 0.1);          // swirling galaxy
  *   ParticleShapes.slash(sl, SWING, target.getBoundingBox().getCenter(), player);   // SlashFx trails
  *
  * Speeds are in blocks per tick. With friction 1 and no gravity a particle travels
@@ -82,6 +83,30 @@ public final class ParticleShapes {
             double angle = Math.PI * 2 * i / count;
             Vec3 out = new Vec3(Math.cos(angle), 0, Math.sin(angle));
             spawn(level, particle, center.add(out.scale(radius)), out.scale(outwardSpeed));
+        }
+    }
+
+    /**
+     * Flat spiral "galaxy" of particles around center (lying horizontally).
+     * @param arms        number of spiral arms
+     * @param count       particles in total
+     * @param turns       how far each arm winds around from the inside to the outside (1 = a full circle)
+     * @param swirlSpeed  blocks per tick at the outer edge, sideways around the center (0 = still,
+     *                    negative = the other way). Particles move in straight lines, so it swirls outward.
+     */
+    public static void spiral(Level level, ParticleOptions particle, Vec3 center, int arms, int count,
+                              double innerRadius, double outerRadius, double turns, double swirlSpeed) {
+        RandomSource random = level.getRandom();
+        arms = Math.max(1, arms);
+        for (int i = 0; i < count; i++) {
+            int arm = i % arms;
+            double along = random.nextDouble(); // 0 = inside, 1 = outside
+            double radius = innerRadius + (outerRadius - innerRadius) * along + (random.nextDouble() - 0.5) * 0.3;
+            double angle = Math.PI * 2 * ((double) arm / arms + turns * along) + (random.nextDouble() - 0.5) * 0.2;
+            Vec3 out = new Vec3(Math.cos(angle), 0, Math.sin(angle));
+            Vec3 sideways = new Vec3(-Math.sin(angle), 0, Math.cos(angle));
+            double speed = swirlSpeed * radius / Math.max(outerRadius, 0.001);
+            spawn(level, particle, center.add(out.scale(radius)), sideways.scale(speed));
         }
     }
 

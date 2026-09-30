@@ -31,6 +31,11 @@ public class SlashParticle extends Particle {
     private final Vec3 right;
     private final Vec3 up;
 
+    // spin for the frame being drawn
+    private double spinRadians;
+    private Vec3 lineRight;
+    private Vec3 lineUp;
+
     // per-streak variation, decided once so the slash doesn't flicker
     private final float[] layerOffset;
     private final float[] layerStart;
@@ -114,46 +119,60 @@ public class SlashParticle extends Particle {
 
         float life = fx.lifetimeTicks();
         float sweep = Math.min(fx.sweepTicks(), life * 0.5f); // longer sweeps would never be fully visible
-        float head = Mth.clamp(time / sweep, 0f, 1f);                  // front end, draws in
-        float tail = Mth.clamp((time - (life - sweep)) / sweep, 0f, 1f); // back end, wipes away at the end
+        float head;
+        float tail;
+        if (fx.growsFromCenter()) {
+            float grow = Mth.clamp(time / sweep, 0f, 1f);          // both ends move out from the middle
+            head = 0.5f + 0.5f * grow;
+            tail = 0.5f - 0.5f * grow;
+        } else {
+            head = Mth.clamp(time / sweep, 0f, 1f);                  // front end, draws in
+            tail = Mth.clamp((time - (life - sweep)) / sweep, 0f, 1f); // back end, wipes away at the end
+        }
         if (head - tail < 0.002f) return;
 
         float progress = time / life;
         float fade = progress < FADE_START ? 1f : 1f - smooth((progress - FADE_START) / (1f - FADE_START));
         if (fade <= 0.01f) return;
 
+        // spin: arcs turn around their center, lines turn like a propeller
+        spinRadians = Math.toRadians(fx.spinDegrees() * time);
+        double cos = Math.cos(spinRadians);
+        double sin = Math.sin(spinRadians);
+        lineRight = right.scale(cos).add(up.scale(sin));
+        lineUp = up.scale(cos).subtract(right.scale(sin));
+
         Vec3 cam = camera.getPosition();
         Vec3 origin = new Vec3(this.x - cam.x, this.y - cam.y, this.z - cam.z);
 
         for (int i = 0; i < layerOffset.length; i++) {
-            ribbon(buffer, origin, i, head, tail, fade, fx.glowColor(), 1f);
+            ribbon(buffer, origin, i, head, tail, fade, 0, 1f, true);
             if ((fx.coreColor() >>> 24) != 0) {
-                ribbon(buffer, origin, i, head, tail, fade, fx.coreColor(), CORE_WIDTH);
+                ribbon(buffer, origin, i, head, tail, fade, fx.coreColor(), CORE_WIDTH, false);
             }
         }
     }
 
-    /** Draws one streak between the tail and head positions (0..1 along the whole slash). */
+    /**
+     * Draws one streak between the tail and head positions (0..1 along the whole slash).
+     * gradient = true: color fades tail -> color -> head along the slash; false: uses fixedColor.
+     */
     private void ribbon(VertexConsumer buffer, Vec3 origin, int layer, float head, float tail, float fade,
-                        int argb, float widthScale) {
+                        int fixedColor, float widthScale, boolean gradient) {
         float start = layerStart[layer];
         float end = start + layerLength[layer];
         float t0 = Math.max(tail, start);
         float t1 = Math.min(head, end);
         if (t1 - t0 < 0.002f) return;
 
-        float r = ((argb >> 16) & 0xFF) / 255f;
-        float g = ((argb >> 8) & 0xFF) / 255f;
-        float b = (argb & 0xFF) / 255f;
-        float baseAlpha = ((argb >>> 24) & 0xFF) / 255f * fade * layerAlpha[layer];
-
+        float alphaScale = fade * layerAlpha[layer];
         int segments = segments();
         int firstIndex = (int) Math.ceil(t0 * segments);
         int lastIndex = (int) Math.floor(t1 * segments);
 
         Vec3[] previous = null;
         float previousU = 0f;
-        float previousAlpha = 0f;
+        float[] previousColor = null;
 
         // walk t0 -> segment points -> t1
         for (int k = firstIndex - 1; k <= lastIndex + 1; k++) {
@@ -170,37 +189,64 @@ public class SlashParticle extends Particle {
             // soften the ends that are still moving (the real ends are already thin from the taper)
             float tailFade = t0 > start + 0.0001f ? (t - t0) / EDGE_SOFTNESS : 1f;
             float headFade = t1 < end - 0.0001f ? (t1 - t) / EDGE_SOFTNESS : 1f;
-            float alpha = baseAlpha * Mth.clamp(Math.min(tailFade, headFade), 0f, 1f);
+            float edgeFade = Mth.clamp(Math.min(tailFade, headFade), 0f, 1f);
+
+            float[] color = rgba(gradient ? colorAt(t) : fixedColor);
+            color[3] *= alphaScale * edgeFade;
 
             float u = Mth.lerp(0.02f + local * 0.96f, sprite.getU0(), sprite.getU1());
             if (previous != null) {
-                quad(buffer, previous, edges, previousU, u, r, g, b, previousAlpha, alpha);
+                quad(buffer, previous, edges, previousU, u, previousColor, color);
             }
             previous = edges;
             previousU = u;
-            previousAlpha = alpha;
+            previousColor = color;
         }
+    }
+
+    /**
+     * Color along the slash: tail color for the back quarter, blends into the main color by the middle,
+     * main color until 60%, blends into the head color by 90%.
+     */
+    private int colorAt(float t) {
+        if (t < 0.5f) return lerpColor(fx.tailGlowColor(), fx.glowColor(), Mth.clamp((t - 0.25f) / 0.25f, 0f, 1f));
+        return lerpColor(fx.glowColor(), fx.headGlowColor(), Mth.clamp((t - 0.6f) / 0.3f, 0f, 1f));
+    }
+
+    private static int lerpColor(int from, int to, float amount) {
+        int result = 0;
+        for (int shift = 0; shift <= 24; shift += 8) {
+            int a = (from >>> shift) & 0xFF;
+            int b = (to >>> shift) & 0xFF;
+            result |= (Math.round(a + (b - a) * amount) & 0xFF) << shift;
+        }
+        return result;
+    }
+
+    private static float[] rgba(int argb) {
+        return new float[]{((argb >> 16) & 0xFF) / 255f, ((argb >> 8) & 0xFF) / 255f, (argb & 0xFF) / 255f,
+                ((argb >>> 24) & 0xFF) / 255f};
     }
 
     /** Point on the slash's main line at position t (camera-relative), before any streak offset. */
     private Vec3 pathAt(Vec3 origin, float t) {
         if (fx.shape() == SlashFx.Shape.LINE) {
-            return origin.add(right.scale((t * 2f - 1f) * fx.radiusBlocks()));
+            return origin.add(lineRight.scale((t * 2f - 1f) * fx.radiusBlocks()));
         }
         double radius = Mth.lerp(t, fx.radiusBlocks(), fx.endRadiusBlocks());
         return origin.add(radialAt(t).scale(radius));
     }
 
-    /** Direction from the arc's center to position t (in the slash's plane). */
+    /** Direction from the arc's center to position t (in the slash's plane), including spin. */
     private Vec3 radialAt(float t) {
-        double angle = Math.toRadians(-fx.arcDegrees() / 2.0 + t * fx.arcDegrees());
+        double angle = Math.toRadians(-fx.arcDegrees() / 2.0 + t * fx.arcDegrees()) + spinRadians;
         return right.scale(Math.sin(angle)).add(forward.scale(Math.cos(angle)));
     }
 
     /** Inner and outer edge of one streak at position t (camera-relative). */
     private Vec3[] edges(Vec3 origin, float t, int layer, float halfWidth) {
         Vec3 path = pathAt(origin, t);
-        Vec3 planeAcross = fx.shape() == SlashFx.Shape.LINE ? up : radialAt(t); // flat: width lies in the plane
+        Vec3 planeAcross = fx.shape() == SlashFx.Shape.LINE ? lineUp : radialAt(t); // flat: width lies in the plane
         Vec3 across = planeAcross;
 
         if (!fx.isFlat()) {
@@ -220,26 +266,25 @@ public class SlashParticle extends Particle {
         return new Vec3[]{center.subtract(across.scale(halfWidth)), center.add(across.scale(halfWidth))};
     }
 
-    private void quad(VertexConsumer buffer, Vec3[] from, Vec3[] to, float u0, float u1,
-                      float r, float g, float b, float a0, float a1) {
+    private void quad(VertexConsumer buffer, Vec3[] from, Vec3[] to, float u0, float u1, float[] c0, float[] c1) {
         float vInner = Mth.lerp(0.03f, sprite.getV0(), sprite.getV1());
         float vOuter = Mth.lerp(0.97f, sprite.getV0(), sprite.getV1());
         // front
-        vertex(buffer, from[0], u0, vInner, r, g, b, a0);
-        vertex(buffer, from[1], u0, vOuter, r, g, b, a0);
-        vertex(buffer, to[1], u1, vOuter, r, g, b, a1);
-        vertex(buffer, to[0], u1, vInner, r, g, b, a1);
+        vertex(buffer, from[0], u0, vInner, c0);
+        vertex(buffer, from[1], u0, vOuter, c0);
+        vertex(buffer, to[1], u1, vOuter, c1);
+        vertex(buffer, to[0], u1, vInner, c1);
         // back (so it's visible from both sides)
-        vertex(buffer, to[0], u1, vInner, r, g, b, a1);
-        vertex(buffer, to[1], u1, vOuter, r, g, b, a1);
-        vertex(buffer, from[1], u0, vOuter, r, g, b, a0);
-        vertex(buffer, from[0], u0, vInner, r, g, b, a0);
+        vertex(buffer, to[0], u1, vInner, c1);
+        vertex(buffer, to[1], u1, vOuter, c1);
+        vertex(buffer, from[1], u0, vOuter, c0);
+        vertex(buffer, from[0], u0, vInner, c0);
     }
 
-    private static void vertex(VertexConsumer buffer, Vec3 pos, float u, float v, float r, float g, float b, float a) {
+    private static void vertex(VertexConsumer buffer, Vec3 pos, float u, float v, float[] c) {
         buffer.addVertex((float) pos.x, (float) pos.y, (float) pos.z)
                 .setUv(u, v)
-                .setColor(r, g, b, a)
+                .setColor(c[0], c[1], c[2], c[3])
                 .setLight(LightTexture.FULL_BRIGHT);
     }
 

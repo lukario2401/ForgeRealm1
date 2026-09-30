@@ -1,6 +1,7 @@
 package net.lukario.frogerealm.combat;
 
 import net.lukario.frogerealm.ForgeRealm;
+import net.lukario.frogerealm.shadow_slave.soul_abilities.beyonder_characteristics.AttendantOfMysteries;
 import net.lukario.frogerealm.shadow_slave.soul_abilities.beyonder_characteristics.HandOfOrder;
 import net.lukario.frogerealm.shadow_slave.soul_shards.SoulCore;
 import net.minecraft.server.level.ServerPlayer;
@@ -24,6 +25,7 @@ public final class MeleeCombos {
 
     static {
         register(HandOfOrder.MELEE_COMBO);
+        register(AttendantOfMysteries.MELEE_COMBO);
     }
 
     private MeleeCombos() {}

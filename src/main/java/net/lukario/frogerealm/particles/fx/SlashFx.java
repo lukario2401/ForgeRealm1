@@ -32,6 +32,11 @@ import java.util.Locale;
  *
  *   ParticleShapes.slash(serverLevel, SWING, center, player.getYRot(), 0, 0);   // plays it facing that yaw
  *
+ * Moving / changing (so it's not static):
+ *   .tailColor(..).headColor(..)  color fades along the slash: tail -> color -> head
+ *   .spin(12)                     keeps rotating around its center, degrees per tick
+ *   .fromCenter()                 grows out from the middle in both directions (bursts, crystals)
+ *
  * Shapes:
  *   SlashFx.arc(...)   curve around a center. endRadius(...) makes it a spiral (vortex).
  *   SlashFx.line(...)  straight cut through the center, radius = half its length.
@@ -62,6 +67,8 @@ public final class SlashFx implements ParticleOptions {
 
     private ResourceLocation texture;
     private int color;
+    private int tailColor;
+    private int headColor;
     private int coreColor;
     private boolean additive;
     private boolean flat;
@@ -74,6 +81,8 @@ public final class SlashFx implements ParticleOptions {
     private int lifetime;
     private int sweep;
     private int delay;
+    private float spin;        // degrees per tick
+    private boolean fromCenter;
     private int layers;
     private float spread;
     private float yaw, pitch, roll;
@@ -82,9 +91,10 @@ public final class SlashFx implements ParticleOptions {
 
     private SlashFx copy() {
         SlashFx c = new SlashFx();
-        c.texture = texture; c.color = color; c.coreColor = coreColor; c.additive = additive; c.flat = flat;
+        c.texture = texture; c.color = color; c.tailColor = tailColor; c.headColor = headColor; c.coreColor = coreColor; c.additive = additive; c.flat = flat;
         c.shape = shape; c.radius = radius; c.endRadius = endRadius; c.arc = arc; c.width = width;
         c.taper = taper; c.lifetime = lifetime; c.sweep = sweep; c.delay = delay; c.layers = layers;
+        c.spin = spin; c.fromCenter = fromCenter;
         c.spread = spread; c.yaw = yaw; c.pitch = pitch; c.roll = roll;
         return c;
     }
@@ -95,6 +105,8 @@ public final class SlashFx implements ParticleOptions {
                 ? ResourceLocation.parse(textureName)
                 : ResourceLocation.fromNamespaceAndPath(ForgeRealm.MOD_ID, textureName);
         fx.color = 0xFFFFFFFF;
+        fx.tailColor = 0xFFFFFFFF;
+        fx.headColor = 0xFFFFFFFF;
         fx.coreColor = 0;
         fx.additive = true;
         fx.flat = false;
@@ -107,6 +119,8 @@ public final class SlashFx implements ParticleOptions {
         fx.lifetime = 10;
         fx.sweep = 3;
         fx.delay = 0;
+        fx.spin = 0f;
+        fx.fromCenter = false;
         fx.layers = 1;
         fx.spread = 0.2f;
         return fx;
@@ -124,8 +138,14 @@ public final class SlashFx implements ParticleOptions {
 
     // ---------- customization (each returns a copy) ----------
 
-    /** Glow color, ARGB. With the default additive blending, alpha = brightness. */
-    public SlashFx color(int argb) { SlashFx c = copy(); c.color = argb; return c; }
+    /** Color of the whole slash, ARGB (also resets tailColor/headColor). With additive blending, alpha = brightness. */
+    public SlashFx color(int argb) { SlashFx c = copy(); c.color = argb; c.tailColor = argb; c.headColor = argb; return c; }
+
+    /** Color of the back quarter of the slash (start); fades into color() by the middle. */
+    public SlashFx tailColor(int argb) { SlashFx c = copy(); c.tailColor = argb; return c; }
+
+    /** Color at the front of the slash (head); fades in from color() between 60% and 90% of its length. */
+    public SlashFx headColor(int argb) { SlashFx c = copy(); c.headColor = argb; return c; }
 
     /** Color of a thin bright line along the middle of the slash. core(0) removes it. */
     public SlashFx core(int argb) { SlashFx c = copy(); c.coreColor = argb; return c; }
@@ -154,6 +174,12 @@ public final class SlashFx implements ParticleOptions {
     /** Ticks it takes to draw itself from start to end (the same speed is used to wipe it away at the end). */
     public SlashFx sweep(int ticks) { SlashFx c = copy(); c.sweep = Math.max(1, ticks); return c; }
 
+    /** Keep rotating around the center, degrees per tick (negative = other way). Lines spin like a propeller. */
+    public SlashFx spin(float degreesPerTick) { SlashFx c = copy(); c.spin = degreesPerTick; return c; }
+
+    /** Grow out from the middle towards both ends instead of drawing from start to end. */
+    public SlashFx fromCenter() { SlashFx c = copy(); c.fromCenter = true; return c; }
+
     /** Wait this many ticks before appearing (for staggered flurries). */
     public SlashFx delay(int ticks) { SlashFx c = copy(); c.delay = Math.max(0, ticks); return c; }
 
@@ -177,6 +203,8 @@ public final class SlashFx implements ParticleOptions {
 
     public ResourceLocation texture() { return texture; }
     public int glowColor() { return color; }
+    public int tailGlowColor() { return tailColor; }
+    public int headGlowColor() { return headColor; }
     public int coreColor() { return coreColor; }
     public boolean isAdditive() { return additive; }
     public boolean isFlat() { return flat; }
@@ -189,6 +217,8 @@ public final class SlashFx implements ParticleOptions {
     public int lifetimeTicks() { return lifetime; }
     public int sweepTicks() { return sweep; }
     public int delayTicks() { return delay; }
+    public float spinDegrees() { return spin; }
+    public boolean growsFromCenter() { return fromCenter; }
     public int layerCount() { return layers; }
     public float spreadBlocks() { return spread; }
     public float yaw() { return yaw; }
@@ -216,10 +246,11 @@ public final class SlashFx implements ParticleOptions {
 
     // The command/NBT format is split into groups only because a codec can hold at most 16 fields;
     // the fields themselves are all at the same level: {color:"...", arc:170f, lifetime:9, ...}
-    private record Look(ResourceLocation texture, int color, int coreColor, boolean additive, boolean flat) {}
+    private record Look(ResourceLocation texture, int color, int tailColor, int headColor, int coreColor,
+                        boolean additive, boolean flat) {}
     private record Geometry(Shape shape, float radius, float endRadius, float arc, float width, Taper taper,
                             int layers, float spread) {}
-    private record Timing(int lifetime, int sweep, int delay) {}
+    private record Timing(int lifetime, int sweep, int delay, float spin, boolean fromCenter) {}
 
     private static final ResourceLocation DEFAULT_TEXTURE =
             ResourceLocation.fromNamespaceAndPath(ForgeRealm.MOD_ID, "slash/streaks");
@@ -227,6 +258,8 @@ public final class SlashFx implements ParticleOptions {
     private static final MapCodec<Look> LOOK_CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
             ResourceLocation.CODEC.optionalFieldOf("texture", DEFAULT_TEXTURE).forGetter(Look::texture),
             ParticleFx.COLOR_CODEC.optionalFieldOf("color", 0xFFFFFFFF).forGetter(Look::color),
+            ParticleFx.COLOR_CODEC.optionalFieldOf("tail_color", 0).forGetter(Look::tailColor),
+            ParticleFx.COLOR_CODEC.optionalFieldOf("head_color", 0).forGetter(Look::headColor),
             ParticleFx.COLOR_CODEC.optionalFieldOf("core_color", 0).forGetter(Look::coreColor),
             Codec.BOOL.optionalFieldOf("additive", true).forGetter(Look::additive),
             Codec.BOOL.optionalFieldOf("flat", false).forGetter(Look::flat)
@@ -246,27 +279,34 @@ public final class SlashFx implements ParticleOptions {
     private static final MapCodec<Timing> TIMING_CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
             Codec.INT.optionalFieldOf("lifetime", 10).forGetter(Timing::lifetime),
             Codec.INT.optionalFieldOf("sweep", 3).forGetter(Timing::sweep),
-            Codec.INT.optionalFieldOf("delay", 0).forGetter(Timing::delay)
+            Codec.INT.optionalFieldOf("delay", 0).forGetter(Timing::delay),
+            Codec.FLOAT.optionalFieldOf("spin", 0f).forGetter(Timing::spin),
+            Codec.BOOL.optionalFieldOf("from_center", false).forGetter(Timing::fromCenter)
     ).apply(i, Timing::new));
 
     private static SlashFx fromParts(Look look, Geometry geometry, Timing timing, Vec3 rotation) {
         SlashFx fx = new SlashFx();
         fx.texture = look.texture(); fx.color = look.color(); fx.coreColor = look.coreColor();
+        // in commands, a missing tail/head color (0) means "same as color"
+        fx.tailColor = look.tailColor() == 0 ? look.color() : look.tailColor();
+        fx.headColor = look.headColor() == 0 ? look.color() : look.headColor();
         fx.additive = look.additive(); fx.flat = look.flat();
         fx.shape = geometry.shape(); fx.radius = geometry.radius(); fx.endRadius = geometry.endRadius();
         fx.arc = geometry.arc(); fx.width = geometry.width(); fx.taper = geometry.taper();
         fx.layers = Math.max(1, Math.min(geometry.layers(), 16)); fx.spread = geometry.spread();
         fx.lifetime = Math.max(1, timing.lifetime()); fx.sweep = Math.max(1, timing.sweep());
         fx.delay = Math.max(0, timing.delay());
+        fx.spin = timing.spin(); fx.fromCenter = timing.fromCenter();
         fx.yaw = (float) rotation.x; fx.pitch = (float) rotation.y; fx.roll = (float) rotation.z;
         return fx;
     }
 
     public static final MapCodec<SlashFx> CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
-            LOOK_CODEC.forGetter((SlashFx fx) -> new Look(fx.texture, fx.color, fx.coreColor, fx.additive, fx.flat)),
+            LOOK_CODEC.forGetter((SlashFx fx) -> new Look(fx.texture, fx.color, fx.tailColor, fx.headColor,
+                    fx.coreColor, fx.additive, fx.flat)),
             GEOMETRY_CODEC.forGetter((SlashFx fx) -> new Geometry(fx.shape, fx.radius, fx.endRadius, fx.arc, fx.width,
                     fx.taper, fx.layers, fx.spread)),
-            TIMING_CODEC.forGetter((SlashFx fx) -> new Timing(fx.lifetime, fx.sweep, fx.delay)),
+            TIMING_CODEC.forGetter((SlashFx fx) -> new Timing(fx.lifetime, fx.sweep, fx.delay, fx.spin, fx.fromCenter)),
             Vec3.CODEC.optionalFieldOf("rotation", Vec3.ZERO).forGetter((SlashFx fx) -> new Vec3(fx.yaw, fx.pitch, fx.roll))
     ).apply(i, SlashFx::fromParts));
 
@@ -276,6 +316,8 @@ public final class SlashFx implements ParticleOptions {
     private void write(FriendlyByteBuf buffer) {
         buffer.writeResourceLocation(texture);
         buffer.writeInt(color);
+        buffer.writeInt(tailColor);
+        buffer.writeInt(headColor);
         buffer.writeInt(coreColor);
         buffer.writeBoolean(additive);
         buffer.writeBoolean(flat);
@@ -288,6 +330,8 @@ public final class SlashFx implements ParticleOptions {
         buffer.writeVarInt(lifetime);
         buffer.writeVarInt(sweep);
         buffer.writeVarInt(delay);
+        buffer.writeFloat(spin);
+        buffer.writeBoolean(fromCenter);
         buffer.writeVarInt(layers);
         buffer.writeFloat(spread);
         buffer.writeFloat(yaw);
@@ -299,6 +343,8 @@ public final class SlashFx implements ParticleOptions {
         SlashFx fx = new SlashFx();
         fx.texture = buffer.readResourceLocation();
         fx.color = buffer.readInt();
+        fx.tailColor = buffer.readInt();
+        fx.headColor = buffer.readInt();
         fx.coreColor = buffer.readInt();
         fx.additive = buffer.readBoolean();
         fx.flat = buffer.readBoolean();
@@ -311,6 +357,8 @@ public final class SlashFx implements ParticleOptions {
         fx.lifetime = buffer.readVarInt();
         fx.sweep = buffer.readVarInt();
         fx.delay = buffer.readVarInt();
+        fx.spin = buffer.readFloat();
+        fx.fromCenter = buffer.readBoolean();
         fx.layers = Math.min(buffer.readVarInt(), 16); // safety cap
         fx.spread = buffer.readFloat();
         fx.yaw = buffer.readFloat();
