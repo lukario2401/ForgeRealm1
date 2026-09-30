@@ -2,6 +2,8 @@ package net.lukario.frogerealm.menu;
 
 import net.lukario.frogerealm.network.COpenAbilityMenuPacket;
 import net.lukario.frogerealm.network.PacketHandler;
+import net.lukario.frogerealm.root.Root;
+import net.lukario.frogerealm.root.RootRestriction;
 import net.lukario.frogerealm.screen.ScreenImages;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -96,6 +98,7 @@ public class AbilityMenu {
         OPEN_MENUS.remove(player.getUUID());
 
         if (choice < 0 || choice >= menu.options.size()) return;
+        if (Root.has(player, RootRestriction.ABILITIES)) return; // got rooted while the menu was open
         menu.options.get(choice).action().run(player, player.serverLevel());
     }
 }

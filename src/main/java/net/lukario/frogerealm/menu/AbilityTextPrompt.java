@@ -2,6 +2,8 @@ package net.lukario.frogerealm.menu;
 
 import net.lukario.frogerealm.network.COpenTextPromptPacket;
 import net.lukario.frogerealm.network.PacketHandler;
+import net.lukario.frogerealm.root.Root;
+import net.lukario.frogerealm.root.RootRestriction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
@@ -94,6 +96,7 @@ public class AbilityTextPrompt {
         if (text.length() > MAX_LENGTH) text = text.substring(0, MAX_LENGTH);
         String key = normalize(text);
         if (key.isEmpty()) return;
+        if (Root.has(player, RootRestriction.ABILITIES)) return; // got rooted while typing
 
         AbilityMenu.Action action = prompt.phrases.get(key);
         if (action != null) {

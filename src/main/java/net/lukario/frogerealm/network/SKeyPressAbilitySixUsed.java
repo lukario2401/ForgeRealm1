@@ -1,5 +1,9 @@
 package net.lukario.frogerealm.network;
 
+import net.lukario.frogerealm.root.Root;
+import net.lukario.frogerealm.root.RootRestriction;
+import net.minecraft.network.chat.Component;
+
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -50,6 +54,12 @@ public class SKeyPressAbilitySixUsed {
         Level level = player.level();
 
         if (!(level instanceof ServerLevel serverLevel)) return;
+
+        // rooted with ABILITIES = can't use any ability
+        if (Root.has(player, RootRestriction.ABILITIES)) {
+            player.displayClientMessage(Component.literal("You are bound by Order."), true);
+            return;
+        }
 
         shadowSlaveAspectAbilitySixUsed(player,level,serverLevel);
         abyssalMonarchAbilitySix(player,serverLevel);

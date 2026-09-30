@@ -4,6 +4,8 @@ import net.lukario.frogerealm.menu.AbilityMenu;
 import net.lukario.frogerealm.menu.AbilityTextPrompt;
 import net.lukario.frogerealm.particles.fx.ParticleFx;
 import net.lukario.frogerealm.particles.fx.ParticleShapes;
+import net.lukario.frogerealm.root.Root;
+import net.lukario.frogerealm.root.RootRestriction;
 import net.lukario.frogerealm.screen.ScreenAnchor;
 import net.lukario.frogerealm.screen.ScreenImages;
 import net.lukario.frogerealm.shadow_slave.soul_shards.SoulCore;
@@ -28,6 +30,8 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.Set;
 import java.util.List;
 
 import java.util.List;
@@ -131,6 +135,27 @@ public class HandOfOrder {
             .phrase("Judgement falls",      HandOfOrder::wordsJudgementFalls)
             .otherwise((player, sl, text) ->
                     player.sendSystemMessage(Component.literal("The words hold no power."), true));
+
+    // Ability 7 - Bind: roots the target you look at. The closer it is, the more it loses.
+    private static final int BIND_COST = 6000;
+    private static final double BIND_RANGE = 20.0;
+
+    /** Up to maxDistance blocks away -> rooted for ticks with these restrictions. Checked top to bottom. */
+    private record BindTier(double maxDistance, int ticks, Set<RootRestriction> restrictions) {}
+
+    private static final List<BindTier> BIND_TIERS = List.of(
+            new BindTier(4,  160, RootRestriction.EVERYTHING),        // 8s, can't do anything
+            new BindTier(8,  120, EnumSet.of(RootRestriction.MOVE, RootRestriction.JUMP, RootRestriction.TELEPORT,
+                                             RootRestriction.ATTACK, RootRestriction.ABILITIES)), // 6s
+            new BindTier(14, 100, RootRestriction.MOVEMENT),          // 5s, held in place
+            new BindTier(20,  80, EnumSet.of(RootRestriction.MOVE))   // 4s, can't walk
+    );
+
+    private static final ParticleFx BIND_CHAIN = ParticleFx.of("fx/glow")
+            .color(0xFFFFE08A).fadeOut()
+            .size(0.12f).endSize(0.06f)
+            .lifetime(16, 6)
+            .glow();
 
     private static final AbilityMenu JURISDICTION = AbilityMenu.create("hand_of_order_jurisdiction")
             .title("Jurisdiction Area")
@@ -542,6 +567,50 @@ public class HandOfOrder {
             bolt.setCause(player);
             sl.addFreshEntity(bolt);
         }
+    }
+
+    //Ability 7
+    public static void handOfOrderBind(Player player, Level level, ServerLevel sl, boolean bypassClassCheck) {
+        if (!canUseCharacteristic(player, bypassClassCheck)) return;
+        if (SoulCore.getSoulEssence(player) < BIND_COST) return;
+        if (SoulCore.getAscensionStage(player) < 6) return;
+
+        LivingEntity target = findTargetInFront(player, sl, BIND_RANGE);
+        if (target == null) {
+            player.displayClientMessage(Component.literal("No one stands before you."), true);
+            return; // nothing spent
+        }
+
+        double distance = player.distanceTo(target);
+        BindTier tier = null;
+        for (BindTier t : BIND_TIERS) {
+            if (distance <= t.maxDistance()) {
+                tier = t;
+                break;
+            }
+        }
+        if (tier == null) return;
+        if (!payEssence(player, BIND_COST)) return;
+
+        Root.apply(target, tier.ticks(), tier.restrictions());
+
+        // chain of light from caster to target + a ring around it
+        ParticleShapes.line(sl, BIND_CHAIN, player.getEyePosition().add(0, -0.3, 0), target.getBoundingBox().getCenter(), 4);
+        ParticleShapes.ring(sl, BIND_CHAIN.size(0.2f), target.position().add(0, 0.1, 0),
+                Math.max(0.8, target.getBbWidth()), 24, 0.0);
+        sl.playSound(null, target.blockPosition(), SoundEvents.CHAIN_PLACE, SoundSource.PLAYERS, 1.5f, 0.6f);
+
+        player.displayClientMessage(Component.literal("Bound: " + describe(tier.restrictions())), true);
+        if (target instanceof Player boundPlayer) {
+            boundPlayer.displayClientMessage(Component.literal("You are bound by Order."), true);
+        }
+    }
+
+    private static String describe(Set<RootRestriction> restrictions) {
+        if (restrictions.containsAll(RootRestriction.EVERYTHING)) return "everything";
+        List<String> names = new ArrayList<>();
+        for (RootRestriction r : restrictions) names.add(r.name().toLowerCase().replace('_', ' '));
+        return String.join(", ", names);
     }
 
     /** Every living thing within range except the caster. */
