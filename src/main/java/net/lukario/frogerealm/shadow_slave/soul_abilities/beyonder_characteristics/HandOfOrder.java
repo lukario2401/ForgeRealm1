@@ -1,5 +1,4 @@
 package net.lukario.frogerealm.shadow_slave.soul_abilities.beyonder_characteristics;
-
 import net.lukario.frogerealm.ForgeRealm;
 import net.lukario.frogerealm.menu.AbilityMenu;
 import net.lukario.frogerealm.particles.fx.ParticleFx;
@@ -15,7 +14,6 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.ClipContext;
@@ -29,6 +27,7 @@ import net.minecraftforge.fml.common.Mod;
 import java.util.ArrayList;
 import java.util.List;
 
+import java.util.List;
 public class HandOfOrder {
 
     // Ability 3 - Edict: normal = close wide cone, sneaking = long narrow cone
@@ -75,16 +74,17 @@ public class HandOfOrder {
             .size(0.14f).endSize(0.04f)
             .lifetime(14, 2).friction(1f)
             .glow().spin(-20f).randomRotation();
+
     private static final ParticleFx LANCE_CORE = GOLD_GLOW.size(0.22f).endSize(0.02f).lifetime(8, 4);
     private static final ParticleFx HIT_SHARD = GOLD_SHARD.friction(0.8f).gravity(0.6f).lifetime(12, 6);
 
     // Ability 2 - Decree (menu with 3 choices)
     private static final int DECREE_COST = 1250;
-    private static final float DECREE_EXPLOSION_POWER = 4.0f;   // TNT is 4
+    private static final float DECREE_EXPLOSION_POWER = 12.0f;   // TNT is 4
     private static final int DECREE_SPEED_TICKS = 200;          // 10 seconds
-    private static final int DECREE_SPEED_LEVEL = 2;            // 0 = Speed I, 2 = Speed III
+    private static final int DECREE_SPEED_LEVEL = 5;            // 0 = Speed I, 2 = Speed III
     private static final float DECREE_JUDGEMENT_CHANCE = 0.30f;
-    private static final float DECREE_JUDGEMENT_DAMAGE = 50f;
+    private static final float DECREE_JUDGEMENT_DAMAGE = 47f;
     private static final double DECREE_JUDGEMENT_RANGE = 16.0;
 
     // Icons are in assets/forgerealmmod/textures/gui/ability_menus/hand_of_order/
@@ -95,6 +95,17 @@ public class HandOfOrder {
             .option("ability_menus/hand_of_order/speed",     "Haste",     -46,  30, HandOfOrder::decreeSpeed)
             .option("ability_menus/hand_of_order/judgement", "Judgement",  46,  30, HandOfOrder::decreeJudgement);
 
+
+    private static final AbilityMenu JURISDICTION = AbilityMenu.create("hand_of_order_jurisdiction")
+            .title("Jurisdiction Area")
+            .option("ability_menus/hand_of_order/judgement", "16 blocks",
+                    20, -100, (player, sl) -> setJurisdiction(player, sl, 16))
+            .option("ability_menus/hand_of_order/judgement", "12 blocks",
+                    -30, -50, (player, sl) -> setJurisdiction(player, sl, 12))
+            .option("ability_menus/hand_of_order/judgement", "8 blocks",
+                    40, 0, (player, sl) -> setJurisdiction(player, sl, 8))
+            .option("ability_menus/hand_of_order/judgement", "4 blocks",
+                    -50, 50, (player, sl) -> setJurisdiction(player, sl, 4));
 
     @Mod.EventBusSubscriber(modid = ForgeRealm.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
     public static class HandOfOrderEvents{
@@ -120,11 +131,7 @@ public class HandOfOrder {
                 player.getPersistentData().putInt("Hand_Of_order_defense_boost", duration - 1);
             }
         }
-
-
-
         if (!SoulCore.getAspect(player).equals("Hand Of Order")) return;
-
     }
 }
     //Ability 1
@@ -144,7 +151,6 @@ public class HandOfOrder {
             ScreenImages.hide(player, "my_pic_3223123123123");
             ScreenImages.show(player, "my_pic_3223123123123", "amber_material",
                     ScreenAnchor.TOP_LEFT, x, 10, 32, 70);
-
 
             player.getPersistentData().putInt("Hand_Of_order_defense_boost",  60);
         }else{
@@ -179,6 +185,11 @@ public class HandOfOrder {
                 DECREE_EXPLOSION_POWER, Level.ExplosionInteraction.NONE);
     }
 
+    private static void setJurisdiction(ServerPlayer player, ServerLevel sl, int range) {
+        if (!payEssence(player, DECREE_COST)) return;
+        player.sendSystemMessage(Component.literal("Range: "+range));
+    }
+
     // Bottom left: speed boost
     private static void decreeSpeed(ServerPlayer player, ServerLevel sl) {
         if (!payEssence(player, DECREE_COST)) return;
@@ -189,7 +200,10 @@ public class HandOfOrder {
 
     // Bottom right: 30% chance of a huge hit on whoever is in front
     private static void decreeJudgement(ServerPlayer player, ServerLevel sl) {
-        LivingEntity target = findTargetInFront(player, sl, DECREE_JUDGEMENT_RANGE);
+
+
+        Level level = (Level) sl;
+        LivingEntity target = getTarget(player,sl,level,32);
         if (target == null) {
             player.displayClientMessage(Component.literal("No one stands before you."), true);
             return; // no essence spent
@@ -294,6 +308,24 @@ public class HandOfOrder {
         }
     }
 
+
+    //Ability 4
+    public static void handOfOrderAbility5(Player player, Level level, ServerLevel sl, boolean bypassClassCheck) {
+        if (!canUseCharacteristic(player, bypassClassCheck)) return;
+        if (SoulCore.getSoulEssence(player) < 6000) return;
+        if (SoulCore.getAscensionStage(player) < 4) return;
+
+        SoulCore.setSoulEssence(player, SoulCore.getSoulEssence(player) - 12000);
+
+        if (!player.isShiftKeyDown()) {
+
+            JURISDICTION.open(player);
+
+        } else {
+            player.sendSystemMessage(Component.literal("Wrong Button Buddy"));
+        }
+    }
+
     /**
      * Living entities inside a cone in front of the player that the player can see.
      * angleDegrees is the full opening angle. Big mobs count if any part of them is roughly inside.
@@ -334,6 +366,28 @@ public class HandOfOrder {
             result.add(entity);
         }
         return result;
+    }
+
+    private static LivingEntity getTarget(Player player, ServerLevel sl, Level level, float distance){
+        Vec3 start = player.getEyePosition();
+        Vec3 direction = player.getLookAngle().normalize();
+        Vec3 current = start;
+        LivingEntity livingEntity = null;
+
+        for (float i = 0; i < distance; i+=0.5f){
+            current = current.add(direction);
+            sl.sendParticles(ParticleTypes.END_ROD,
+                    current.x, current.y, current.z, 1, 0, 0, 0, 0);
+
+            List<LivingEntity> hits = level.getEntitiesOfClass(
+                    LivingEntity.class, new AABB(current, current).inflate(0.5),
+                    e -> e != player && e.isAlive());
+            if(!hits.isEmpty()){
+                livingEntity = hits.get(0);
+                return livingEntity;
+            }
+        }
+        return livingEntity;
     }
 
     private static boolean payEssence(Player player, float cost) {
