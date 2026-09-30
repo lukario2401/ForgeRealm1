@@ -130,7 +130,7 @@ public class HandOfOrder {
             .phrase("Order restored",       HandOfOrder::wordsOrderRestored)
             .phrase("Judgement falls",      HandOfOrder::wordsJudgementFalls)
             .otherwise((player, sl, text) ->
-                    player.displayClientMessage(Component.literal("The words hold no power."), true));
+                    player.sendSystemMessage(Component.literal("The words hold no power."), true));
 
     private static final AbilityMenu JURISDICTION = AbilityMenu.create("hand_of_order_jurisdiction")
             .title("Jurisdiction Area")
@@ -223,7 +223,44 @@ public class HandOfOrder {
 
     private static void setJurisdiction(ServerPlayer player, ServerLevel sl, int range) {
         if (!payEssence(player, DECREE_COST)) return;
-        player.sendSystemMessage(Component.literal("Range: "+range));
+
+        player.sendSystemMessage(Component.literal("Jurisdiction: " + range + " blocks"));
+        sl.playSound(null, player.blockPosition(), SoundEvents.ANVIL_LAND, SoundSource.PLAYERS, 1.5f, 0.5f);
+
+        AABB area = player.getBoundingBox().inflate(range);
+
+        List<LivingEntity> hits = sl.getEntitiesOfClass(
+                LivingEntity.class,
+                area,
+                entity -> entity != player
+                        && entity.isAlive()
+                        && entity.distanceTo(player) <= range
+        );
+
+        int durationMult = (16-range)/4;
+        if (durationMult==0){
+            durationMult=1;
+        }
+
+        if (range<=16){
+            for (LivingEntity livingEntity : hits){
+                livingEntity.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 60*durationMult, 0));
+            }
+        }
+        if (range<=12){
+            for (LivingEntity livingEntity : hits){
+                livingEntity.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 60*durationMult, 0));
+            }
+        }
+        if (range<=8){
+            player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST, 60*durationMult, 2));
+        }
+        if (range<=4){
+            for (LivingEntity livingEntity : hits){
+                livingEntity.addEffect(new MobEffectInstance(MobEffects.DIG_SLOWDOWN, 60*durationMult, 2));
+            }
+        }
+
     }
 
     // Bottom left: speed boost
@@ -241,7 +278,7 @@ public class HandOfOrder {
         Level level = (Level) sl;
         LivingEntity target = getTarget(player,sl,level,32);
         if (target == null) {
-            player.displayClientMessage(Component.literal("No one stands before you."), true);
+            player.sendSystemMessage(Component.literal("No one stands before you."), true);
             return; // no essence spent
         }
         if (!payEssence(player, DECREE_COST)) return;
@@ -251,11 +288,11 @@ public class HandOfOrder {
             target.hurt(player.damageSources().playerAttack(player), DECREE_JUDGEMENT_DAMAGE);
             sl.sendParticles(ParticleTypes.ENCHANTED_HIT, target.getX(), target.getY(0.5), target.getZ(), 30, 0.4, 0.6, 0.4, 0.3);
             sl.playSound(null, target.blockPosition(), SoundEvents.ANVIL_LAND, SoundSource.PLAYERS, 1f, 0.6f);
-            player.displayClientMessage(Component.literal("Judgement!"), true);
+            player.sendSystemMessage(Component.literal("Judgement!"), true);
         } else {
             sl.sendParticles(ParticleTypes.SMOKE, target.getX(), target.getY(0.5), target.getZ(), 15, 0.3, 0.5, 0.3, 0.02);
             sl.playSound(null, target.blockPosition(), SoundEvents.FIRE_EXTINGUISH, SoundSource.PLAYERS, 0.8f, 1.2f);
-            player.displayClientMessage(Component.literal("The judgement failed."), true);
+            player.sendSystemMessage(Component.literal("The judgement failed."), true);
         }
     }
 
@@ -330,7 +367,7 @@ public class HandOfOrder {
     //Ability 3
     public static void handOfOrderAbility4(Player player, Level level, ServerLevel sl, boolean bypassClassCheck) {
         if (!canUseCharacteristic(player, bypassClassCheck)) return;
-        if (SoulCore.getSoulEssence(player) < 6000) return;
+        if (SoulCore.getSoulEssence(player) < 12000) return;
         if (SoulCore.getAscensionStage(player) < 3) return;
 
         SoulCore.setSoulEssence(player, SoulCore.getSoulEssence(player) - 12000);
@@ -348,7 +385,7 @@ public class HandOfOrder {
     //Ability 4
     public static void handOfOrderAbility5(Player player, Level level, ServerLevel sl, boolean bypassClassCheck) {
         if (!canUseCharacteristic(player, bypassClassCheck)) return;
-        if (SoulCore.getSoulEssence(player) < 6000) return;
+        if (SoulCore.getSoulEssence(player) < 12000) return;
         if (SoulCore.getAscensionStage(player) < 4) return;
 
         SoulCore.setSoulEssence(player, SoulCore.getSoulEssence(player) - 12000);
@@ -491,7 +528,7 @@ public class HandOfOrder {
     private static void wordsJudgementFalls(ServerPlayer player, ServerLevel sl) {
         List<LivingEntity> targets = livingAround(player, sl, JUDGEMENT_FALLS_RANGE);
         if (targets.isEmpty()) {
-            player.displayClientMessage(Component.literal("There is no one to judge."), true);
+            player.sendSystemMessage(Component.literal("There is no one to judge."), true);
             return; // nothing spent
         }
         if (!payEssence(player, WORDS_COST)) return;
@@ -519,7 +556,7 @@ public class HandOfOrder {
 
     private static boolean payEssence(Player player, float cost) {
         if (SoulCore.getSoulEssence(player) < cost) {
-            player.displayClientMessage(Component.literal("Not enough soul essence."), true);
+            player.sendSystemMessage(Component.literal("Not enough soul essence."));
             return false;
         }
         SoulCore.setSoulEssence(player, SoulCore.getSoulEssence(player) - cost);
