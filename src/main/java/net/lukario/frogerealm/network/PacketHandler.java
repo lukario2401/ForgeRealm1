@@ -98,6 +98,18 @@ public class PacketHandler {
                 .decoder(SAbilityMenuChoicePacket::new)
                 .consumerMainThread(SAbilityMenuChoicePacket::handle)
                 .add();
+
+        INSTANCE.messageBuilder(COpenTextPromptPacket.class, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(COpenTextPromptPacket::encode)
+                .decoder(COpenTextPromptPacket::new)
+                .consumerMainThread(COpenTextPromptPacket::handle)
+                .add();
+
+        INSTANCE.messageBuilder(STextPromptAnswerPacket.class, NetworkDirection.PLAY_TO_SERVER)
+                .encoder(STextPromptAnswerPacket::encode)
+                .decoder(STextPromptAnswerPacket::new)
+                .consumerMainThread(STextPromptAnswerPacket::handle)
+                .add();
     }
 
     public static void sendToServer(Object msg) {

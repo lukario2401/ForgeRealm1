@@ -1,6 +1,7 @@
 package net.lukario.frogerealm.shadow_slave.soul_abilities.beyonder_characteristics;
 import net.lukario.frogerealm.ForgeRealm;
 import net.lukario.frogerealm.menu.AbilityMenu;
+import net.lukario.frogerealm.menu.AbilityTextPrompt;
 import net.lukario.frogerealm.particles.fx.ParticleFx;
 import net.lukario.frogerealm.particles.fx.ParticleShapes;
 import net.lukario.frogerealm.screen.ScreenAnchor;
@@ -14,7 +15,9 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.LightningBolt;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
@@ -95,6 +98,39 @@ public class HandOfOrder {
             .option("ability_menus/hand_of_order/speed",     "Haste",     -46,  30, HandOfOrder::decreeSpeed)
             .option("ability_menus/hand_of_order/judgement", "Judgement",  46,  30, HandOfOrder::decreeJudgement);
 
+
+    // Ability 6 - Words of Order: type a phrase, the phrase decides what happens
+    private static final int WORDS_COST = 6000;              // only paid when a phrase works
+    private static final float GOD_EXPLOSION_POWER = 10f;    // TNT is 4 - this can easily kill the caster
+    private static final double BETHEL_RANGE = 24.0;
+    private static final int BETHEL_SLOWNESS_TICKS = 400;    // 20 seconds
+    private static final int BETHEL_SLOWNESS_LEVEL = 120;    // same number as /effect give ... slowness 20 120
+    private static final double KNEEL_RANGE = 16.0;
+    private static final int KNEEL_TICKS = 160;              // 8 seconds
+    private static final double JUDGEMENT_FALLS_RANGE = 24.0;
+    private static final int JUDGEMENT_FALLS_TARGETS = 5;
+
+    private static final ParticleFx ORDER_WAVE = ParticleFx.of("fx/glow")
+            .color(0xFFFFE08A).fadeOut()
+            .size(0.5f).endSize(0.2f)
+            .lifetime(20).friction(1f)
+            .glow();
+    private static final ParticleFx SEAL_MOTE = ParticleFx.of("fx/spark")
+            .color(0xFF9FB8FF).fadeOut()
+            .size(0.15f).endSize(0.05f)
+            .lifetime(30, 10).gravity(-0.02f).friction(0.95f)
+            .glow().spin(10f).randomRotation();
+
+    private static final AbilityTextPrompt WORDS = AbilityTextPrompt.create("hand_of_order_words")
+            .title("Words of Order")
+            .hint("Speak...")
+            .phrase("The sentence was God", HandOfOrder::wordsTheSentenceWasGod)
+            .phrase("Bethel Abraham",       HandOfOrder::wordsBethelAbraham)
+            .phrase("Kneel",                HandOfOrder::wordsKneel)
+            .phrase("Order restored",       HandOfOrder::wordsOrderRestored)
+            .phrase("Judgement falls",      HandOfOrder::wordsJudgementFalls)
+            .otherwise((player, sl, text) ->
+                    player.displayClientMessage(Component.literal("The words hold no power."), true));
 
     private static final AbilityMenu JURISDICTION = AbilityMenu.create("hand_of_order_jurisdiction")
             .title("Jurisdiction Area")
@@ -388,6 +424,97 @@ public class HandOfOrder {
             }
         }
         return livingEntity;
+    }
+
+    //Ability 6
+    public static void handOfOrderWords(Player player, Level level, ServerLevel sl, boolean bypassClassCheck) {
+        if (!canUseCharacteristic(player, bypassClassCheck)) return;
+        if (SoulCore.getSoulEssence(player) < WORDS_COST) return;
+        if (SoulCore.getAscensionStage(player) < 5) return;
+
+        WORDS.open(player); // essence is paid inside the phrase that works
+    }
+
+    // "The sentence was God" - huge explosion, no block damage, the caster is hit too
+    private static void wordsTheSentenceWasGod(ServerPlayer player, ServerLevel sl) {
+        if (!payEssence(player, WORDS_COST)) return;
+        Vec3 center = player.position().add(0, 0.5, 0);
+        ParticleShapes.ring(sl, ORDER_WAVE, center, 1.0, 120, 0.9);
+        ParticleShapes.burst(sl, GOLD_SHARD, center, 80, 0.4, 1.2);
+        // null source = nobody is excluded, so the caster takes the blast as well
+        sl.explode(null, center.x, center.y, center.z, GOD_EXPLOSION_POWER, Level.ExplosionInteraction.NONE);
+    }
+
+    // "Bethel Abraham" - everything around except the caster: Slowness 120 for 20 seconds
+    private static void wordsBethelAbraham(ServerPlayer player, ServerLevel sl) {
+        if (!payEssence(player, WORDS_COST)) return;
+        for (LivingEntity target : livingAround(player, sl, BETHEL_RANGE)) {
+            target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, BETHEL_SLOWNESS_TICKS, BETHEL_SLOWNESS_LEVEL));
+            ParticleShapes.ring(sl, SEAL_MOTE, target.position().add(0, 0.2, 0), 0.8, 12, 0.0);
+        }
+        // wave that reaches the edge of the range in 20 ticks
+        ParticleShapes.ring(sl, ORDER_WAVE.color(0xFF9FB8FF).fadeOut(), player.position().add(0, 0.3, 0),
+                1.0, 160, BETHEL_RANGE / ORDER_WAVE.lifetimeTicks());
+        sl.playSound(null, player.blockPosition(), SoundEvents.BELL_BLOCK, SoundSource.PLAYERS, 2f, 0.5f);
+    }
+
+    // "Kneel" - everything around is slammed down and weakened
+    private static void wordsKneel(ServerPlayer player, ServerLevel sl) {
+        if (!payEssence(player, WORDS_COST)) return;
+        for (LivingEntity target : livingAround(player, sl, KNEEL_RANGE)) {
+            target.setDeltaMovement(target.getDeltaMovement().x * 0.2, -1.5, target.getDeltaMovement().z * 0.2);
+            target.hurtMarked = true; // makes players' clients accept the push
+            target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, KNEEL_TICKS, 3));
+            target.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, KNEEL_TICKS, 2));
+            ParticleShapes.cone(sl, HIT_SHARD, target.position().add(0, target.getBbHeight() + 0.5, 0),
+                    new Vec3(0, -1, 0), 40, 10, 0.2, 0.4);
+        }
+        sl.playSound(null, player.blockPosition(), SoundEvents.ANVIL_LAND, SoundSource.PLAYERS, 1.5f, 0.5f);
+    }
+
+    // "Order restored" - caster fully healed and cleansed
+    private static void wordsOrderRestored(ServerPlayer player, ServerLevel sl) {
+        if (!payEssence(player, WORDS_COST)) return;
+        player.setHealth(player.getMaxHealth());
+        player.clearFire();
+        List<MobEffectInstance> harmful = new ArrayList<>();
+        for (MobEffectInstance effect : player.getActiveEffects()) {
+            if (!effect.getEffect().value().isBeneficial()) harmful.add(effect);
+        }
+        for (MobEffectInstance effect : harmful) player.removeEffect(effect.getEffect());
+
+        ParticleShapes.sphere(sl, GOLD_GLOW.lifetime(20, 10).gravity(-0.05f), player.position().add(0, 1, 0), 1.2, 40);
+        sl.playSound(null, player.blockPosition(), SoundEvents.BEACON_POWER_SELECT, SoundSource.PLAYERS, 1f, 1.2f);
+    }
+
+    // "Judgement falls" - lightning on the nearest few targets
+    private static void wordsJudgementFalls(ServerPlayer player, ServerLevel sl) {
+        List<LivingEntity> targets = livingAround(player, sl, JUDGEMENT_FALLS_RANGE);
+        if (targets.isEmpty()) {
+            player.displayClientMessage(Component.literal("There is no one to judge."), true);
+            return; // nothing spent
+        }
+        if (!payEssence(player, WORDS_COST)) return;
+
+        targets.sort((a, b) -> Double.compare(a.distanceToSqr(player), b.distanceToSqr(player)));
+        for (int i = 0; i < Math.min(JUDGEMENT_FALLS_TARGETS, targets.size()); i++) {
+            LivingEntity target = targets.get(i);
+            LightningBolt bolt = EntityType.LIGHTNING_BOLT.create(sl);
+            if (bolt == null) continue;
+            bolt.moveTo(target.getX(), target.getY(), target.getZ());
+            bolt.setCause(player);
+            sl.addFreshEntity(bolt);
+        }
+    }
+
+    /** Every living thing within range except the caster. */
+    private static List<LivingEntity> livingAround(Player player, ServerLevel sl, double range) {
+        List<LivingEntity> result = new ArrayList<>();
+        for (LivingEntity entity : sl.getEntitiesOfClass(LivingEntity.class, player.getBoundingBox().inflate(range),
+                e -> e != player && e.isAlive())) {
+            if (entity.distanceToSqr(player) <= range * range) result.add(entity);
+        }
+        return result;
     }
 
     private static boolean payEssence(Player player, float cost) {
