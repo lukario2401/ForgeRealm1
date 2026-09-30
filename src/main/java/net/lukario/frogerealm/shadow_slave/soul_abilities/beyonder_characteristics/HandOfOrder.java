@@ -2,6 +2,7 @@ package net.lukario.frogerealm.shadow_slave.soul_abilities.beyonder_characterist
 import net.lukario.frogerealm.ForgeRealm;
 import net.lukario.frogerealm.menu.AbilityMenu;
 import net.lukario.frogerealm.menu.AbilityTextPrompt;
+import net.lukario.frogerealm.particles.CustomParticles;
 import net.lukario.frogerealm.particles.fx.ParticleFx;
 import net.lukario.frogerealm.particles.fx.ParticleShapes;
 import net.lukario.frogerealm.root.Root;
@@ -271,6 +272,7 @@ public class HandOfOrder {
             for (LivingEntity livingEntity : hits){
                 livingEntity.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 60*durationMult, 0));
             }
+
         }
         if (range<=12){
             for (LivingEntity livingEntity : hits){
@@ -285,6 +287,8 @@ public class HandOfOrder {
                 livingEntity.addEffect(new MobEffectInstance(MobEffects.DIG_SLOWDOWN, 60*durationMult, 2));
             }
         }
+
+        CustomParticles.particleCircle(sl,player.position(), range);
 
     }
 
