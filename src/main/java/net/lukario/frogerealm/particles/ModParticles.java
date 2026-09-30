@@ -2,6 +2,7 @@ package net.lukario.frogerealm.particles;
 
 import net.lukario.frogerealm.ForgeRealm;
 import net.lukario.frogerealm.particles.fx.ParticleFxType;
+import net.lukario.frogerealm.particles.fx.SlashFxType;
 import net.minecraft.core.particles.ParticleType;
 import net.minecraft.core.particles.SimpleParticleType;
 import net.minecraftforge.registries.DeferredRegister;
@@ -20,4 +21,8 @@ public class ModParticles {
     // One type for every ParticleFx (see particles/fx/ParticleFx) — new particles don't need registering
     public static final RegistryObject<ParticleFxType> FX =
             PARTICLES.register("fx", ParticleFxType::new);
+
+    // One type for every SlashFx (see particles/fx/SlashFx) — slash trails, also no registering needed
+    public static final RegistryObject<SlashFxType> SLASH =
+            PARTICLES.register("slash", SlashFxType::new);
 }

@@ -3,6 +3,7 @@ package net.lukario.frogerealm.particles.fx;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 
@@ -15,6 +16,7 @@ import net.minecraft.world.phys.Vec3;
  *   ParticleShapes.line(sl, GOLD_SPARK, from, to, 4);
  *   ParticleShapes.ring(sl, GOLD_SPARK, center, 3.0, 40, 0.0);
  *   ParticleShapes.sphere(sl, GOLD_SPARK, center, 2.0, 80);
+ *   ParticleShapes.slash(sl, SWING, target.getBoundingBox().getCenter(), player);   // SlashFx trails
  *
  * Speeds are in blocks per tick. With friction 1 and no gravity a particle travels
  * speed * lifetime blocks, so for a 10 block cone with a 20 tick particle use speed 0.5.
@@ -90,6 +92,19 @@ public final class ParticleShapes {
             Vec3 dir = randomDirectionInCone(random, new Vec3(0, 1, 0), 360);
             spawn(level, particle, center.add(dir.scale(radius)));
         }
+    }
+
+    /**
+     * Plays a SlashFx at center. yaw/pitch/roll (degrees) are added to the slash's own rotation,
+     * so a preset like .rotation(0, 0, -40) keeps its tilt whichever way it's played.
+     */
+    public static void slash(Level level, SlashFx slash, Vec3 center, float yaw, float pitch, float roll) {
+        spawn(level, slash.rotated(yaw, pitch, roll), center);
+    }
+
+    /** Plays a SlashFx at center, turned the way the entity is facing (left/right only). */
+    public static void slash(Level level, SlashFx slash, Vec3 center, Entity facing) {
+        slash(level, slash, center, facing.getYRot(), 0f, 0f);
     }
 
     /** Random unit vector at most angleDegrees/2 away from forward (uniform over the cone). */

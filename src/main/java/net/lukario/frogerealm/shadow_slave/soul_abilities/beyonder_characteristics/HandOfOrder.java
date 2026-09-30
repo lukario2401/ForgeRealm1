@@ -1,10 +1,12 @@
 package net.lukario.frogerealm.shadow_slave.soul_abilities.beyonder_characteristics;
 import net.lukario.frogerealm.ForgeRealm;
+import net.lukario.frogerealm.combat.MeleeCombo;
 import net.lukario.frogerealm.menu.AbilityMenu;
 import net.lukario.frogerealm.menu.AbilityTextPrompt;
 import net.lukario.frogerealm.particles.CustomParticles;
 import net.lukario.frogerealm.particles.fx.ParticleFx;
 import net.lukario.frogerealm.particles.fx.ParticleShapes;
+import net.lukario.frogerealm.particles.fx.SlashFx;
 import net.lukario.frogerealm.root.Root;
 import net.lukario.frogerealm.root.RootRestriction;
 import net.lukario.frogerealm.screen.ScreenAnchor;
@@ -157,6 +159,48 @@ public class HandOfOrder {
             .size(0.12f).endSize(0.06f)
             .lifetime(16, 6)
             .glow();
+
+    // Melee combo (hitting mobs as Hand of Order): 1 = crescent, 2 = rising claws, 3 = random finisher
+    // Registered in combat/MeleeCombos. Slash textures are in textures/particle/slash/.
+    private static final int COMBO_GLOW = 0xE070F0E0;   // mint/cyan glow (alpha = brightness)
+    private static final int COMBO_CORE = 0xFFFFFFFF;   // white center line
+
+    private static final SlashFx COMBO_CRESCENT = SlashFx.arc("slash/streaks")
+            .color(COMBO_GLOW).core(COMBO_CORE)
+            .radius(1.9f).arc(170f).width(0.95f)
+            .layers(3).spread(0.22f)
+            .lifetime(9).sweep(3);
+    private static final SlashFx COMBO_CLAW = SlashFx.arc("slash/streaks")
+            .color(COMBO_GLOW).core(COMBO_CORE)
+            .radius(1.6f).arc(130f).width(0.7f).taper(SlashFx.Taper.COMET)
+            .layers(4).spread(0.3f)
+            .lifetime(10).sweep(3)
+            .rotation(0f, 0f, 40f);                    // rising diagonal (left-low to right-high)
+    private static final SlashFx COMBO_MOON = SlashFx.arc("slash/streaks")
+            .color(COMBO_GLOW).core(COMBO_CORE)
+            .radius(1.25f).arc(320f).width(0.6f)
+            .layers(2).spread(0.16f)
+            .lifetime(12).sweep(4)
+            .rotation(0f, -80f, 0f);                   // stood up, facing the attacker
+    private static final SlashFx COMBO_VORTEX = SlashFx.arc("slash/streaks")
+            .color(COMBO_GLOW).core(COMBO_CORE)
+            .radius(0.5f).endRadius(1.5f).arc(560f).width(0.8f)   // spiral, 1.5 turns
+            .layers(3).spread(0.3f)
+            .lifetime(15).sweep(7);
+    private static final SlashFx COMBO_CUT = SlashFx.line("slash/smooth")
+            .color(0xE0B8FFF4).core(COMBO_CORE)
+            .radius(2.1f).width(0.14f)
+            .lifetime(7).sweep(2);
+    private static final ParticleFx COMBO_SPARKLE = ParticleFx.of("fx/spark")
+            .color(0xFFE8FFFA).fadeOut()
+            .size(0.1f).endSize(0.02f)
+            .lifetime(12, 8).friction(0.85f)
+            .glow().spin(20f).randomRotation();
+
+    public static final MeleeCombo MELEE_COMBO = MeleeCombo.forAspect("Hand Of Order")
+            .step(HandOfOrder::comboCrescent)
+            .step(HandOfOrder::comboRisingClaws)
+            .randomStep(HandOfOrder::comboMoon, HandOfOrder::comboVortex, HandOfOrder::comboThousandCuts);
 
     private static final AbilityMenu JURISDICTION = AbilityMenu.create("hand_of_order_jurisdiction")
             .title("Jurisdiction Area")
@@ -625,6 +669,68 @@ public class HandOfOrder {
             if (entity.distanceToSqr(player) <= range * range) result.add(entity);
         }
         return result;
+    }
+
+    // =========================
+    // Melee combo hits
+    // =========================
+
+    /** Horizontal direction the player faces. */
+    private static Vec3 flatLook(Player player) {
+        return Vec3.directionFromRotation(0f, player.getYRot());
+    }
+
+    // Hit 1: wide crescent swinging around the target (left or right at random)
+    private static void comboCrescent(ServerPlayer player, LivingEntity target, ServerLevel sl) {
+        Vec3 hit = target.getBoundingBox().getCenter();
+        Vec3 center = hit.subtract(flatLook(player).scale(1.1)); // arc's middle passes just behind the target
+        SlashFx slash = player.getRandom().nextBoolean() ? COMBO_CRESCENT : COMBO_CRESCENT.arc(-170f);
+        float tilt = (player.getRandom().nextFloat() - 0.5f) * 24f;
+        ParticleShapes.slash(sl, slash, center, player.getYRot(), 0f, tilt);
+        sl.playSound(null, target.blockPosition(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 0.8f, 1.2f);
+    }
+
+    // Hit 2: several claw streaks rising diagonally
+    private static void comboRisingClaws(ServerPlayer player, LivingEntity target, ServerLevel sl) {
+        Vec3 hit = target.getBoundingBox().getCenter();
+        Vec3 center = hit.subtract(flatLook(player).scale(0.8));
+        float tilt = (player.getRandom().nextFloat() - 0.5f) * 16f;
+        ParticleShapes.slash(sl, COMBO_CLAW, center, player.getYRot(), 0f, tilt);
+        sl.playSound(null, target.blockPosition(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 0.8f, 1.4f);
+    }
+
+    // Hit 3 (a): a crescent moon standing up around the target
+    private static void comboMoon(ServerPlayer player, LivingEntity target, ServerLevel sl) {
+        Vec3 hit = target.getBoundingBox().getCenter();
+        ParticleShapes.slash(sl, COMBO_MOON, hit.add(0, 0.15, 0), player.getYRot(), 0f, 0f);
+        ParticleShapes.burst(sl, COMBO_SPARKLE, hit, 12, 0.05, 0.2);
+        sl.playSound(null, target.blockPosition(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 0.9f, 0.9f);
+        sl.playSound(null, target.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1f, 1.5f);
+    }
+
+    // Hit 3 (b): two spirals whirling around the target
+    private static void comboVortex(ServerPlayer player, LivingEntity target, ServerLevel sl) {
+        Vec3 base = target.position().add(0, 0.7, 0).add(flatLook(player).scale(0.3)); // a bit away from the attacker
+        ParticleShapes.slash(sl, COMBO_VORTEX, base, player.getYRot(), 0f, 6f);
+        ParticleShapes.slash(sl, COMBO_VORTEX.layers(2).delay(3), base.add(0, 0.5, 0), player.getYRot() + 180f, 0f, -8f);
+        ParticleShapes.burst(sl, COMBO_SPARKLE, target.getBoundingBox().getCenter(), 20, 0.05, 0.3);
+        sl.playSound(null, target.blockPosition(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 1f, 0.6f);
+    }
+
+    // Hit 3 (c): a flurry of thin straight cuts through the target
+    private static void comboThousandCuts(ServerPlayer player, LivingEntity target, ServerLevel sl) {
+        Vec3 hit = target.getBoundingBox().getCenter();
+        var random = player.getRandom();
+        for (int i = 0; i < 7; i++) {
+            Vec3 center = hit.add((random.nextDouble() - 0.5) * 0.6, (random.nextDouble() - 0.5) * 0.6,
+                    (random.nextDouble() - 0.5) * 0.6);
+            float yaw = player.getYRot() + (random.nextFloat() - 0.5f) * 80f;
+            float pitch = (random.nextFloat() - 0.5f) * 100f;
+            float roll = random.nextFloat() * 180f;
+            ParticleShapes.slash(sl, COMBO_CUT.delay(i), center, yaw, pitch, roll); // one new cut every tick
+        }
+        sl.playSound(null, target.blockPosition(), SoundEvents.PLAYER_ATTACK_CRIT, SoundSource.PLAYERS, 1f, 1.3f);
+        sl.playSound(null, target.blockPosition(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 0.6f, 1.8f);
     }
 
     private static boolean payEssence(Player player, float cost) {

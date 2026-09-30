@@ -205,7 +205,7 @@ public final class ParticleFx implements ParticleOptions {
     // ---------- saving / networking (you don't need to touch this) ----------
 
     /** Colors in /particle commands are hex strings: "FFD86B" or "80FFD86B" (with alpha). */
-    private static final Codec<Integer> COLOR_CODEC = Codec.STRING.comapFlatMap(
+    static final Codec<Integer> COLOR_CODEC = Codec.STRING.comapFlatMap(
             text -> {
                 String hex = text.startsWith("#") ? text.substring(1) : text;
                 try {
