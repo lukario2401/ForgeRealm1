@@ -48,7 +48,7 @@ import java.util.List;
 
 import java.util.List;
 public class HandOfOrder {
-
+//test
     private static final ModelFx HAND_OF_ORDER_SWORD = ModelFx.of("hand_of_order/sword")      // models/model_fx/rune.json
             .scale(2f)                  // 1 = Blockbench size (16 px = 1 block)
             .pivot(8, 8, 8)               // pixels, Blockbench coordinates
