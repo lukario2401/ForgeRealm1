@@ -20,6 +20,8 @@ import net.minecraft.world.phys.Vec3;
  *   ParticleShapes.slash(sl, SWING, target.getBoundingBox().getCenter(), player);   // SlashFx trails
  *   ParticleShapes.slashBetween(sl, CUT, from, to);                                 // straight cut from A to B
  *   ParticleShapes.alongSlash(sl, SHARD, SWING, center, yaw, 0, 0, 6, 20, 0.08, 0.03); // shards breaking off a slash
+ *   ParticleShapes.model(sl, HAMMER, grip, player.getYRot(), 0, 0);                 // 3D model effect (ModelFx)
+ *   ParticleShapes.modelOn(sl, CRYSTALS, mob, Vec3.ZERO, 0, 0, 0);                  // 3D model stuck to an entity
  *
  * For effects in stages (this now, that 5 ticks later) use combat.Later.run(serverLevel, 5, () -> ...).
  *
@@ -193,6 +195,36 @@ public final class ParticleShapes {
             Vec3 kick = randomDirectionInCone(random, out, 360).scale(random.nextDouble() * randomSpeed);
             spawn(level, particle, position, out.scale(outwardSpeed * (0.5 + random.nextDouble())).add(kick));
         }
+    }
+
+    // =========================
+    // 3D model effects (ModelFx)
+    // =========================
+
+    /**
+     * Plays a ModelFx with its pivot at position. yaw/pitch/roll (degrees) are added to the effect's own
+     * rotation; yaw = the direction its front faces, like an entity's yaw.
+     */
+    public static void model(Level level, ModelFx model, Vec3 position, float yaw, float pitch, float roll) {
+        spawn(level, model.rotated(yaw, pitch, roll), position);
+    }
+
+    /** Plays a ModelFx at position, facing the way the entity faces (left/right only). */
+    public static void model(Level level, ModelFx model, Vec3 position, Entity facing) {
+        model(level, model, position, facing.getYRot(), 0f, 0f);
+    }
+
+    /**
+     * A ModelFx stuck to an entity: it moves with it and disappears when the entity dies or unloads.
+     * offset = from the entity's feet, in world directions (not turned with the entity).
+     */
+    public static void modelOn(Level level, ModelFx model, Entity entity, Vec3 offset, float yaw, float pitch, float roll) {
+        spawn(level, model.following(entity, offset).rotated(yaw, pitch, roll), entity.position().add(offset));
+    }
+
+    /** Removes every ModelFx stuck to this entity (for everyone who can see it). */
+    public static void clearModels(Level level, Entity entity) {
+        spawn(level, ModelFx.clearing(entity), entity.position());
     }
 
     /** Random unit vector at most angleDegrees/2 away from forward (uniform over the cone). */

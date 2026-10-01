@@ -1,32 +1,41 @@
 package net.lukario.frogerealm.shadow_slave.soul_abilities.beyonder_characteristics;
 import net.lukario.frogerealm.ForgeRealm;
+import net.lukario.frogerealm.combat.Later;
 import net.lukario.frogerealm.combat.MeleeCombo;
 import net.lukario.frogerealm.menu.AbilityMenu;
 import net.lukario.frogerealm.menu.AbilityTextPrompt;
 import net.lukario.frogerealm.particles.CustomParticles;
+import net.lukario.frogerealm.particles.fx.ModelFx;
 import net.lukario.frogerealm.particles.fx.ParticleFx;
 import net.lukario.frogerealm.particles.fx.ParticleShapes;
 import net.lukario.frogerealm.particles.fx.SlashFx;
+import net.lukario.frogerealm.root.Freeze;
 import net.lukario.frogerealm.root.Root;
 import net.lukario.frogerealm.root.RootRestriction;
 import net.lukario.frogerealm.screen.ScreenAnchor;
 import net.lukario.frogerealm.screen.ScreenImages;
 import net.lukario.frogerealm.shadow_slave.soul_shards.SoulCore;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.Mth;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.LightningBolt;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -39,6 +48,32 @@ import java.util.List;
 
 import java.util.List;
 public class HandOfOrder {
+
+    // Ability 1 extras (the damage/defense buffs stay as they were):
+    //   normal cast  -> Frost of Order: freezes the mobs around you (see root/Freeze)
+    //   sneak + cast -> Hammer of Order: a golden hammer appears in your hands and slams down in front of you
+    private static final double FREEZE_RANGE = 8.0;
+    private static final int FREEZE_TICKS = 80;               // 4 seconds
+
+    private static final float HAMMER_DAMAGE = 12f;
+    private static final double HAMMER_RADIUS = 2.5;          // around the spot where the head lands
+    private static final double HAMMER_KNOCKBACK = 0.6;
+    private static final float HAMMER_SCALE = 1.6f;           // bigger hammer = longer reach too
+    private static final double HAMMER_GRIP_HEIGHT = 1.2;     // the grip is at the caster's hands
+    private static final int HAMMER_IMPACT_TICK = 18;         // the keyframe where the head hits
+    private static final int HAMMER_LIFETIME = 46;
+    // Measured on models/model_fx/order_hammer.json, in pixels: grip -> middle of the head,
+    // and handle -> striking face. Update them if you reshape the model.
+    private static final float HAMMER_REACH_PX = 31f;
+    private static final float HAMMER_FACE_PX = 12f;
+
+    // 3D model in models/model_fx/order_hammer.json (+ textures/model_fx/order_hammer.png)
+    private static final ModelFx ORDER_HAMMER = ModelFx.of("order_hammer")
+            .scale(HAMMER_SCALE)
+            .pivot(8, -10, 8)                       // the grip, just above the pommel
+            .glow()
+            .aura(0xFFFFB82E, 0.14f, 3)             // golden glow around it
+            .lifetime(HAMMER_LIFETIME).fade(0, 8);
 
     // Ability 3 - Edict: normal = close wide cone, sneaking = long narrow cone
     private static final int EDICT_COST = 1250;
@@ -259,6 +294,8 @@ public class HandOfOrder {
                     ScreenAnchor.TOP_LEFT, x, 10, 32, 70);
 
             player.getPersistentData().putInt("Hand_Of_order_defense_boost",  60);
+
+            summonOrderHammer(player, sl);
         }else{
             int x = 10;
             if (player.getPersistentData().getInt("Hand_Of_order_defense_boost")>0){
@@ -269,7 +306,104 @@ public class HandOfOrder {
                     ScreenAnchor.TOP_LEFT, x, 10, 32, 70);
 
             player.getPersistentData().putInt("Hand_Of_order_damage_boost",  60);
+
+            freezeMobsAround(player, sl);
         }
+    }
+
+    // Ability 1 (normal): every mob around you that you can see is frozen in ice. Not players, not your own pets.
+    private static void freezeMobsAround(Player player, ServerLevel sl) {
+        int frozen = 0;
+        for (LivingEntity target : livingAround(player, sl, FREEZE_RANGE)) {
+            if (!(target instanceof Mob)) continue;
+            if (target instanceof TamableAnimal pet && pet.isOwnedBy(player)) continue;
+            if (!player.hasLineOfSight(target)) continue;
+            Freeze.apply(target, FREEZE_TICKS);
+            frozen++;
+        }
+        if (frozen > 0) {
+            sl.playSound(null, player.blockPosition(), SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.PLAYERS, 1.2f, 0.5f);
+        }
+    }
+
+    // Ability 1 (sneaking): the hammer appears raised behind you, winds up and slams down in front of you.
+    // Only the hammer itself is shown - no effects on the ground.
+    private static void summonOrderHammer(Player player, ServerLevel sl) {
+        float yaw = player.getYRot();
+        double yawRad = Math.toRadians(yaw);
+        Vec3 forward = new Vec3(-Math.sin(yawRad), 0, Math.cos(yawRad));
+        Vec3 right = new Vec3(-Math.cos(yawRad), 0, -Math.sin(yawRad));
+        Vec3 grip = player.position().add(0, HAMMER_GRIP_HEIGHT, 0).add(right.scale(0.35));
+
+        // swing exactly far enough for the head to land on the ground in front of you (works on slopes and ledges)
+        double reach = HAMMER_REACH_PX * HAMMER_SCALE / 16.0;
+        double face = HAMMER_FACE_PX * HAMMER_SCALE / 16.0;
+        double groundY = player.getY();
+        float strikePitch = 90f;
+        for (int i = 0; i < 3; i++) {
+            strikePitch = hammerStrikePitch(grip.y - groundY, reach, face);
+            double landing = hammerLandingDistance(strikePitch, reach, face);
+            groundY = groundBelow(player, sl, grip.add(forward.scale(landing)), player.getY());
+        }
+        double distance = hammerLandingDistance(strikePitch, reach, face);
+        Vec3 impact = new Vec3(grip.x + forward.x * distance, groundY, grip.z + forward.z * distance);
+
+        ModelFx hammer = ORDER_HAMMER
+                .key(0, ModelFx.pose().pitch(-20).scale(0.3f).alpha(0f))
+                .key(6, ModelFx.pose().pitch(-35), ModelFx.Ease.OUT_BACK)                          // appears behind you
+                .key(13, ModelFx.pose().pitch(-55), ModelFx.Ease.IN_OUT)                           // winds up
+                .key(HAMMER_IMPACT_TICK, ModelFx.pose().pitch(strikePitch), ModelFx.Ease.IN)       // slams down
+                .key(HAMMER_IMPACT_TICK + 2, ModelFx.pose().pitch(strikePitch - 5), ModelFx.Ease.OUT) // small bounce
+                .key(HAMMER_IMPACT_TICK + 5, ModelFx.pose().pitch(strikePitch), ModelFx.Ease.IN);
+        ParticleShapes.model(sl, hammer, grip, yaw, 0f, 0f);
+
+        sl.playSound(null, player.blockPosition(), SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 1f, 1.6f);
+        Later.run(sl, HAMMER_IMPACT_TICK - 4, () -> sl.playSound(null, BlockPos.containing(grip),
+                SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 1.2f, 0.5f));
+        Later.run(sl, HAMMER_IMPACT_TICK, () -> hammerImpact(player, sl, impact));
+    }
+
+    private static void hammerImpact(Player player, ServerLevel sl, Vec3 impact) {
+        if (!player.isAlive() || player.level() != sl) return;
+
+        AABB area = new AABB(impact.x - HAMMER_RADIUS, impact.y - 1.0, impact.z - HAMMER_RADIUS,
+                impact.x + HAMMER_RADIUS, impact.y + 3.0, impact.z + HAMMER_RADIUS);
+        for (LivingEntity target : sl.getEntitiesOfClass(LivingEntity.class, area, e -> e != player && e.isAlive())) {
+            double dx = target.getX() - impact.x;
+            double dz = target.getZ() - impact.z;
+            double hitRange = HAMMER_RADIUS + target.getBbWidth() * 0.5;
+            if (dx * dx + dz * dz > hitRange * hitRange) continue;
+            target.hurt(player.damageSources().playerAttack(player), HAMMER_DAMAGE);
+            target.knockback(HAMMER_KNOCKBACK, -dx, -dz); // away from where it landed
+        }
+        sl.playSound(null, BlockPos.containing(impact), SoundEvents.ANVIL_LAND, SoundSource.PLAYERS, 1.6f, 0.5f);
+        sl.playSound(null, impact.x, impact.y, impact.z, SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 0.8f, 1.3f);
+    }
+
+    /**
+     * How far the hammer has to swing (degrees, 90 = handle level) for its striking face to touch the ground
+     * 'height' blocks below the grip. Face middle = grip + reach * (sin p, cos p) + face * (cos p, -sin p)
+     * in (forward, up), so we solve reach * cos p - face * sin p = -height.
+     */
+    private static float hammerStrikePitch(double height, double reach, double face) {
+        double length = Math.sqrt(reach * reach + face * face);
+        double pitch = Math.toDegrees(Math.acos(Mth.clamp(-height / length, -1.0, 1.0)))
+                - Math.toDegrees(Math.atan2(face, reach));
+        return (float) Mth.clamp(pitch, 60.0, 150.0);
+    }
+
+    /** How far in front of the grip the head lands at that pitch. */
+    private static double hammerLandingDistance(float pitch, double reach, double face) {
+        double rad = Math.toRadians(pitch);
+        return reach * Math.sin(rad) + face * Math.cos(rad);
+    }
+
+    /** Top of the blocks under a point (looking from a bit above it), or 'fallback' if there is nothing below. */
+    private static double groundBelow(Player player, ServerLevel sl, Vec3 point, double fallback) {
+        Vec3 from = new Vec3(point.x, point.y + 1.5, point.z);
+        Vec3 to = new Vec3(point.x, point.y - 8.0, point.z);
+        BlockHitResult hit = sl.clip(new ClipContext(from, to, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player));
+        return hit.getType() == HitResult.Type.MISS ? fallback : hit.getLocation().y;
     }
 
 
