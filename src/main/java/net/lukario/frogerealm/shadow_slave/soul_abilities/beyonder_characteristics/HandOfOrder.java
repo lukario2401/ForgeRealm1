@@ -53,7 +53,7 @@ public class HandOfOrder {
             .scale(2f)                  // 1 = Blockbench size (16 px = 1 block)
             .pivot(8, 8, 8)               // pixels, Blockbench coordinates
             .glow()                       // full bright, visible at night
-            .aura(0xff0000, 0.1f, 3)    // glowing outline: ARGB color, thickness in blocks, softness
+            .aura(0xFFFF0000, 0.1f, 3)    // glowing outline: ARGB color, thickness in blocks, softness
             .lifetime(60)                 // ticks (20 = 1 second)
             .fade(5, 10);            // fade in 5 ticks, fade out the last 10
 
@@ -576,10 +576,11 @@ public class HandOfOrder {
 //                ParticleShapes.burst(sl, HIT_SHARD, target.getBoundingBox().getCenter(), 10, 0.1, 0.25);
 //            }
 
-            HAND_OF_ORDER_SWORD
-                    .key(0, ModelFx.pose().forward(0), ModelFx.Ease.IN)
+            // ModelFx methods return a NEW copy, so keep the result and play that one
+            ModelFx sword = HAND_OF_ORDER_SWORD
+                    .key(0, ModelFx.pose().forward(0))
                     .key(40, ModelFx.pose().forward(4), ModelFx.Ease.IN);
-            ParticleShapes.model(sl, HAND_OF_ORDER_SWORD, player.position().add(0,3,0), player.getYRot(), 0f, 0f);
+            ParticleShapes.model(sl, sword, player.position().add(0,3,0), player.getYRot(), 0f, 0f);
 
         }
     }
