@@ -49,14 +49,22 @@ import java.util.List;
 import java.util.List;
 public class HandOfOrder {
 
-    // Ability 1 extras (the damage/defense buffs stay as they were):
-    //   normal cast  -> Frost of Order: freezes the mobs around you (see root/Freeze)
+    private static final ModelFx HAND_OF_ORDER_SWORD = ModelFx.of("hand_of_order/sword")      // models/model_fx/rune.json
+            .scale(2f)                  // 1 = Blockbench size (16 px = 1 block)
+            .pivot(8, 8, 8)               // pixels, Blockbench coordinates
+            .glow()                       // full bright, visible at night
+            .aura(0xff0000, 0.1f, 3)    // glowing outline: ARGB color, thickness in blocks, softness
+            .lifetime(60)                 // ticks (20 = 1 second)
+            .fade(5, 10);            // fade in 5 ticks, fade out the last 10
+
+    // Ability 1 extra (the damage/defense buffs stay as they were):
+    //   normal cast  -> Frost of Order: freezes the surrounding mobs (see root/Freeze)
     //   sneak + cast -> Hammer of Order: a golden hammer appears in your hands and slams down in front of you
     private static final double FREEZE_RANGE = 8.0;
     private static final int FREEZE_TICKS = 80;               // 4 seconds
 
     private static final float HAMMER_DAMAGE = 12f;
-    private static final double HAMMER_RADIUS = 2.5;          // around the spot where the head lands
+    private static final double HAMMER_RADIUS = 2.5;          // around the spot where the headlands
     private static final double HAMMER_KNOCKBACK = 0.6;
     private static final float HAMMER_SCALE = 1.6f;           // bigger hammer = longer reach too
     private static final double HAMMER_GRIP_HEIGHT = 1.2;     // the grip is at the caster's hands
@@ -555,18 +563,24 @@ public class HandOfOrder {
                 ParticleShapes.burst(sl, HIT_SHARD, target.getBoundingBox().getCenter(), 14, 0.1, 0.3);
             }
         } else {
-            // Close range wide cone
-            double speed = EDICT_CLOSE_RANGE / GOLD_SHARD.lifetimeTicks();
-            ParticleShapes.cone(sl, GOLD_SHARD, origin, look, EDICT_CLOSE_ANGLE, 140, speed * 0.3, speed);
-            ParticleShapes.cone(sl, GOLD_GLOW, origin, look, EDICT_CLOSE_ANGLE, 40, speed * 0.4, speed);
+//            // Close range wide cone
+//            double speed = EDICT_CLOSE_RANGE / GOLD_SHARD.lifetimeTicks();
+//            ParticleShapes.cone(sl, GOLD_SHARD, origin, look, EDICT_CLOSE_ANGLE, 140, speed * 0.3, speed);
+//            ParticleShapes.cone(sl, GOLD_GLOW, origin, look, EDICT_CLOSE_ANGLE, 40, speed * 0.4, speed);
+//
+//            sl.playSound(null, player.blockPosition(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 1f, 0.8f);
+//
+//            for (LivingEntity target : entitiesInCone(player, sl, EDICT_CLOSE_RANGE, EDICT_CLOSE_ANGLE)) {
+//                target.hurt(player.damageSources().playerAttack(player), EDICT_CLOSE_DAMAGE);
+//                target.knockback(EDICT_CLOSE_KNOCKBACK, player.getX() - target.getX(), player.getZ() - target.getZ());
+//                ParticleShapes.burst(sl, HIT_SHARD, target.getBoundingBox().getCenter(), 10, 0.1, 0.25);
+//            }
 
-            sl.playSound(null, player.blockPosition(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 1f, 0.8f);
+            HAND_OF_ORDER_SWORD
+                    .key(0, ModelFx.pose().forward(0), ModelFx.Ease.IN)
+                    .key(40, ModelFx.pose().forward(4), ModelFx.Ease.IN);
+            ParticleShapes.model(sl, HAND_OF_ORDER_SWORD, player.position().add(0,3,0), player.getYRot(), 0f, 0f);
 
-            for (LivingEntity target : entitiesInCone(player, sl, EDICT_CLOSE_RANGE, EDICT_CLOSE_ANGLE)) {
-                target.hurt(player.damageSources().playerAttack(player), EDICT_CLOSE_DAMAGE);
-                target.knockback(EDICT_CLOSE_KNOCKBACK, player.getX() - target.getX(), player.getZ() - target.getZ());
-                ParticleShapes.burst(sl, HIT_SHARD, target.getBoundingBox().getCenter(), 10, 0.1, 0.25);
-            }
         }
     }
 
