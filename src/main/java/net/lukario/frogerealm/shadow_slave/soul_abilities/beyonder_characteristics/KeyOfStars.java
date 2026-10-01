@@ -1,6 +1,8 @@
 package net.lukario.frogerealm.shadow_slave.soul_abilities.beyonder_characteristics;
 
 import net.lukario.frogerealm.ForgeRealm;
+import net.lukario.frogerealm.screen.ScreenAnchor;
+import net.lukario.frogerealm.screen.ScreenImages;
 import net.lukario.frogerealm.shadow_slave.soul_shards.SoulCore;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
@@ -24,6 +26,13 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import java.util.List;
 import java.util.UUID;
+
+import net.lukario.frogerealm.combat.MeleeCombo;
+import net.lukario.frogerealm.particles.fx.ParticleFx;
+import net.lukario.frogerealm.particles.fx.ParticleShapes;
+import net.lukario.frogerealm.particles.fx.SlashFx;
+import net.minecraft.server.level.ServerPlayer;
+
 
 public class KeyOfStars {
 
@@ -49,6 +58,62 @@ public class KeyOfStars {
 
     private static final String NBT_COSMIC_PLAGUE_DURATION = "key_of_stars_cosmic_plague_duration";
 
+    //Particle instructions
+    private static final int STAR_GOLD   = 0xF0FFD36B;   // ARGB: alpha, red, green, blue
+    private static final int STAR_VIOLET = 0xE09B6BFF;
+    private static final int STAR_NIGHT  = 0xA0302060;   // dark, a bit see-through
+
+    private static final SlashFx STAR_SWING = SlashFx.arc("slash/streaks")
+            .color(STAR_VIOLET).headColor(STAR_GOLD).tailColor(STAR_NIGHT)
+            .core(0xFFFFFFFF)                 // thin bright line through the middle (core(0) = none)
+            .radius(2.0f).arc(170f).width(1.0f)
+            .taper(SlashFx.Taper.CRESCENT)    // thin ends, thick middle
+            .layers(3).spread(0.25f)          // 3 streaks side by side
+            .lifetime(10).sweep(3);           // 10 ticks alive, draws itself in 3
+
+    // Hit 2: same look, as a rising diagonal comet
+    private static final SlashFx STAR_RISE = STAR_SWING
+            .radius(1.7f).arc(130f).width(0.8f)
+            .taper(SlashFx.Taper.COMET)       // thin tail, thick sharp front
+            .layers(4).spread(0.3f)
+            .rotation(0f, 0f, 40f);           // roll 40 = rising from low-left to high-right
+
+    // Hit 3a: a spinning ring lying on the ground around the player
+    private static final SlashFx STAR_ORBIT = SlashFx.arc("slash/band")
+            .color(STAR_VIOLET).headColor(STAR_GOLD).tailColor(STAR_NIGHT)
+            .translucent()                    // normal colours instead of glow (dark colours show up)
+            .flat()                           // lies flat instead of turning toward the camera
+            .radius(1.2f).endRadius(3.2f).arc(540f).width(1.1f)   // spiral, 1.5 turns
+            .layers(2).spread(0.35f)
+            .lifetime(14).sweep(6).spin(10f); // keeps rotating 10°/tick
+
+    // Hit 3b: straight "shooting star" cuts through the target
+    private static final SlashFx STAR_CUT = SlashFx.line("slash/smooth")
+            .color(STAR_GOLD).core(0xFFFFFFFF)
+            .radius(2.2f).width(0.16f)        // radius = half the length for lines
+            .lifetime(8).sweep(2);
+
+    // Small particles to go with them
+    private static final ParticleFx STAR_SPARK = ParticleFx.of("fx/spark")
+            .color(0xFFFFE9A8).fadeOut()
+            .size(0.12f).endSize(0.03f).sizeRandom(0.4f)
+            .lifetime(20, 10).friction(0.9f)
+            .glow().spin(15f).randomRotation();
+
+
+    private static final ParticleFx STAR_DUST = ParticleFx.of("fx/glow")
+            .color(0xC09B6BFF).fadeOut()
+            .size(0.2f).endSize(0.05f)
+            .lifetime(25, 10).gravity(-0.03f)  // floats up slowly
+            .glow();
+
+    public static final MeleeCombo MELEE_COMBO = MeleeCombo.forAspect("Key Of Stars")   // exact aspect name
+            .step(KeyOfStars::starComboSwing)                          // hit 1
+            .step(KeyOfStars::starComboRise)                           // hit 2
+            .randomStep(KeyOfStars::starComboOrbit, KeyOfStars::starComboShootingStars) // hit 3: one at random
+            .resetAfter(40)                                            // optional: ticks without hitting before it restarts (40 = 2 s)
+            .minCharge(0.8f);                                          // optional: 0 = every click counts
+
     @Mod.EventBusSubscriber(modid = ForgeRealm.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
     public static class KeyOfStarsEvents {
         @SubscribeEvent
@@ -67,7 +132,10 @@ public class KeyOfStars {
                     player.getPersistentData().putInt(NBT_KEY_OF_STARS_STAR_COUNT,starCount+1);
                     player.getPersistentData().putInt(NBT_KEY_OF_STARS_NEW_STAR_CD,20);
 
-                    player.sendSystemMessage(Component.literal("New Star Added [" + (starCount+1) +"/7]"));
+//                    player.sendSystemMessage(Component.literal("New Star Added [" + (starCount+1) +"/7]"));
+                    String starId = "key_of_stars_star_id_"+starCount;
+                    ScreenImages.show(player, starId, "aspect_icons/key_of_stars_star",
+                            ScreenAnchor.CENTER, -96+32*starCount, 200, 16,-1);
 
                 }else{
                     player.getPersistentData().putInt(NBT_KEY_OF_STARS_NEW_STAR_CD,player.getPersistentData().getInt(NBT_KEY_OF_STARS_NEW_STAR_CD)-1);
@@ -144,7 +212,7 @@ public class KeyOfStars {
                             int max = SoulCore.getAscensionStage(player); // stars cap at ascension stage
                             if (current < max) {
                                 player.getPersistentData().putInt(NBT_KEY_OF_STARS_STAR_COUNT, current + 1);
-                                player.sendSystemMessage(Component.literal("§bPlague feeds you a star §e[" + (current + 1) + "/" + max + "]"));
+//                                player.sendSystemMessage(Component.literal("§bPlague feeds you a star §e[" + (current + 1) + "/" + max + "]"));
                             }
                         }
                     }
@@ -246,10 +314,16 @@ public class KeyOfStars {
             if (player.getPersistentData().getInt(NBT_KEY_OF_STARS_STAR_COUNT)>=1){
                 int starCount = player.getPersistentData().getInt(NBT_KEY_OF_STARS_STAR_COUNT);
 
+
+
+                for (int i = 1; i <= player.getPersistentData().getInt(NBT_KEY_OF_STARS_STAR_COUNT); i++){
+//                    player.sendSystemMessage(Component.literal("ran: " + i));
+                    String star_id = "key_of_stars_star_id_" + i;
+                    ScreenImages.hide(player, star_id);
+                }
+
+//                player.sendSystemMessage(Component.literal("Star Used. Stars left [0/7]"));
                 player.getPersistentData().putInt(NBT_KEY_OF_STARS_STAR_COUNT,0);
-
-                player.sendSystemMessage(Component.literal("Star Used. Stars left [0/7]"));
-
                 player.playNotifySound(SoundEvents.BEACON_POWER_SELECT,SoundSource.MASTER,2,1);
 
                 Vec3 start = player.getEyePosition();
@@ -274,7 +348,10 @@ public class KeyOfStars {
             if (player.getPersistentData().getInt(NBT_KEY_OF_STARS_STAR_COUNT)>=1){
                 player.getPersistentData().putInt(NBT_KEY_OF_STARS_STAR_COUNT,player.getPersistentData().getInt(NBT_KEY_OF_STARS_STAR_COUNT)-1);
 
-                player.sendSystemMessage(Component.literal("Star Used. Stars left [" + (player.getPersistentData().getInt(NBT_KEY_OF_STARS_STAR_COUNT) +"/7]")));
+                String star_id = "key_of_stars_star_id_" + player.getPersistentData().getInt(NBT_KEY_OF_STARS_STAR_COUNT);
+                ScreenImages.hide(player, star_id);
+
+//                player.sendSystemMessage(Component.literal("Star Used. Stars left [" + (player.getPersistentData().getInt(NBT_KEY_OF_STARS_STAR_COUNT) +"/7]")));
                 player.playNotifySound(SoundEvents.BEACON_ACTIVATE,SoundSource.MASTER,1,1);
 
                 Vec3 start = player.getEyePosition();
@@ -756,5 +833,50 @@ public class KeyOfStars {
                 break;
             }
         }
+    }
+
+    private static Vec3 flatLook(Player player) {
+        return Vec3.directionFromRotation(0f, player.getYRot());
+    }
+
+    // Hit 1: crescent swinging around the target
+    private static void starComboSwing(ServerPlayer player, LivingEntity target, ServerLevel sl) {
+        Vec3 hit = target.getBoundingBox().getCenter();
+        Vec3 center = hit.subtract(flatLook(player).scale(1.1));        // arc's middle passes just behind the target
+        SlashFx slash = STAR_SWING.varied(player.getRandom(), 12f, 8f, 18f); // left or right, slightly different each time
+        ParticleShapes.slash(sl, slash, center, player.getYRot(), 0f, 0f);
+        ParticleShapes.burst(sl, STAR_SPARK, hit, 10, 0.05, 0.2);
+        sl.playSound(null, target.blockPosition(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 0.8f, 1.2f);
+    }
+
+    // Hit 2: rising comet streaks
+    private static void starComboRise(ServerPlayer player, LivingEntity target, ServerLevel sl) {
+        Vec3 hit = target.getBoundingBox().getCenter();
+        Vec3 center = hit.subtract(flatLook(player).scale(0.8));
+        ParticleShapes.slash(sl, STAR_RISE.varied(player.getRandom(), 10f, 10f, 20f), center, player.getYRot(), 0f, 0f);
+        sl.playSound(null, target.blockPosition(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 0.8f, 1.4f);
+    }
+
+    // Hit 3a: orbit spiral on the ground around the PLAYER, plus floating star dust
+    private static void starComboOrbit(ServerPlayer player, LivingEntity target, ServerLevel sl) {
+        Vec3 feet = player.position().add(0, 0.15, 0);
+        SlashFx orbit = player.getRandom().nextBoolean() ? STAR_ORBIT : STAR_ORBIT.mirrored(); // spin either way
+        ParticleShapes.slash(sl, orbit, feet, player.getRandom().nextFloat() * 360f, 0f, 0f);    // start at any angle
+        ParticleShapes.spiral(sl, STAR_DUST, feet, 3, 60, 0.8, 3.5, 0.6, 0.05);
+        sl.playSound(null, player.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1f, 0.8f);
+    }
+
+    // Hit 3b: a flurry of shooting-star cuts through the TARGET, one per tick
+    private static void starComboShootingStars(ServerPlayer player, LivingEntity target, ServerLevel sl) {
+        Vec3 hit = target.getBoundingBox().getCenter();
+        var random = player.getRandom();
+        for (int i = 0; i < 5; i++) {
+            float yaw = player.getYRot() + (random.nextFloat() - 0.5f) * 60f;
+            float pitch = (random.nextFloat() - 0.5f) * 60f;
+            float roll = random.nextFloat() * 180f;
+            ParticleShapes.slash(sl, STAR_CUT.delay(i), hit, yaw, pitch, roll);  // delay(i) = staggered
+        }
+        ParticleShapes.burst(sl, STAR_SPARK, hit, 20, 0.1, 0.35);
+        sl.playSound(null, target.blockPosition(), SoundEvents.PLAYER_ATTACK_CRIT, SoundSource.PLAYERS, 1f, 1.3f);
     }
 }

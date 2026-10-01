@@ -137,7 +137,7 @@ public class HandOfOrder {
             .phrase("Order restored",       HandOfOrder::wordsOrderRestored)
             .phrase("Judgement falls",      HandOfOrder::wordsJudgementFalls)
             .otherwise((player, sl, text) ->
-                    player.sendSystemMessage(Component.literal("The words hold no power."), true));
+                    player.sendSystemMessage(Component.literal("The words hold no power.")));
 
     // Ability 7 - Bind: roots the target you look at. The closer it is, the more it loses.
     private static final int BIND_COST = 6000;
@@ -351,7 +351,7 @@ public class HandOfOrder {
         Level level = (Level) sl;
         LivingEntity target = getTarget(player,sl,level,32);
         if (target == null) {
-            player.sendSystemMessage(Component.literal("No one stands before you."), true);
+            player.sendSystemMessage(Component.literal("No one stands before you."));
             return; // no essence spent
         }
         if (!payEssence(player, DECREE_COST)) return;
@@ -361,11 +361,11 @@ public class HandOfOrder {
             target.hurt(player.damageSources().playerAttack(player), DECREE_JUDGEMENT_DAMAGE);
             sl.sendParticles(ParticleTypes.ENCHANTED_HIT, target.getX(), target.getY(0.5), target.getZ(), 30, 0.4, 0.6, 0.4, 0.3);
             sl.playSound(null, target.blockPosition(), SoundEvents.ANVIL_LAND, SoundSource.PLAYERS, 1f, 0.6f);
-            player.sendSystemMessage(Component.literal("Judgement!"), true);
+            player.sendSystemMessage(Component.literal("Judgement!"));
         } else {
             sl.sendParticles(ParticleTypes.SMOKE, target.getX(), target.getY(0.5), target.getZ(), 15, 0.3, 0.5, 0.3, 0.02);
             sl.playSound(null, target.blockPosition(), SoundEvents.FIRE_EXTINGUISH, SoundSource.PLAYERS, 0.8f, 1.2f);
-            player.sendSystemMessage(Component.literal("The judgement failed."), true);
+            player.sendSystemMessage(Component.literal("The judgement failed."));
         }
     }
 
@@ -601,7 +601,7 @@ public class HandOfOrder {
     private static void wordsJudgementFalls(ServerPlayer player, ServerLevel sl) {
         List<LivingEntity> targets = livingAround(player, sl, JUDGEMENT_FALLS_RANGE);
         if (targets.isEmpty()) {
-            player.sendSystemMessage(Component.literal("There is no one to judge."), true);
+            player.sendSystemMessage(Component.literal("There is no one to judge."));
             return; // nothing spent
         }
         if (!payEssence(player, WORDS_COST)) return;
@@ -625,7 +625,7 @@ public class HandOfOrder {
 
         LivingEntity target = findTargetInFront(player, sl, BIND_RANGE);
         if (target == null) {
-            player.displayClientMessage(Component.literal("No one stands before you."), true);
+            player.sendSystemMessage(Component.literal("No one stands before you."));
             return; // nothing spent
         }
 
@@ -648,9 +648,9 @@ public class HandOfOrder {
                 Math.max(0.8, target.getBbWidth()), 24, 0.0);
         sl.playSound(null, target.blockPosition(), SoundEvents.CHAIN_PLACE, SoundSource.PLAYERS, 1.5f, 0.6f);
 
-        player.displayClientMessage(Component.literal("Bound: " + describe(tier.restrictions())), true);
+        player.sendSystemMessage(Component.literal("Bound: " + describe(tier.restrictions())));
         if (target instanceof Player boundPlayer) {
-            boundPlayer.displayClientMessage(Component.literal("You are bound by Order."), true);
+            boundPlayer.sendSystemMessage(Component.literal("You are bound by Order."));
         }
     }
 
