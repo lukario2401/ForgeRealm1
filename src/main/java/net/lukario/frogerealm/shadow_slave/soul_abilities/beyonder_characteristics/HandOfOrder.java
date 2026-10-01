@@ -54,7 +54,7 @@ public class HandOfOrder {
             .pivot(8, 8, 8)               // pixels, Blockbench coordinates
             .glow()                       // full bright, visible at night
             .aura(0xff0000, 0.1f, 3)    // glowing outline: ARGB color, thickness in blocks, softness
-            .lifetime(60)                 // ticks (20 = 1 second)
+            .lifetime(100)                 // ticks (20 = 1 second)
             .fade(5, 10);            // fade in 5 ticks, fade out the last 10
 
     // Ability 1 extra (the damage/defense buffs stay as they were):
@@ -576,11 +576,14 @@ public class HandOfOrder {
 //                ParticleShapes.burst(sl, HIT_SHARD, target.getBoundingBox().getCenter(), 10, 0.1, 0.25);
 //            }
 
-            HAND_OF_ORDER_SWORD
-                    .key(0, ModelFx.pose().forward(0), ModelFx.Ease.IN)
-                    .key(40, ModelFx.pose().forward(4), ModelFx.Ease.IN);
-            ParticleShapes.model(sl, HAND_OF_ORDER_SWORD, player.position().add(0,3,0), player.getYRot(), 0f, 0f);
+            ModelFx sword = HAND_OF_ORDER_SWORD
+                    .key(0, ModelFx.pose().forward(0))
+                    .key(20, ModelFx.pose().pitch(90), ModelFx.Ease.IN)
+                    .key(30, ModelFx.pose().yaw(90), ModelFx.Ease.IN)
+                    .key(40, ModelFx.pose().forward(5), ModelFx.Ease.IN)
+                    .key(100, ModelFx.pose().forward(12), ModelFx.Ease.IN);
 
+            ParticleShapes.model(sl, sword, player.position().add(0,3,0), player.getYRot(), 0f, 0f);
         }
     }
 
