@@ -54,16 +54,18 @@ public class PrinceOfAbolition {
     private static final float REND_LENGTH = 10f;
     private static final SlashFx EDGE_REND_LEAD = SlashFx.line("slash/dashed")
             .color(EDGE_LEAD).width(0.14f).taper(SlashFx.Taper.UNIFORM)
-            .lifetime(6).sweep(2);
+            .lifetime(12).sweep(2);
     private static final SlashFx EDGE_REND = SlashFx.line("slash/shatter")
             .color(EDGE_GLOW).tailColor(EDGE_TAIL).headColor(EDGE_HEAD)
             .width(1.4f).taper(SlashFx.Taper.COMET)
             .layers(2).spread(0.3f)
-            .lifetime(14).sweep(4).delay(3);
+            .lifetime(28).sweep(4).delay(3);
     private static final SlashFx EDGE_REND_CORE = SlashFx.line("slash/smooth")
             .color(0xE0FFF4E0).core(0xFFFFFFFF)
             .width(0.16f).taper(SlashFx.Taper.UNIFORM)
-            .lifetime(16).sweep(3).delay(3);
+            .lifetime(24).sweep(3).delay(3);
+
+
 
     // Hit 3: wide crescent sweeping around the front
     private static final SlashFx EDGE_SWEEP_LEAD = SlashFx.arc("slash/dashed_fine")

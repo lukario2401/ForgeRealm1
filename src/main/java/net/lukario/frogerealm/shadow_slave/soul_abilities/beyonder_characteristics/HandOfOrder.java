@@ -184,7 +184,7 @@ public class HandOfOrder {
     private static final List<BindTier> BIND_TIERS = List.of(
             new BindTier(4,  160, RootRestriction.EVERYTHING),        // 8s, can't do anything
             new BindTier(8,  120, EnumSet.of(RootRestriction.MOVE, RootRestriction.JUMP, RootRestriction.TELEPORT,
-                                             RootRestriction.ATTACK, RootRestriction.ABILITIES)), // 6s
+                    RootRestriction.ATTACK, RootRestriction.ABILITIES)), // 6s
             new BindTier(14, 100, RootRestriction.MOVEMENT),          // 5s, held in place
             new BindTier(20,  80, EnumSet.of(RootRestriction.MOVE))   // 4s, can't walk
     );
@@ -252,29 +252,29 @@ public class HandOfOrder {
     public static class HandOfOrderEvents{
 
 
-    @SubscribeEvent
-    public static void onHandOfOrderEventTick(TickEvent.PlayerTickEvent event) {
-        if (event.phase != TickEvent.Phase.END) return;
-        Player player = event.player;
-        if (!(player.level() instanceof ServerLevel sl)) return;
+        @SubscribeEvent
+        public static void onHandOfOrderEventTick(TickEvent.PlayerTickEvent event) {
+            if (event.phase != TickEvent.Phase.END) return;
+            Player player = event.player;
+            if (!(player.level() instanceof ServerLevel sl)) return;
 
-        if (player.getPersistentData().contains("Hand_Of_order_damage_boost")) {
+            if (player.getPersistentData().contains("Hand_Of_order_damage_boost")) {
 
-            int duration = player.getPersistentData().getInt("Hand_Of_order_damage_boost");
-            if (duration > 0) {
-                player.getPersistentData().putInt("Hand_Of_order_damage_boost", duration - 1);
+                int duration = player.getPersistentData().getInt("Hand_Of_order_damage_boost");
+                if (duration > 0) {
+                    player.getPersistentData().putInt("Hand_Of_order_damage_boost", duration - 1);
+                }
             }
-        }
 
-        if (player.getPersistentData().contains("Hand_Of_order_defense_boost")) {
-            int duration = player.getPersistentData().getInt("Hand_Of_order_defense_boost");
-            if (duration > 0) {
-                player.getPersistentData().putInt("Hand_Of_order_defense_boost", duration - 1);
+            if (player.getPersistentData().contains("Hand_Of_order_defense_boost")) {
+                int duration = player.getPersistentData().getInt("Hand_Of_order_defense_boost");
+                if (duration > 0) {
+                    player.getPersistentData().putInt("Hand_Of_order_defense_boost", duration - 1);
+                }
             }
+            if (!SoulCore.getAspect(player).equals("Hand Of Order")) return;
         }
-        if (!SoulCore.getAspect(player).equals("Hand Of Order")) return;
     }
-}
     //Ability 1
     public static void handOfOrderBuff(Player player, Level level, ServerLevel sl, boolean bypassClassCheck) {
         if (!canUseCharacteristic(player, bypassClassCheck)) return;
