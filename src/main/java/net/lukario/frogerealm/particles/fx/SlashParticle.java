@@ -57,15 +57,11 @@ public class SlashParticle extends Particle {
                 .getTexture(TextureAtlas.LOCATION_PARTICLES);
         this.sprite = atlas.getSprite(fx.texture());
 
-        // forward from yaw/pitch like an entity's look; right/up rotated around it by roll
-        float yawRad = fx.yaw() * Mth.DEG_TO_RAD;
-        float rollRad = fx.roll() * Mth.DEG_TO_RAD;
-        Vec3 f = Vec3.directionFromRotation(fx.pitch(), fx.yaw());
-        Vec3 r0 = new Vec3(-Math.cos(yawRad), 0, -Math.sin(yawRad));
-        Vec3 u0 = r0.cross(f).normalize();
-        this.forward = f;
-        this.right = r0.scale(Math.cos(rollRad)).add(u0.scale(Math.sin(rollRad)));
-        this.up = u0.scale(Math.cos(rollRad)).subtract(r0.scale(Math.sin(rollRad)));
+        // forward from yaw/pitch like an entity's look; right/up rotated around it by roll (same math as the server)
+        Vec3[] axes = fx.axes();
+        this.forward = axes[0];
+        this.right = axes[1];
+        this.up = axes[2];
 
         int count = fx.layerCount();
         layerOffset = new float[count];

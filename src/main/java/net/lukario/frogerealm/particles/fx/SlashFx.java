@@ -230,6 +230,68 @@ public final class SlashFx implements ParticleOptions {
         return rotation(this.yaw + yaw, this.pitch + pitch, this.roll + roll);
     }
 
+    /**
+     * Takes another slash's orientation and sweep direction, so layers of one attack line up even after
+     * varied()/mirrored(). E.g. a dotted lead-in that the main slash follows:
+     *   SlashFx main = SWING.varied(random, 20, 6, 12);
+     *   SlashFx lead = SWING_DOTS.alignedWith(main);
+     */
+    public SlashFx alignedWith(SlashFx other) {
+        SlashFx c = rotation(other.yaw, other.pitch, other.roll);
+        if (c.arc * other.arc < 0) {   // the other one was mirrored
+            c.arc = -c.arc;
+            c.spin = -c.spin;
+        }
+        return c;
+    }
+
+    // ---------- geometry (works on the server too, e.g. to spawn shards along a slash) ----------
+
+    /**
+     * The slash's orientation as unit vectors {forward, right, up}, before any spin.
+     * Arcs lie in the forward/right plane with their middle at forward; lines run along right.
+     */
+    public Vec3[] axes() {
+        double yawRad = Math.toRadians(yaw);
+        double rollRad = Math.toRadians(roll);
+        Vec3 f = Vec3.directionFromRotation(pitch, yaw);
+        Vec3 r0 = new Vec3(-Math.cos(yawRad), 0, -Math.sin(yawRad));
+        Vec3 u0 = r0.cross(f).normalize();
+        Vec3 r = r0.scale(Math.cos(rollRad)).add(u0.scale(Math.sin(rollRad)));
+        Vec3 u = u0.scale(Math.cos(rollRad)).subtract(r0.scale(Math.sin(rollRad)));
+        return new Vec3[]{f, r, u};
+    }
+
+    /**
+     * Where the middle of the slash is at position t (0 = start, 1 = end), relative to its center.
+     * ticksIn = how long it has been visible (only matters if it spins).
+     */
+    public Vec3 pointAt(float t, float ticksIn) {
+        Vec3[] axes = axes();
+        double spinRad = Math.toRadians(spin * ticksIn);
+        if (shape == Shape.LINE) {
+            Vec3 lineRight = axes[1].scale(Math.cos(spinRad)).add(axes[2].scale(Math.sin(spinRad)));
+            return lineRight.scale((t * 2f - 1f) * radius);
+        }
+        double r = radius + (endRadiusBlocks() - radius) * t;
+        return radialAt(axes, t, spinRad).scale(r);
+    }
+
+    /** Direction pointing away from the slash at position t: away from the arc's center, or to one side of a line. */
+    public Vec3 outwardAt(float t, float ticksIn) {
+        Vec3[] axes = axes();
+        double spinRad = Math.toRadians(spin * ticksIn);
+        if (shape == Shape.LINE) {
+            return axes[2].scale(Math.cos(spinRad)).subtract(axes[1].scale(Math.sin(spinRad)));
+        }
+        return radialAt(axes, t, spinRad);
+    }
+
+    private Vec3 radialAt(Vec3[] axes, float t, double spinRad) {
+        double angle = Math.toRadians(-arc / 2.0 + t * arc) + spinRad;
+        return axes[1].scale(Math.sin(angle)).add(axes[0].scale(Math.cos(angle)));
+    }
+
     // ---------- getters ----------
 
     public ResourceLocation texture() { return texture; }

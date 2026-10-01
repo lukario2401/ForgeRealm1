@@ -18,6 +18,10 @@ import net.minecraft.world.phys.Vec3;
  *   ParticleShapes.sphere(sl, GOLD_SPARK, center, 2.0, 80);
  *   ParticleShapes.spiral(sl, GOLD_SPARK, feet, 4, 150, 0.5, 4.0, 0.8, 0.1);          // swirling galaxy
  *   ParticleShapes.slash(sl, SWING, target.getBoundingBox().getCenter(), player);   // SlashFx trails
+ *   ParticleShapes.slashBetween(sl, CUT, from, to);                                 // straight cut from A to B
+ *   ParticleShapes.alongSlash(sl, SHARD, SWING, center, yaw, 0, 0, 6, 20, 0.08, 0.03); // shards breaking off a slash
+ *
+ * For effects in stages (this now, that 5 ticks later) use combat.Later.run(serverLevel, 5, () -> ...).
  *
  * Speeds are in blocks per tick. With friction 1 and no gravity a particle travels
  * speed * lifetime blocks, so for a 10 block cone with a 20 tick particle use speed 0.5.
@@ -131,6 +135,64 @@ public final class ParticleShapes {
     /** Plays a SlashFx at center, turned the way the entity is facing (left/right only). */
     public static void slash(Level level, SlashFx slash, Vec3 center, Entity facing) {
         slash(level, slash, center, facing.getYRot(), 0f, 0f);
+    }
+
+    /**
+     * A straight SlashFx.line(...) from one point to another: it draws itself from 'from' toward 'to'.
+     * Sets the length and direction for you (the preset's own radius and rotation are ignored).
+     */
+    public static void slashBetween(Level level, SlashFx line, Vec3 from, Vec3 to) {
+        slashBetween(level, line, from, to, Vec3.ZERO);
+    }
+
+    /**
+     * Same, and 'across' says which way the width lies. Only matters for .flat() lines, e.g. a sideways
+     * vector makes a flat line lie on the ground like a crack. Vec3.ZERO = don't care.
+     */
+    public static void slashBetween(Level level, SlashFx line, Vec3 from, Vec3 to, Vec3 across) {
+        Vec3 delta = to.subtract(from);
+        double length = delta.length();
+        if (length < 1.0E-4) return;
+        Vec3 dir = delta.scale(1.0 / length);
+
+        // the slash's 'forward' must be perpendicular to the line; its 'right' then becomes the line itself
+        Vec3 forward = dir.cross(across);
+        if (forward.lengthSqr() < 1.0E-8) {
+            forward = dir.cross(Math.abs(dir.y) < 0.99 ? new Vec3(0, 1, 0) : new Vec3(1, 0, 0));
+        }
+        forward = forward.normalize();
+        float pitch = (float) Math.toDegrees(-Math.asin(Math.max(-1, Math.min(1, forward.y))));
+        float yaw = (float) Math.toDegrees(Math.atan2(-forward.x, forward.z));
+
+        double yawRad = Math.toRadians(yaw);
+        Vec3 flatRight = new Vec3(-Math.cos(yawRad), 0, -Math.sin(yawRad));
+        Vec3 flatUp = flatRight.cross(Vec3.directionFromRotation(pitch, yaw)).normalize();
+        float roll = (float) Math.toDegrees(Math.atan2(dir.dot(flatUp), dir.dot(flatRight)));
+
+        spawn(level, line.rotation(yaw, pitch, roll).radius((float) (length / 2)), from.add(to).scale(0.5));
+    }
+
+    /**
+     * Spawns particles along a slash's path, e.g. shards breaking off it. Pass the same slash, center and
+     * yaw/pitch/roll you played it with.
+     * @param ticksIn      how long the slash has been visible (only matters if it spins)
+     * @param outwardSpeed pushes them away from the arc's center (lines: off to either side), blocks per tick
+     * @param randomSpeed  extra random kick in any direction
+     */
+    public static void alongSlash(Level level, ParticleOptions particle, SlashFx slash, Vec3 center,
+                                  float yaw, float pitch, float roll, float ticksIn, int count,
+                                  double outwardSpeed, double randomSpeed) {
+        SlashFx fx = slash.rotated(yaw, pitch, roll);
+        RandomSource random = level.getRandom();
+        for (int i = 0; i < count; i++) {
+            float t = random.nextFloat();
+            Vec3 out = fx.outwardAt(t, ticksIn);
+            if (fx.shape() == SlashFx.Shape.LINE && random.nextBoolean()) out = out.scale(-1);
+            Vec3 position = center.add(fx.pointAt(t, ticksIn))
+                    .add(out.scale((random.nextDouble() - 0.5) * fx.widthBlocks() * 0.6)); // anywhere across its width
+            Vec3 kick = randomDirectionInCone(random, out, 360).scale(random.nextDouble() * randomSpeed);
+            spawn(level, particle, position, out.scale(outwardSpeed * (0.5 + random.nextDouble())).add(kick));
+        }
     }
 
     /** Random unit vector at most angleDegrees/2 away from forward (uniform over the cone). */
