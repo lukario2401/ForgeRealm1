@@ -1,6 +1,6 @@
 # Adding 3D model effects (ModelFx)
 
-ModelFx lets any class show a 3D model in the world for a while: a summoned weapon, ice on a frozen mob, a floating rune, a shield... The Hand of Order hammer and the freeze crystals are both built with it.
+ModelFx lets any class show a 3D model in the world for a while: a summoned weapon, ice on a frozen mob, a floating rune, a shield... The Hand of Order hammer, the freeze crystals and every Prince of Abolition ability are built with it.
 
 Nothing needs registering. You make a model, drop two files into the right folders, describe the effect in code and play it.
 
@@ -47,7 +47,7 @@ Every model in `models/model_fx/` is loaded automatically when the game starts.
 /particle forgerealmmod:model{model:"forgerealmmod:model_fx/<name>",glow:1b,lifetime:100} ~ ~ ~ 0 0 0 0 1
 ```
 
-A purple and black cube means the model or texture path is wrong.
+A purple and black cube means the model or texture path is wrong. The yes/no options from section 3 can be added the same way: `see_through:1b`, `unshaded:1b`.
 
 You can try an animation the same way, without restarting the game. `keys` takes the same things as the code in section 4 (`from` + `tick` is a `.during`):
 
@@ -79,9 +79,11 @@ private static final ModelFx RUNE = ModelFx.of("rune")      // models/model_fx/r
 | `.pivot(x, y, z)` | Turn/scale point in Blockbench pixels (default `8, 0, 8`) |
 | `.rotation(yaw, pitch, roll)` | Fixed starting orientation (added to what you pass when playing it) |
 | `.color(argb)` | Tint and opacity. `0x80FFFFFF` = half see-through |
-| `.glow()` | Full bright |
+| `.glow()` | Full bright: not darkened by night or caves |
+| `.unshaded()` | Every face equally bright, whichever way it points. For fire, light and energy (see below) |
 | `.seeThrough()` | For textures with transparent pixels (ice, glass, energy). Drawn last so things inside stay visible |
 | `.aura(argb, blocks, layers)` | Glow around it. Alpha of the color = strength. 1 layer = hard edge, 3-4 = soft |
+| `.noAura()` | Remove the aura from a copy |
 | `.lifetime(ticks)` | How long it stays |
 | `.delay(ticks)` | Wait before appearing |
 | `.fade(in, out)` | Fade in / fade out ticks |
@@ -89,6 +91,24 @@ private static final ModelFx RUNE = ModelFx.of("rune")      // models/model_fx/r
 | `.key(tick, pose)` / `.key(tick, pose, ease)` | Animation keyframe (see below) |
 | `.during(from, to, pose)` / `.during(from, to, pose, ease)` | Extra animation that runs at the same time as the keyframes (see below) |
 | `.noKeys()` | Remove all keyframes and `.during` animations |
+
+### Solid things, or fire and light?
+
+Minecraft shades every model: the top is brightest, the sides are darker (down to half) and the underside is darkest. That is what makes a hammer or an ice spike look solid, and `.glow()` does not turn it off.
+
+On fire it looks wrong: a white-hot flame turns grey on two of its sides and changes brightness while it spins. So:
+
+| The model is | Use |
+|---|---|
+| A solid thing: weapon, rock, ice | `.glow()` (and an `.aura(...)` if it should shine) |
+| Fire, light, energy, magic circles | `.glow().unshaded().seeThrough()` |
+
+Two things to know about `.aura(...)`:
+
+- It lights up the **whole box** of every cube and ignores see-through pixels. On a flat plate or a flame texture you get a glowing rectangle. Leave the aura off those. If a model needs both (a rock with flames), split it into two models and play them together with the same keys, like `meteor` + `meteor_tail`.
+- Every cube adds its own glow, so it piles up on models made of cubes inside cubes. A strong aura turns a dark layered model into one bright blob. Use a low alpha there (the entropy sphere uses `0x40......`).
+
+Models built in layers (a core with see-through shells around it) need nothing special: the game sorts the faces by distance, so the order of the cubes in Blockbench does not matter. The inside only shows through pixels of the outer cubes that are see-through in the texture.
 
 ## 4. Animate it with keyframes
 
@@ -239,9 +259,14 @@ ParticleShapes.model(sl, RUNE, position, player);
 // offset is from its feet, in world directions
 ParticleShapes.modelOn(sl, RUNE, mob, new Vec3(0, mob.getBbHeight(), 0), 0f, 0f, 0f);
 
+// with its top (up in Blockbench) pointing along a direction: spears, arrows, meteors
+ParticleShapes.modelAlong(sl, SPEAR, from, player.getLookAngle());
+
 // remove everything stuck to an entity
 ParticleShapes.clearModels(sl, mob);
 ```
+
+Models are sent to every player within 512 blocks, so a big one (a meteor, a falling blade) is seen from far away. The small 2D particles and slash trails are still only sent within 32 blocks.
 
 > **Watch out:** methods never change the effect you call them on, they return a new one.
 > `RUNE.key(...)` on its own line does nothing; keep the result:
@@ -261,6 +286,63 @@ The animation runs on the players' screens, so damage and sounds go on the serve
 ParticleShapes.model(sl, hammer, grip, yaw, 0f, 0f);
 Later.run(sl, 18, () -> hammerImpact(player, sl, impact));   // 18 = the slam keyframe
 ```
+
+---
+
+## Ready-made models
+
+These are in `models/model_fx/` and any class can use them. Sizes are at `.scale(1)`.
+
+| Model | What it is | Pivot to use | Notes |
+|---|---|---|---|
+| `rune_circle` | Flat magic circle, 1 block wide | default (its middle) | White: tint it with `.color(...)`. `.scale(8)` = 8 blocks wide |
+| `shock_ring` | Flat ring, 1 block wide | default | White, tint it. Animate `scale` for a shockwave |
+| `fireball` | Ball of fire, 0.75 blocks | `(8, 8, 8)` | |
+| `fire_blast` | Round burst of flames, about 1 block | `(8, 8, 8)` | For explosions: scale it up fast and fade it out |
+| `flame_pillar` | Flames, 1 block wide, 2 tall, animated | default (the base) | Stretch it with `.scale(width, height, width)` |
+| `ice_spike` | Tall ice spike with small ones around it, 2 blocks tall | default (the base) | |
+| `meteor` + `meteor_tail` | Burning rock and the flames behind it | `(8, 6, 8)` for both | Play both with the same keys. The tail points up, so aim the model's up back along the flight |
+| `ice_shell`, `ice_crystals` | The freeze look | default | Used by `Freeze`, see below |
+| `order_hammer` | Hand of Order's golden hammer | grip `(8, -10, 8)` | |
+| `prince_of_abolition/spear` | Spear, 3 blocks long, tip up | middle of the shaft `(8, 8, 8)`, tip `(8, 32, 8)` | |
+| `prince_of_abolition/hammer` | Dark hammer | grip `(8, -10, 8)`, flat top of the head `(8, 30, 8)` | |
+| `prince_of_abolition/blade` | Sword hanging point down, 3 blocks tall | its point `(8, -16, 8)` | |
+| `prince_of_abolition/entropy_orb` + `entropy_disc` | Dark sphere and the ring around it | `(8, 8, 8)` for both | Spin them opposite ways |
+
+The fire and light ones want `.glow().unshaded().seeThrough()`; the solid ones `.glow()`.
+
+Flat plates (`rune_circle`, `shock_ring`) lie on the ground as they are. Play them a little above it so they don't flicker inside the block: `ground.add(0, 0.05, 0)`.
+
+## Tricks worth copying
+
+All of these are in `PrinceOfAbolition.java`, with the helper named in brackets.
+
+**Flying along a direction** (`spearThrow`, `launchFireball`). `modelAlong` turns the model so its up points the way you give it. From then on `up(...)` in the keys moves it along that line:
+
+```java
+ModelFx spear = SPEAR.lifetime(12)
+        .key(4, ModelFx.pose().up(-1f), ModelFx.Ease.OUT_BACK)     // drawn back a block
+        .key(12, ModelFx.pose().up(20f));                          // flies 20 blocks
+ParticleShapes.modelAlong(sl, spear, from, player.getLookAngle());
+```
+
+**Dropping out of the sky, head first** (`hammerFall`, `spearFromSky`). Play the model upside down (pitch 180) with the pivot on the part that should land. Its up now points down, so `up(-22)` is 22 blocks above the spot and `up(0)` is the landing:
+
+```java
+ModelFx hammer = HAMMER.pivot(8, 30, 8)                            // the flat top of the head
+        .key(0, ModelFx.pose().up(-22f))
+        .key(7, ModelFx.pose().up(0f), ModelFx.Ease.IN);
+ParticleShapes.model(sl, hammer, ground, yaw, 180f, 0f);           // pitch 180 = upside down
+Later.run(sl, 7, () -> hammerImpact(player, sl, ground));          // your own method: damage, sounds, particles
+```
+
+**A circle that warns where it will land** (`warningCircle`), **a ring racing outward** (`shockRing`), **an explosion** (`fireBurst`) and **something heavy hitting the ground** (`groundSlam`) are small helpers in that file, under "Looks shared by the abilities". Copy them into your class or call the same models.
+
+**One hit per enemy from many models** (`iceSpikes`). Ten spikes in a row would hurt a mob three times. They share one `Set<LivingEntity>` and skip whoever is already in it.
+
+**Starting beside the player** (`clearStart`). A model that appears next to you (a spear at your shoulder) starts inside the wall when you stand against one, and a ray that starts inside a block stops at once. `clearStart` moves the start back to just in front of the wall.
+
+**Finding the ground under a spot** (`groundAt`, `aimGround`). They also work when the player aims at a ceiling or at the side of a hill.
 
 ---
 
@@ -316,6 +398,11 @@ Freeze.thaw(target);          // break the ice early (with the shatter effect)
 | Swings around the wrong spot | Set `.pivot(...)` to the right pixel coordinates |
 | Things inside it disappear | Add `.seeThrough()` |
 | Aura too bright / dim | Lower / raise the alpha of the aura color (`0x80...` is half strength) |
-| Not visible from far away | Effects are sent to players within 32 blocks, same as other particles |
+| Fire or light looks dull, grey on some sides, or flickers while it spins | Add `.unshaded()` |
+| A glowing square around a flat plate or a flame | That is the aura. Remove it (`.noAura()`) |
+| A dark model with shells turns into one bright blob | The aura piles up on layered models. Lower its alpha a lot (`0x40...`) |
+| Inner part of a layered model is hidden | The outer cubes' texture is too solid there. Make those pixels see-through in the PNG |
+| Faint parts vanish before the rest when it fades | Normal: the game drops pixels below 10% opacity |
+| Not visible from far away | Models are sent within 512 blocks, but 2D particles and trails only within 32 |
 
 The code lives in `src/main/java/net/lukario/frogerealm/particles/fx/` (`ModelFx`, `ModelFxRenderer`, `ModelFxParticle`). You only need to touch `ModelFx` to add new options.
