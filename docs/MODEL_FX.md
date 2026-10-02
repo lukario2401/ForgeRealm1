@@ -4,6 +4,8 @@ ModelFx lets any class show a 3D model in the world for a while: a summoned weap
 
 Nothing needs registering. You make a model, drop two files into the right folders, describe the effect in code and play it.
 
+This guide is about the models themselves. What to do *with* them (make one fly and hit things, count down, link damage, take over a mob...) is in [SPELL_KIT.md](SPELL_KIT.md).
+
 ---
 
 ## 1. Make the model in Blockbench
@@ -91,6 +93,7 @@ private static final ModelFx RUNE = ModelFx.of("rune")      // models/model_fx/r
 | `.key(tick, pose)` / `.key(tick, pose, ease)` | Animation keyframe (see below) |
 | `.during(from, to, pose)` / `.during(from, to, pose, ease)` | Extra animation that runs at the same time as the keyframes (see below) |
 | `.noKeys()` | Remove all keyframes and `.during` animations |
+| `.tag("name")` | A name for a model stuck to an entity, so it can be removed on its own (see section 5) |
 
 ### Solid things, or fire and light?
 
@@ -264,7 +267,21 @@ ParticleShapes.modelAlong(sl, SPEAR, from, player.getLookAngle());
 
 // remove everything stuck to an entity
 ParticleShapes.clearModels(sl, mob);
+
+// remove only the models with a certain tag
+ParticleShapes.clearModels(sl, mob, "my_mark");
 ```
+
+**Tags.** One mob can carry several effects at once: ice, a mark from your class, a marionette's strings. `clearModels(sl, mob)` wipes all of them. So give your model a tag when you make it, and clear by that tag:
+
+```java
+private static final ModelFx MARK = ModelFx.of("rune").tag("my_mark");
+
+ParticleShapes.clearModels(sl, mob, "my_mark");        // cast again: one mark, not two
+ParticleShapes.modelOn(sl, MARK, mob, new Vec3(0, mob.getBbHeight() + 0.4, 0), 0f, 0f, 0f);
+```
+
+`Freeze` does this (its ice is tagged `freeze`), so thawing a mob no longer removes other effects from it.
 
 Models are sent to every player within 512 blocks, so a big one (a meteor, a falling blade) is seen from far away. The small 2D particles and slash trails are still only sent within 32 blocks.
 
@@ -308,14 +325,24 @@ These are in `models/model_fx/` and any class can use them. Sizes are at `.scale
 | `prince_of_abolition/hammer` | Dark hammer | grip `(8, -10, 8)`, flat top of the head `(8, 30, 8)` | |
 | `prince_of_abolition/blade` | Sword hanging point down, 3 blocks tall | its point `(8, -16, 8)` | |
 | `prince_of_abolition/entropy_orb` + `entropy_disc` | Dark sphere and the ring around it | `(8, 8, 8)` for both | Spin them opposite ways |
+| `orb` | Soft ball of light, 0.75 blocks | `(8, 8, 8)` | White: tint it with `.color(...)`. A core with see-through shells. For shells of air, energy, souls |
+| `marionette_cross` | Wooden control bar with five strings hanging from it, 1 block wide | default = the lower ends of the strings; the bar is 1.75 blocks above | Used by `Marionette`. Stretch it to the mob with `.scale(width, height, width)` |
+| `attendant_of_mysteries/paper_dagger` | Folded paper dagger, 1.3 blocks long, tip up | its middle `(8, 10, 8)`, tip `(8, 20, 8)` | |
+| `attendant_of_mysteries/paper_figurine` | Flat paper doll, 2 blocks tall | default (its feet) | `.scale(0.3f)` for a small one |
+| `attendant_of_mysteries/projection` | A figure of fog in a long coat and top hat, 2.35 blocks tall | its feet `(8, -6, 8)` | Fades toward the ground. Tint it with `.color(...)` |
+| `attendant_of_mysteries/needle` | Sewing needle hanging point down, 3 blocks long | its point `(8, -16, 8)`, eye `(8, 32, 8)` | |
+| `attendant_of_mysteries/thread` | A taut thread standing up, 3 blocks long, fading toward its top | its lower end `(8, -16, 8)` | White, tint it. Stretch it with `.scale(width, length, width)` |
+| `attendant_of_mysteries/fool_card` | Tarot card standing upright, 10 x 16 px | its middle `(8, 8, 8)` | Face and back are different |
 
-The fire and light ones want `.glow().unshaded().seeThrough()`; the solid ones `.glow()`.
+The fire and light ones (`orb`, `thread` and `projection` too) want `.glow().unshaded().seeThrough()`; the solid ones `.glow()`.
 
 Flat plates (`rune_circle`, `shock_ring`) lie on the ground as they are. Play them a little above it so they don't flicker inside the block: `ground.add(0, 0.05, 0)`.
 
 ## Tricks worth copying
 
 All of these are in `PrinceOfAbolition.java`, with the helper named in brackets.
+
+The helpers mentioned below no longer need copying: `warningCircle`, `shockRing` and `fireBurst` are in `combat/SpellFx`, and `clearStart`, `groundAt` and `aimGround` are in `combat/Spells`, ready to call from any class. A model that flies and hits things is one line with `combat/Shot`. See [SPELL_KIT.md](SPELL_KIT.md).
 
 **Flying along a direction** (`spearThrow`, `launchFireball`). `modelAlong` turns the model so its up points the way you give it. From then on `up(...)` in the keys moves it along that line:
 
@@ -404,5 +431,6 @@ Freeze.thaw(target);          // break the ice early (with the shatter effect)
 | Inner part of a layered model is hidden | The outer cubes' texture is too solid there. Make those pixels see-through in the PNG |
 | Faint parts vanish before the rest when it fades | Normal: the game drops pixels below 10% opacity |
 | Not visible from far away | Models are sent within 512 blocks, but 2D particles and trails only within 32 |
+| Ending one effect removes another effect's model from the same mob | Give each its own `.tag(...)` and use `clearModels(sl, mob, "tag")` |
 
 The code lives in `src/main/java/net/lukario/frogerealm/particles/fx/` (`ModelFx`, `ModelFxRenderer`, `ModelFxParticle`). You only need to touch `ModelFx` to add new options.
