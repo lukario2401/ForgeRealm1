@@ -2,6 +2,7 @@ package net.lukario.frogerealm.particles.fx;
 
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
@@ -22,6 +23,7 @@ import net.minecraft.world.phys.Vec3;
  *   ParticleShapes.alongSlash(sl, SHARD, SWING, center, yaw, 0, 0, 6, 20, 0.08, 0.03); // shards breaking off a slash
  *   ParticleShapes.model(sl, HAMMER, grip, player.getYRot(), 0, 0);                 // 3D model effect (ModelFx)
  *   ParticleShapes.modelOn(sl, CRYSTALS, mob, Vec3.ZERO, 0, 0, 0);                  // 3D model stuck to an entity
+ *   ParticleShapes.modelAlong(sl, SPEAR, from, player.getLookAngle());              // 3D model pointing along a direction
  *
  * For effects in stages (this now, that 5 ticks later) use combat.Later.run(serverLevel, 5, () -> ...).
  *
@@ -46,6 +48,21 @@ public final class ParticleShapes {
     /** Standing still at a position. */
     public static void spawn(Level level, ParticleOptions particle, Vec3 position) {
         spawn(level, particle, position, Vec3.ZERO);
+    }
+
+    /**
+     * Like spawn(...), but sent to every player within 512 blocks instead of 32.
+     * 3D models are played with this, so big ones (a meteor, a falling blade) are seen from far away.
+     */
+    public static void spawnFar(Level level, ParticleOptions particle, Vec3 position, Vec3 velocity) {
+        if (level instanceof ServerLevel serverLevel) {
+            for (ServerPlayer viewer : serverLevel.players()) {
+                serverLevel.sendParticles(viewer, particle, true, position.x, position.y, position.z, 0,
+                        velocity.x, velocity.y, velocity.z, 1.0);
+            }
+        } else {
+            level.addParticle(particle, position.x, position.y, position.z, velocity.x, velocity.y, velocity.z);
+        }
     }
 
     /**
@@ -206,7 +223,7 @@ public final class ParticleShapes {
      * rotation; yaw = the direction its front faces, like an entity's yaw.
      */
     public static void model(Level level, ModelFx model, Vec3 position, float yaw, float pitch, float roll) {
-        spawn(level, model.rotated(yaw, pitch, roll), position);
+        spawnFar(level, model.rotated(yaw, pitch, roll), position, Vec3.ZERO);
     }
 
     /** Plays a ModelFx at position, facing the way the entity faces (left/right only). */
@@ -219,12 +236,24 @@ public final class ParticleShapes {
      * offset = from the entity's feet, in world directions (not turned with the entity).
      */
     public static void modelOn(Level level, ModelFx model, Entity entity, Vec3 offset, float yaw, float pitch, float roll) {
-        spawn(level, model.following(entity, offset).rotated(yaw, pitch, roll), entity.position().add(offset));
+        spawnFar(level, model.following(entity, offset).rotated(yaw, pitch, roll), entity.position().add(offset), Vec3.ZERO);
+    }
+
+    /**
+     * Plays a ModelFx with its top (up in Blockbench) pointing along 'direction': spears, arrows, meteors...
+     * In its keys, up(...) then moves it along that direction, so .key(10, ModelFx.pose().up(20)) flies
+     * 20 blocks that way in 10 ticks.
+     */
+    public static void modelAlong(Level level, ModelFx model, Vec3 position, Vec3 direction) {
+        Vec3 dir = direction.normalize();
+        float yaw = (float) Math.toDegrees(Math.atan2(-dir.x, dir.z));
+        float pitch = 90f - (float) Math.toDegrees(Math.asin(Math.max(-1.0, Math.min(1.0, dir.y))));
+        model(level, model, position, yaw, pitch, 0f);
     }
 
     /** Removes every ModelFx stuck to this entity (for everyone who can see it). */
     public static void clearModels(Level level, Entity entity) {
-        spawn(level, ModelFx.clearing(entity), entity.position());
+        spawnFar(level, ModelFx.clearing(entity), entity.position(), Vec3.ZERO);
     }
 
     /** Random unit vector at most angleDegrees/2 away from forward (uniform over the cone). */

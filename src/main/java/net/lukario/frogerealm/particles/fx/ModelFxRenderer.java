@@ -63,6 +63,11 @@ public final class ModelFxRenderer {
     private static final float[] U = new float[4], V = new float[4];
     private static final Vector3f POSITION = new Vector3f();
     private static final Vector3f NORMAL = new Vector3f();
+    /**
+     * Where Minecraft's main light comes from (the same in every dimension). A face that looks this way gets
+     * full brightness, so .unshaded() models tell the game that all their faces look this way.
+     */
+    private static final Vector3f FULLY_LIT = new Vector3f(0.2f, 1.0f, -0.7f).normalize();
 
     private ModelFxRenderer() {}
 
@@ -194,13 +199,13 @@ public final class ModelFxRenderer {
         for (Direction side : SIDES) {
             RANDOM.setSeed(42L);
             for (BakedQuad quad : d.model().getQuads(null, side, RANDOM)) {
-                drawQuad(consumer, quad, d.pose(), d.normal(), r, g, b, a, light, inflate, flatU, flatV);
+                drawQuad(consumer, quad, d.pose(), d.normal(), d.fx().isUnshaded(), r, g, b, a, light, inflate, flatU, flatV);
             }
         }
     }
 
     private static void drawQuad(VertexConsumer consumer, BakedQuad quad, Matrix4f pose, Matrix3f normalMatrix,
-                                 float r, float g, float b, float a, int light,
+                                 boolean unshaded, float r, float g, float b, float a, int light,
                                  float inflate, float flatU, float flatV) {
         int[] data = quad.getVertices();
         int stride = IQuadTransformer.STRIDE;
@@ -261,9 +266,13 @@ public final class ModelFxRenderer {
             }
         }
 
-        NORMAL.set(nx, ny, nz);
-        normalMatrix.transform(NORMAL);
-        NORMAL.normalize();
+        if (unshaded) {
+            NORMAL.set(FULLY_LIT);               // the game only uses the normal to decide how bright the face is
+        } else {
+            NORMAL.set(nx, ny, nz);
+            normalMatrix.transform(NORMAL);
+            NORMAL.normalize();
+        }
         boolean flat = !Float.isNaN(flatU);
 
         for (int i = 0; i < 4; i++) {

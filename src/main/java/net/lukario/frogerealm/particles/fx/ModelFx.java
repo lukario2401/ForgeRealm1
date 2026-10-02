@@ -48,6 +48,7 @@ import java.util.Locale;
  *           .key(18, ModelFx.pose().pitch(90), ModelFx.Ease.IN);
  *
  * Other options: .color(argb) tint/opacity, .seeThrough() for textures with transparent pixels (ice, glass),
+ * .unshaded() for fire, light and energy (every face equally bright),
  * .spin(deg/tick) (spins the whole time), .delay(ticks), .rotation(yaw, pitch, roll).
  *
  * ---------- 3. Play it (server or client) ----------
@@ -218,6 +219,7 @@ public final class ModelFx implements ParticleOptions {
     private int color;
     private boolean glow;
     private boolean seeThrough;
+    private boolean unshaded;
     private int auraColor;
     private float auraSize;
     private int auraLayers;
@@ -239,7 +241,7 @@ public final class ModelFx implements ParticleOptions {
 
     private ModelFx copy() {
         ModelFx c = new ModelFx();
-        c.model = model; c.color = color; c.glow = glow; c.seeThrough = seeThrough;
+        c.model = model; c.color = color; c.glow = glow; c.seeThrough = seeThrough; c.unshaded = unshaded;
         c.auraColor = auraColor; c.auraSize = auraSize; c.auraLayers = auraLayers;
         c.scaleX = scaleX; c.scaleY = scaleY; c.scaleZ = scaleZ;
         c.pivotX = pivotX; c.pivotY = pivotY; c.pivotZ = pivotZ;
@@ -263,6 +265,7 @@ public final class ModelFx implements ParticleOptions {
         fx.color = 0xFFFFFFFF;
         fx.glow = false;
         fx.seeThrough = false;
+        fx.unshaded = false;
         fx.auraColor = 0;
         fx.auraSize = 0.1f;
         fx.auraLayers = 3;
@@ -295,6 +298,13 @@ public final class ModelFx implements ParticleOptions {
      * so whatever is inside it stays visible.
      */
     public ModelFx seeThrough() { ModelFx c = copy(); c.seeThrough = true; return c; }
+
+    /**
+     * Every face is equally bright, whichever way it points: for fire, light and energy.
+     * Without it the sides are darker than the top and the underside is darkest, like every Minecraft model.
+     * That shading is what makes solid things (a hammer, ice) look 3D, but it makes flames look dull.
+     */
+    public ModelFx unshaded() { ModelFx c = copy(); c.unshaded = true; return c; }
 
     /**
      * Glowing outline around the model (light added on top, like the hammer's golden glow).
@@ -468,6 +478,7 @@ public final class ModelFx implements ParticleOptions {
     public int tintColor() { return color; }
     public boolean glows() { return glow; }
     public boolean isSeeThrough() { return seeThrough; }
+    public boolean isUnshaded() { return unshaded; }
     public int auraColor() { return auraColor; }
     public float auraBlocks() { return auraSize; }
     public int auraLayerCount() { return auraLayers; }
@@ -559,7 +570,7 @@ public final class ModelFx implements ParticleOptions {
 
     // The command/NBT format is split into groups only because a codec can hold at most 16 fields;
     // the fields themselves are all at the same level: {model:"...", glow:1b, lifetime:40, ...}
-    private record Look(ResourceLocation model, int color, boolean glow, boolean seeThrough,
+    private record Look(ResourceLocation model, int color, boolean glow, boolean seeThrough, boolean unshaded,
                         int auraColor, float auraSize, int auraLayers) {}
     private record Shape(Vec3 scale, Vec3 pivot, Vec3 rotation) {}
     private record Timing(int lifetime, int delay, int fadeIn, int fadeOut, float spin) {}
@@ -573,6 +584,7 @@ public final class ModelFx implements ParticleOptions {
             ParticleFx.COLOR_CODEC.optionalFieldOf("color", 0xFFFFFFFF).forGetter(Look::color),
             Codec.BOOL.optionalFieldOf("glow", false).forGetter(Look::glow),
             Codec.BOOL.optionalFieldOf("see_through", false).forGetter(Look::seeThrough),
+            Codec.BOOL.optionalFieldOf("unshaded", false).forGetter(Look::unshaded),
             ParticleFx.COLOR_CODEC.optionalFieldOf("aura_color", 0).forGetter(Look::auraColor),
             Codec.FLOAT.optionalFieldOf("aura_size", 0.1f).forGetter(Look::auraSize),
             Codec.INT.optionalFieldOf("aura_layers", 3).forGetter(Look::auraLayers)
@@ -601,6 +613,7 @@ public final class ModelFx implements ParticleOptions {
     private static ModelFx fromParts(Look look, Shape shape, Timing timing, Link link, List<Key> keys) {
         ModelFx fx = new ModelFx();
         fx.model = look.model(); fx.color = look.color(); fx.glow = look.glow(); fx.seeThrough = look.seeThrough();
+        fx.unshaded = look.unshaded();
         fx.auraColor = look.auraColor(); fx.auraSize = look.auraSize(); fx.auraLayers = Mth.clamp(look.auraLayers(), 1, 6);
         fx.scaleX = (float) shape.scale().x; fx.scaleY = (float) shape.scale().y; fx.scaleZ = (float) shape.scale().z;
         fx.pivotX = (float) shape.pivot().x; fx.pivotY = (float) shape.pivot().y; fx.pivotZ = (float) shape.pivot().z;
@@ -615,7 +628,7 @@ public final class ModelFx implements ParticleOptions {
     }
 
     public static final MapCodec<ModelFx> CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
-            LOOK_CODEC.forGetter((ModelFx fx) -> new Look(fx.model, fx.color, fx.glow, fx.seeThrough,
+            LOOK_CODEC.forGetter((ModelFx fx) -> new Look(fx.model, fx.color, fx.glow, fx.seeThrough, fx.unshaded,
                     fx.auraColor, fx.auraSize, fx.auraLayers)),
             SHAPE_CODEC.forGetter((ModelFx fx) -> new Shape(new Vec3(fx.scaleX, fx.scaleY, fx.scaleZ),
                     new Vec3(fx.pivotX, fx.pivotY, fx.pivotZ), new Vec3(fx.yaw, fx.pitch, fx.roll))),
@@ -632,6 +645,7 @@ public final class ModelFx implements ParticleOptions {
         buffer.writeInt(color);
         buffer.writeBoolean(glow);
         buffer.writeBoolean(seeThrough);
+        buffer.writeBoolean(unshaded);
         buffer.writeInt(auraColor);
         buffer.writeFloat(auraSize);
         buffer.writeVarInt(auraLayers);
@@ -675,6 +689,7 @@ public final class ModelFx implements ParticleOptions {
         fx.color = buffer.readInt();
         fx.glow = buffer.readBoolean();
         fx.seeThrough = buffer.readBoolean();
+        fx.unshaded = buffer.readBoolean();
         fx.auraColor = buffer.readInt();
         fx.auraSize = buffer.readFloat();
         fx.auraLayers = Mth.clamp(buffer.readVarInt(), 1, 6);
