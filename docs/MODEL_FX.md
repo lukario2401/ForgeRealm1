@@ -59,7 +59,7 @@ private static final ModelFx RUNE = ModelFx.of("rune")      // models/model_fx/r
         .aura(0xFF80C0FF, 0.1f, 3)    // glowing outline: ARGB color, thickness in blocks, softness
         .lifetime(60)                 // ticks (20 = 1 second)
         .fade(5, 10)                  // fade in 5 ticks, fade out the last 10
-        .spin(6f);                    // turns around its up axis, degrees per tick
+        .spin(6f);                    // turns around its own up axis the whole time, degrees per tick
 ```
 
 ### All options
@@ -77,27 +77,75 @@ private static final ModelFx RUNE = ModelFx.of("rune")      // models/model_fx/r
 | `.lifetime(ticks)` | How long it stays |
 | `.delay(ticks)` | Wait before appearing |
 | `.fade(in, out)` | Fade in / fade out ticks |
-| `.spin(degPerTick)` | Keeps turning |
+| `.spin(degPerTick)` | Keeps turning around its own up axis the whole time |
 | `.key(tick, pose)` / `.key(tick, pose, ease)` | Animation keyframe (see below) |
-| `.noKeys()` | Remove all keyframes |
+| `.during(from, to, pose)` / `.during(from, to, pose, ease)` | Extra animation that runs at the same time as the keyframes (see below) |
+| `.noKeys()` | Remove all keyframes and `.during` animations |
 
 ## 4. Animate it with keyframes
 
-A keyframe says where the model is at a given tick. Between two keyframes it moves smoothly.
+A keyframe says: **by this tick, these things have these values.** Ticks count from when the model appears.
 
 ```java
-ModelFx.pose()            // start: no offset, no rotation, scale 1, alpha 1
-    .forward(2f)          // blocks in front (of the way it faces)
+ModelFx sword = SWORD
+        .key(20, ModelFx.pose().pitch(90), ModelFx.Ease.IN)     // ticks 0-20:  tips forward
+        .key(30, ModelFx.pose().yaw(90))                        // ticks 20-30: turns right, STILL tipped forward
+        .key(60, ModelFx.pose().forward(10), ModelFx.Ease.IN);  // ticks 30-60: flies forward, still tipped + turned
+```
+
+The rules:
+
+- **A key only changes what it names.** `pose().yaw(90)` touches the yaw and nothing else, so the pitch from the key before stays. Keys "stick".
+- **A key starts moving when the key before it is reached** (the first one starts at tick 0), and uses its own ease.
+- **Everything starts at rest**: no offset, no rotation, scale 1, alpha 1. Use `.key(0, ...)` to start from something else, e.g. `.key(0, ModelFx.pose().scale(0.3f).alpha(0f))` to start small and invisible.
+- After the last key it holds what it has.
+- `ModelFx.rest()` is a pose that puts **everything** back to the start in one go: `.key(80, ModelFx.rest())`.
+
+What a pose can change:
+
+```java
+ModelFx.pose()            // changes nothing until you name something
+    .forward(2f)          // blocks in front (the way the effect faces, however the model is turned)
     .up(1f)               // blocks up
     .right(0.5f)          // blocks to the right
     .pitch(90)            // + tips the top forward (a downward swing)
-    .yaw(45)              // + turns right
+    .yaw(45)              // + turns right, around the world's up
     .roll(30)             // + tips the top to the right
+    .spin(360)            // + turns around its OWN up axis (up in Blockbench), however it is tilted
     .scale(0.5f)          // multiplies .scale(...)
     .alpha(0f)            // 0 = invisible
 ```
 
-All rotations happen around the pivot.
+All rotations happen around the pivot. Go past 360 to keep turning: `yaw(720)` is two full turns.
+
+### Several things at the same time
+
+**Same timing:** put them in one key. They move together.
+
+```java
+.key(60, ModelFx.pose().forward(10).up(2).scale(2f))    // flies forward, rises and grows, all during the same ticks
+```
+
+**Their own timing:** `.during(fromTick, toTick, pose, ease)` runs next to the keyframes. Add as many as you want; they can overlap the keys and each other.
+
+```java
+ModelFx sword = SWORD
+        .key(20, ModelFx.pose().pitch(90), ModelFx.Ease.IN)
+        .key(30, ModelFx.pose().yaw(90))
+        .key(100, ModelFx.pose().forward(12), ModelFx.Ease.IN)      // flies forward during ticks 30-100...
+        .during(30, 100, ModelFx.pose().spin(1440))                 // ...and spins 4 full turns on the way
+        .during(0, 10, ModelFx.pose().scale(1.5f), ModelFx.Ease.OUT_BACK);  // ...and pops bigger in the first 10 ticks
+```
+
+Which spin to animate:
+
+| You want | Animate |
+|---|---|
+| Turn around its own length/up axis (a drill, a spinning top), whatever way it's tilted | `spin` |
+| Flat spin around the world's up (a thrown blade, a rotor) | `yaw` |
+| Tumble end over end | `pitch` |
+
+If a `.during` and a key change the *same* thing during the same ticks, the one that started later takes over.
 
 **Easing** (how it gets to a keyframe from the previous one):
 
@@ -110,19 +158,17 @@ All rotations happen around the pivot.
 | `OUT_BACK` | overshoots then settles: popping into existence |
 | `OUT_BOUNCE` | bounces at the end |
 
-Example: the Hand of Order hammer swing.
+Example: the Hand of Order hammer swing. It starts small and invisible, so the next key says what size and alpha to go to.
 
 ```java
 ORDER_HAMMER
     .key(0,  ModelFx.pose().pitch(-20).scale(0.3f).alpha(0f))
-    .key(6,  ModelFx.pose().pitch(-35), ModelFx.Ease.OUT_BACK)   // appears behind you
+    .key(6,  ModelFx.pose().pitch(-35).scale(1f).alpha(1f), ModelFx.Ease.OUT_BACK)   // appears behind you
     .key(13, ModelFx.pose().pitch(-55), ModelFx.Ease.IN_OUT)     // winds up
     .key(18, ModelFx.pose().pitch(90),  ModelFx.Ease.IN)         // slams down
     .key(20, ModelFx.pose().pitch(85),  ModelFx.Ease.OUT)        // small bounce
     .key(23, ModelFx.pose().pitch(90),  ModelFx.Ease.IN);
 ```
-
-Before the first key it holds the first pose; after the last key it holds the last pose.
 
 ## 5. Play it
 
@@ -177,9 +223,9 @@ Say you want a spear that falls from the sky onto a target.
 private static final ModelFx SKY_SPEAR = ModelFx.of("sky_spear")
         .scale(2f).glow().aura(0xFFFF4040, 0.1f, 3)
         .lifetime(40).fade(0, 10)
-        .key(0,  ModelFx.pose().up(12f).alpha(0f))
-        .key(4,  ModelFx.pose().up(12f))
-        .key(12, ModelFx.pose(), ModelFx.Ease.IN);     // hits the ground at tick 12
+        .key(0,  ModelFx.pose().up(12f).alpha(0f))             // starts 12 blocks up, invisible
+        .key(4,  ModelFx.pose().alpha(1f))                     // fades in (still 12 up)
+        .key(12, ModelFx.pose().up(0f), ModelFx.Ease.IN);      // hits the ground at tick 12
 
 // in the ability:
 ParticleShapes.model(sl, SKY_SPEAR, target.position(), player.getYRot(), 0f, 0f);
@@ -208,6 +254,8 @@ Freeze.thaw(target);          // break the ice early (with the shatter effect)
 | Purple/black cube | Model file name or its `textures` path is wrong, or the PNG isn't in `textures/model_fx/` |
 | Model doesn't load at all | A cube is outside -16..32 px, or a rotation isn't -45/-22.5/0/22.5/45. Check the game log |
 | Keyframes do nothing / it doesn't move | You called `.key(...)` but played the original. Save the result in a variable and play that |
+| It never comes back from a key (stays small / invisible / rotated) | Keys stick. Name the value to return to in a later key (`.scale(1f).alpha(1f)`), or use `ModelFx.rest()` |
+| Spin goes around the wrong axis | `spin` = its own up axis, `yaw` = the world's up, `pitch` = end over end. See the table in section 4 |
 | Aura invisible | The color needs an alpha: `0xFFFF0000`, not `0xFF0000` |
 | Points the wrong way | The front must be North (-Z) in Blockbench, or add `.rotation(180, 0, 0)` |
 | Swings around the wrong spot | Set `.pivot(...)` to the right pixel coordinates |

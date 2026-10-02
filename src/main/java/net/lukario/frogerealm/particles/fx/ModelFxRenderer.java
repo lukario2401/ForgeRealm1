@@ -123,9 +123,11 @@ public final class ModelFxRenderer {
                     .rotateZ(rad(-fx.roll()))
                     // keyframe: offset (right, up, forward = -Z), then rotation around the pivot
                     .translate(pose.right(), pose.up(), -pose.forward())
-                    .rotateY(rad(-(pose.yaw() + fx.spinDegrees() * time)))
+                    .rotateY(rad(-pose.yaw()))
                     .rotateX(rad(-pose.pitch()))
                     .rotateZ(rad(-pose.roll()))
+                    // spin: around the model's own up axis, so it works however the model is tilted
+                    .rotateY(rad(-(pose.spin() + fx.spinDegrees() * time)))
                     .scale(fx.scaleX() * scale, fx.scaleY() * scale, fx.scaleZ() * scale)
                     .translate(-fx.pivotX() / 16f, -fx.pivotY() / 16f, -fx.pivotZ() / 16f);
             Matrix3f normal = matrix.normal(new Matrix3f());

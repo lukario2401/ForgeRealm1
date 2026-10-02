@@ -358,7 +358,7 @@ public class HandOfOrder {
 
         ModelFx hammer = ORDER_HAMMER
                 .key(0, ModelFx.pose().pitch(-20).scale(0.3f).alpha(0f))
-                .key(6, ModelFx.pose().pitch(-35), ModelFx.Ease.OUT_BACK)                          // appears behind you
+                .key(6, ModelFx.pose().pitch(-35).scale(1f).alpha(1f), ModelFx.Ease.OUT_BACK)      // appears behind you
                 .key(13, ModelFx.pose().pitch(-55), ModelFx.Ease.IN_OUT)                           // winds up
                 .key(HAMMER_IMPACT_TICK, ModelFx.pose().pitch(strikePitch), ModelFx.Ease.IN)       // slams down
                 .key(HAMMER_IMPACT_TICK + 2, ModelFx.pose().pitch(strikePitch - 5), ModelFx.Ease.OUT) // small bounce
@@ -576,12 +576,16 @@ public class HandOfOrder {
 //                ParticleShapes.burst(sl, HIT_SHARD, target.getBoundingBox().getCenter(), 10, 0.1, 0.25);
 //            }
 
+            // A key only changes what it names; everything else stays where the earlier keys left it.
             ModelFx sword = HAND_OF_ORDER_SWORD
-                    .key(0, ModelFx.pose().forward(0))
-                    .key(20, ModelFx.pose().pitch(90), ModelFx.Ease.IN)
-                    .key(30, ModelFx.pose().yaw(90), ModelFx.Ease.IN)
-                    .key(40, ModelFx.pose().forward(5), ModelFx.Ease.IN)
-                    .key(100, ModelFx.pose().forward(12), ModelFx.Ease.IN);
+                    .key(20, ModelFx.pose().pitch(90), ModelFx.Ease.IN)       // ticks 0-20: tips forward
+                    .key(30, ModelFx.pose().yaw(90), ModelFx.Ease.IN)         // 20-30: turns sideways (still tipped)
+                    .key(40, ModelFx.pose().forward(5), ModelFx.Ease.IN)      // 30-40: lunges forward (still tipped + turned)
+                    .key(100, ModelFx.pose().forward(12), ModelFx.Ease.IN)    // 40-100: flies on
+                    // at the same time as the flight (ticks 30-100): 4 full turns, flat like a thrown blade.
+                    // Other spins: pose().spin(1440) rolls it around its own blade,
+                    //              pose().pitch(90 + 1440) tumbles it end over end
+                    .during(30, 100, ModelFx.pose().yaw(90 + 1440));
 
             ParticleShapes.model(sl, sword, player.position().add(0,3,0), player.getYRot(), 0f, 0f);
         }

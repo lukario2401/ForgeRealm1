@@ -43,12 +43,12 @@ import java.util.Locale;
  *           .glow()                       // full bright
  *           .aura(0xFFFFB82E, 0.14f, 3)   // glowing outline: ARGB color, thickness in blocks, softness (layers)
  *           .lifetime(40).fade(3, 8)      // ticks; fade in / fade out ticks
- *           .key(0,  ModelFx.pose().scale(0.3f).alpha(0f))                 // animation keyframes (see Pose)
- *           .key(6,  ModelFx.pose().pitch(-30), ModelFx.Ease.OUT_BACK)
+ *           .key(0,  ModelFx.pose().scale(0.3f).alpha(0f))                 // animation keyframes (see below)
+ *           .key(6,  ModelFx.pose().scale(1f).alpha(1f).pitch(-30), ModelFx.Ease.OUT_BACK)
  *           .key(18, ModelFx.pose().pitch(90), ModelFx.Ease.IN);
  *
  * Other options: .color(argb) tint/opacity, .seeThrough() for textures with transparent pixels (ice, glass),
- * .spin(deg/tick), .delay(ticks), .rotation(yaw, pitch, roll).
+ * .spin(deg/tick) (spins the whole time), .delay(ticks), .rotation(yaw, pitch, roll).
  *
  * ---------- 3. Play it (server or client) ----------
  *   ParticleShapes.model(sl, HAMMER, position, player.getYRot(), 0, 0);           // at a spot, facing a yaw
@@ -56,10 +56,25 @@ import java.util.Locale;
  *   ParticleShapes.clearModels(sl, mob);                                         // remove everything stuck to it
  *
  * ---------- Animation ----------
- * Keyframes are Poses at given ticks (counted from when it appears). Between two keys it moves smoothly using
- * the second key's Ease. Pose = offset (forward/up/right, blocks), rotation (yaw/pitch/roll, degrees), scale, alpha.
- *   pitch + = tips the top forward (a downward swing)   roll + = tips the top to the right   yaw + = turns right
- * All rotations happen around the pivot.
+ * A keyframe says: "by this tick, these things have these values". Ticks count from when it appears.
+ *   .key(20, ModelFx.pose().pitch(90), ModelFx.Ease.IN)     // ticks 0-20: tips forward
+ *   .key(30, ModelFx.pose().yaw(90))                        // ticks 20-30: turns right, STILL pitched 90
+ *   .key(60, ModelFx.pose().forward(10), ModelFx.Ease.IN)   // ticks 30-60: flies forward, still pitched + turned
+ *
+ * A pose only changes what you name in it. Everything else keeps the value the earlier keys gave it
+ * (keys "stick"). ModelFx.rest() puts everything back to the start in one go.
+ * Each key starts moving when the key before it is reached, and uses its own Ease.
+ * Several things in one key move together:  .key(60, ModelFx.pose().forward(10).up(2).scale(2f))
+ *
+ * Things with their own timing run next to the keys with .during(fromTick, toTick, pose, ease):
+ *   .during(30, 60, ModelFx.pose().spin(720))    // while it flies (ticks 30-60) it also spins 2 full turns
+ *   .during(0, 10, ModelFx.pose().scale(1f))     // ...and grows during the first 10 ticks
+ * Use as many as you like; they can overlap the keys and each other.
+ *
+ * What a pose can set: forward/up/right (blocks, relative to the way it faces), scale, alpha, and in degrees:
+ *   yaw   + = turns right (around the world's up)      pitch + = tips the top forward (a downward swing)
+ *   roll  + = tips the top to the right                spin  + = turns around its OWN up axis, however it is tilted
+ * Go past 360 to keep turning: yaw(720) = two full turns. All rotations happen around the pivot.
  *
  * Test in game (shows the model at your feet for 100 ticks):
  *   /particle forgerealmmod:model{model:"forgerealmmod:model_fx/order_hammer",glow:1b,lifetime:100} ~ ~ ~ 0 0 0 0 1
@@ -108,42 +123,91 @@ public final class ModelFx implements ParticleOptions {
     }
 
     /**
-     * Where the model is in one keyframe, relative to where it was played:
-     * offset in blocks (forward / up / right of the direction it faces), rotation in degrees, scale, alpha.
-     * Build with ModelFx.pose().pitch(90).up(0.5f)... (each method returns a copy).
+     * What a keyframe changes: offset in blocks (forward / up / right of the direction it faces),
+     * rotation in degrees, scale, alpha. Build with ModelFx.pose().pitch(90).up(0.5f)... (each method returns a copy).
+     *
+     * A pose only changes the things you set. Everything you leave out keeps the value it already had, so
+     * .key(20, pose().pitch(90)) followed by .key(30, pose().yaw(90)) ends up pitched AND turned.
      */
-    public record Pose(float forward, float up, float right, float yaw, float pitch, float roll, float scale, float alpha) {
+    public static final class Pose {
 
-        public static final Pose REST = new Pose(0, 0, 0, 0, 0, 0, 1, 1);
+        private static final int FORWARD = 0, UP = 1, RIGHT = 2, YAW = 3, PITCH = 4, ROLL = 5, SPIN = 6, SCALE = 7, ALPHA = 8;
+        private static final int COUNT = 9;
+        private static final int EVERYTHING = (1 << COUNT) - 1;
+        private static final float[] START = {0f, 0f, 0f, 0f, 0f, 0f, 0f, 1f, 1f};
 
-        public Pose forward(float blocks) { return new Pose(blocks, up, right, yaw, pitch, roll, scale, alpha); }
-        public Pose up(float blocks) { return new Pose(forward, blocks, right, yaw, pitch, roll, scale, alpha); }
-        public Pose right(float blocks) { return new Pose(forward, up, blocks, yaw, pitch, roll, scale, alpha); }
-        public Pose move(float forward, float up, float right) { return new Pose(forward, up, right, yaw, pitch, roll, scale, alpha); }
-        /** + turns right */
-        public Pose yaw(float degrees) { return new Pose(forward, up, right, degrees, pitch, roll, scale, alpha); }
-        /** + tips the top forward */
-        public Pose pitch(float degrees) { return new Pose(forward, up, right, yaw, degrees, roll, scale, alpha); }
-        /** + tips the top to the right */
-        public Pose roll(float degrees) { return new Pose(forward, up, right, yaw, pitch, degrees, scale, alpha); }
-        public Pose rotation(float yaw, float pitch, float roll) { return new Pose(forward, up, right, yaw, pitch, roll, scale, alpha); }
-        /** multiplies the effect's own scale */
-        public Pose scale(float scale) { return new Pose(forward, up, right, yaw, pitch, roll, scale, alpha); }
-        /** 0 = invisible, 1 = normal */
-        public Pose alpha(float alpha) { return new Pose(forward, up, right, yaw, pitch, roll, scale, alpha); }
+        /** Changes nothing (what ModelFx.pose() starts from). */
+        static final Pose NOTHING = new Pose(START.clone(), 0);
+        /** Sets everything back to the start: no offset, no rotation, scale 1, alpha 1. */
+        public static final Pose REST = new Pose(START.clone(), EVERYTHING);
 
-        public Pose lerp(Pose to, float t) {
-            return new Pose(Mth.lerp(t, forward, to.forward), Mth.lerp(t, up, to.up), Mth.lerp(t, right, to.right),
-                    Mth.lerp(t, yaw, to.yaw), Mth.lerp(t, pitch, to.pitch), Mth.lerp(t, roll, to.roll),
-                    Mth.lerp(t, scale, to.scale), Mth.lerp(t, alpha, to.alpha));
+        private final float[] values;
+        private final int set;   // bit n = this pose changes value n
+
+        private Pose(float[] values, int set) {
+            this.values = values;
+            this.set = set;
         }
+
+        private Pose with(int index, float value) {
+            float[] copy = values.clone();
+            copy[index] = value;
+            return new Pose(copy, set | (1 << index));
+        }
+
+        private boolean sets(int index) {
+            return (set & (1 << index)) != 0;
+        }
+
+        // ----- what to change -----
+
+        /** blocks in front (of the direction the effect faces, not the way the model is turned) */
+        public Pose forward(float blocks) { return with(FORWARD, blocks); }
+        public Pose up(float blocks) { return with(UP, blocks); }
+        public Pose right(float blocks) { return with(RIGHT, blocks); }
+        public Pose move(float forward, float up, float right) { return forward(forward).up(up).right(right); }
+        /** + turns right, around the world's up */
+        public Pose yaw(float degrees) { return with(YAW, degrees); }
+        /** + tips the top forward */
+        public Pose pitch(float degrees) { return with(PITCH, degrees); }
+        /** + tips the top to the right */
+        public Pose roll(float degrees) { return with(ROLL, degrees); }
+        public Pose rotation(float yaw, float pitch, float roll) { return yaw(yaw).pitch(pitch).roll(roll); }
+        /** + turns right around its OWN up axis (the model's up in Blockbench), however it is tilted. 360 = one full turn. */
+        public Pose spin(float degrees) { return with(SPIN, degrees); }
+        /** multiplies the effect's own scale */
+        public Pose scale(float scale) { return with(SCALE, scale); }
+        /** 0 = invisible, 1 = normal */
+        public Pose alpha(float alpha) { return with(ALPHA, alpha); }
+
+        // ----- values (meaningful on the pose that poseAt(...) returns) -----
+
+        public float forward() { return values[FORWARD]; }
+        public float up() { return values[UP]; }
+        public float right() { return values[RIGHT]; }
+        public float yaw() { return values[YAW]; }
+        public float pitch() { return values[PITCH]; }
+        public float roll() { return values[ROLL]; }
+        public float spin() { return values[SPIN]; }
+        public float scale() { return values[SCALE]; }
+        public float alpha() { return values[ALPHA]; }
     }
 
-    /** One keyframe: at 'tick' the model is in 'pose', reached from the previous key with 'ease'. */
-    public record Key(int tick, Pose pose, Ease ease) {}
+    /**
+     * One step of the animation: between 'from' and 'tick' the things set in 'pose' move to those values, with 'ease'.
+     * from = -1 means "from the keyframe before this one" (what .key(...) makes); .during(...) gives a real start tick.
+     */
+    public record Key(int from, int tick, Pose pose, Ease ease) {
+        public boolean isSequenced() { return from < 0; }
+    }
 
-    /** Start for keyframes: no offset, no rotation, scale 1, alpha 1. */
+    /** Start for keyframes: changes nothing until you name what to change, e.g. ModelFx.pose().pitch(90). */
     public static Pose pose() {
+        return Pose.NOTHING;
+    }
+
+    /** A pose that puts EVERYTHING back to the start (no offset, no rotation, scale 1, alpha 1). */
+    public static Pose rest() {
         return Pose.REST;
     }
 
@@ -164,11 +228,12 @@ public final class ModelFx implements ParticleOptions {
     private int delay;
     private int fadeIn;
     private int fadeOut;
-    private float spin;                     // degrees per tick, around the model's up
+    private float spin;                     // degrees per tick, around the model's own up
     private int followId;                   // -1 = stays where it was played
     private Vec3 followOffset;
     private boolean clear;                  // special: removes models stuck to followId
-    private List<Key> keys;
+    private List<Key> keys;                 // sorted by tick
+    private Key[] timeline;                 // keys with their real start tick, in the order they apply (made when needed)
 
     private ModelFx() {}
 
@@ -285,25 +350,55 @@ public final class ModelFx implements ParticleOptions {
 
     public ModelFx fadeOut(int ticks) { return fade(fadeIn, ticks); }
 
-    /** Keeps turning around its own up axis, degrees per tick (negative = other way). */
+    /**
+     * Keeps turning around its own up axis the whole time, degrees per tick (negative = other way).
+     * To spin only for a while, animate it instead: .during(30, 100, ModelFx.pose().spin(1440))
+     */
     public ModelFx spin(float degreesPerTick) { ModelFx c = copy(); c.spin = degreesPerTick; return c; }
 
-    /** Add a keyframe reached with Ease.LINEAR. */
+    /** Add a keyframe reached at constant speed (Ease.LINEAR). */
     public ModelFx key(int tick, Pose pose) { return key(tick, pose, Ease.LINEAR); }
 
-    /** Add a keyframe (replaces one at the same tick). */
+    /**
+     * Add a keyframe: at 'tick' the things set in 'pose' have reached those values. They start moving at the
+     * keyframe before this one (or at tick 0 if this is the first), following 'ease'.
+     * Things the pose doesn't set are left alone - they keep what earlier keys gave them.
+     * A keyframe at the same tick is replaced.
+     */
     public ModelFx key(int tick, Pose pose, Ease ease) {
+        int at = Math.max(0, tick);
         List<Key> list = new ArrayList<>(keys);
-        list.removeIf(k -> k.tick() == tick);
-        list.add(new Key(Math.max(0, tick), pose, ease));
-        list.sort((a, b) -> Integer.compare(a.tick(), b.tick()));
+        list.removeIf(k -> k.isSequenced() && k.tick() == at);
+        list.add(new Key(-1, at, pose, ease));
+        return withKeys(list);
+    }
+
+    /** Like the one below, at constant speed (Ease.LINEAR). */
+    public ModelFx during(int fromTick, int toTick, Pose pose) { return during(fromTick, toTick, pose, Ease.LINEAR); }
+
+    /**
+     * An extra animation that runs at the same time as the keyframes: between fromTick and toTick the things
+     * set in 'pose' move to those values. Add as many as you want, they may overlap the keys and each other:
+     *   .key(100, ModelFx.pose().forward(12), ModelFx.Ease.IN)     // flies forward...
+     *   .during(30, 100, ModelFx.pose().spin(1440))                // ...and spins 4 turns on the way
+     * fromTick == toTick makes it jump there at that tick.
+     */
+    public ModelFx during(int fromTick, int toTick, Pose pose, Ease ease) {
+        int from = Math.max(0, fromTick);
+        List<Key> list = new ArrayList<>(keys);
+        list.add(new Key(from, Math.max(from, toTick), pose, ease));
+        return withKeys(list);
+    }
+
+    /** Remove all keyframes and .during(...) animations (stays still in its rest pose). */
+    public ModelFx noKeys() { ModelFx c = copy(); c.keys = List.of(); return c; }
+
+    private ModelFx withKeys(List<Key> list) {
+        list.sort((a, b) -> Integer.compare(a.tick(), b.tick())); // stable: same tick keeps the order they were added
         ModelFx c = copy();
         c.keys = List.copyOf(list);
         return c;
     }
-
-    /** Remove all keyframes (stays still in its rest pose). */
-    public ModelFx noKeys() { ModelFx c = copy(); c.keys = List.of(); return c; }
 
     // ---------- sticking to an entity ----------
 
@@ -318,20 +413,46 @@ public final class ModelFx implements ParticleOptions {
 
     // ---------- animation math (client renderer uses this, the server can too) ----------
 
-    /** The keyframed pose 'ticks' after it appeared (partial ticks allowed). */
+    /**
+     * Where the animation has brought the model 'ticks' after it appeared (partial ticks allowed):
+     * every value filled in, starting from the rest pose and applying the keys in order.
+     */
     public Pose poseAt(float ticks) {
-        if (keys.isEmpty()) return Pose.REST;
-        Key first = keys.get(0);
-        if (ticks <= first.tick()) return first.pose();
-        for (int i = 1; i < keys.size(); i++) {
-            Key next = keys.get(i);
-            if (ticks < next.tick()) {
-                Key previous = keys.get(i - 1);
-                float span = Math.max(1, next.tick() - previous.tick());
-                return previous.pose().lerp(next.pose(), next.ease().apply((ticks - previous.tick()) / span));
+        float[] values = Pose.START.clone();
+        for (Key key : timeline()) {
+            if (ticks < key.from()) break;   // sorted by start: nothing after this has begun either
+            boolean reached = ticks >= key.tick();
+            float amount = reached ? 1f : key.ease().apply((ticks - key.from()) / (key.tick() - key.from()));
+            Pose target = key.pose();
+            for (int i = 0; i < Pose.COUNT; i++) {
+                if (!target.sets(i)) continue;
+                // values[i] is what the earlier keys left it at, so this key carries on from there
+                values[i] = reached ? target.values[i] : values[i] + (target.values[i] - values[i]) * amount;
             }
         }
-        return keys.get(keys.size() - 1).pose();
+        return new Pose(values, Pose.EVERYTHING);
+    }
+
+    /** The keys with their real start ticks, sorted by when they start. */
+    private Key[] timeline() {
+        Key[] result = timeline;
+        if (result == null) {
+            List<Key> list = new ArrayList<>(keys.size());
+            int previous = 0;
+            for (Key key : keys) {
+                if (key.isSequenced()) {
+                    list.add(new Key(previous, key.tick(), key.pose(), key.ease()));
+                    previous = key.tick();
+                } else {
+                    list.add(key);
+                }
+            }
+            list.sort((a, b) -> a.from() != b.from() ? Integer.compare(a.from(), b.from())
+                    : Integer.compare(a.tick(), b.tick()));
+            result = list.toArray(new Key[0]);
+            timeline = result;
+        }
+        return result;
     }
 
     /** Opacity from fade in / fade out only (0..1). */
@@ -389,22 +510,52 @@ public final class ModelFx implements ParticleOptions {
                 value -> value.name().toLowerCase(Locale.ROOT));
     }
 
-    private static final MapCodec<Pose> POSE_CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
-            Codec.FLOAT.optionalFieldOf("forward", 0f).forGetter(Pose::forward),
-            Codec.FLOAT.optionalFieldOf("up", 0f).forGetter(Pose::up),
-            Codec.FLOAT.optionalFieldOf("right", 0f).forGetter(Pose::right),
-            Codec.FLOAT.optionalFieldOf("yaw", 0f).forGetter(Pose::yaw),
-            Codec.FLOAT.optionalFieldOf("pitch", 0f).forGetter(Pose::pitch),
-            Codec.FLOAT.optionalFieldOf("roll", 0f).forGetter(Pose::roll),
-            Codec.FLOAT.optionalFieldOf("scale", 1f).forGetter(Pose::scale),
-            Codec.FLOAT.optionalFieldOf("alpha", 1f).forGetter(Pose::alpha)
-    ).apply(i, Pose::new));
+    // In commands a pose is just the values it changes: {tick:20, pitch:90f}. Left out = not changed (NaN in here).
+    private static MapCodec<Float> poseField(String name) {
+        return Codec.FLOAT.optionalFieldOf(name, Float.NaN);
+    }
 
+    private static float fieldOf(Pose pose, int index) {
+        return pose.sets(index) ? pose.values[index] : Float.NaN;
+    }
+
+    private static Pose poseFromFields(float forward, float up, float right, float yaw, float pitch, float roll,
+                                       float spin, float scale, float alpha) {
+        float[] given = {forward, up, right, yaw, pitch, roll, spin, scale, alpha};
+        float[] values = Pose.START.clone();
+        int set = 0;
+        for (int i = 0; i < Pose.COUNT; i++) {
+            if (Float.isNaN(given[i])) continue;
+            values[i] = given[i];
+            set |= 1 << i;
+        }
+        return new Pose(values, set);
+    }
+
+    private static final MapCodec<Pose> POSE_CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
+            poseField("forward").forGetter((Pose p) -> fieldOf(p, Pose.FORWARD)),
+            poseField("up").forGetter((Pose p) -> fieldOf(p, Pose.UP)),
+            poseField("right").forGetter((Pose p) -> fieldOf(p, Pose.RIGHT)),
+            poseField("yaw").forGetter((Pose p) -> fieldOf(p, Pose.YAW)),
+            poseField("pitch").forGetter((Pose p) -> fieldOf(p, Pose.PITCH)),
+            poseField("roll").forGetter((Pose p) -> fieldOf(p, Pose.ROLL)),
+            poseField("spin").forGetter((Pose p) -> fieldOf(p, Pose.SPIN)),
+            poseField("scale").forGetter((Pose p) -> fieldOf(p, Pose.SCALE)),
+            poseField("alpha").forGetter((Pose p) -> fieldOf(p, Pose.ALPHA))
+    ).apply(i, ModelFx::poseFromFields));
+
+    // {tick:20, pitch:90f} = a .key(...);  {from:30, tick:100, spin:1440f} = a .during(...)
     private static final Codec<Key> KEY_CODEC = RecordCodecBuilder.create(i -> i.group(
+            Codec.INT.optionalFieldOf("from", -1).forGetter(Key::from),
             Codec.INT.fieldOf("tick").forGetter(Key::tick),
             POSE_CODEC.forGetter(Key::pose),
             enumCodec(Ease.class).optionalFieldOf("ease", Ease.LINEAR).forGetter(Key::ease)
-    ).apply(i, Key::new));
+    ).apply(i, ModelFx::keyFromCommand));
+
+    private static Key keyFromCommand(int from, int tick, Pose pose, Ease ease) {
+        int start = from < 0 ? -1 : from;
+        return new Key(start, Math.max(Math.max(0, start), tick), pose, ease);
+    }
 
     // The command/NBT format is split into groups only because a codec can hold at most 16 fields;
     // the fields themselves are all at the same level: {model:"...", glow:1b, lifetime:40, ...}
@@ -507,17 +658,14 @@ public final class ModelFx implements ParticleOptions {
         buffer.writeVarInt(count);
         for (int i = 0; i < count; i++) {
             Key key = keys.get(i);
+            buffer.writeVarInt(key.from() + 1);   // 0 = "from the key before"
             buffer.writeVarInt(key.tick());
             buffer.writeEnum(key.ease());
-            Pose p = key.pose();
-            buffer.writeFloat(p.forward());
-            buffer.writeFloat(p.up());
-            buffer.writeFloat(p.right());
-            buffer.writeFloat(p.yaw());
-            buffer.writeFloat(p.pitch());
-            buffer.writeFloat(p.roll());
-            buffer.writeFloat(p.scale());
-            buffer.writeFloat(p.alpha());
+            Pose pose = key.pose();
+            buffer.writeVarInt(pose.set);
+            for (int n = 0; n < Pose.COUNT; n++) {
+                if (pose.sets(n)) buffer.writeFloat(pose.values[n]);
+            }
         }
     }
 
@@ -550,11 +698,15 @@ public final class ModelFx implements ParticleOptions {
         int count = Math.min(buffer.readVarInt(), MAX_KEYS); // safety cap
         List<Key> keys = new ArrayList<>(count);
         for (int i = 0; i < count; i++) {
+            int from = buffer.readVarInt() - 1;
             int tick = buffer.readVarInt();
             Ease ease = buffer.readEnum(Ease.class);
-            Pose pose = new Pose(buffer.readFloat(), buffer.readFloat(), buffer.readFloat(), buffer.readFloat(),
-                    buffer.readFloat(), buffer.readFloat(), buffer.readFloat(), buffer.readFloat());
-            keys.add(new Key(tick, pose, ease));
+            int set = buffer.readVarInt() & Pose.EVERYTHING;
+            float[] values = Pose.START.clone();
+            for (int n = 0; n < Pose.COUNT; n++) {
+                if ((set & (1 << n)) != 0) values[n] = buffer.readFloat();
+            }
+            keys.add(new Key(from, tick, new Pose(values, set), ease));
         }
         fx.keys = List.copyOf(keys);
         return fx;

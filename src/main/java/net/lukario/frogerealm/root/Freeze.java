@@ -53,7 +53,7 @@ public final class Freeze {
     public static final ModelFx ICE_CRYSTALS = ModelFx.of("ice_crystals")
             .glow().aura(0x5560D8FF, 0.05f, 2).fadeIn(2)
             .key(0, ModelFx.pose().scale(0.1f))
-            .key(5, ModelFx.pose(), ModelFx.Ease.OUT_BACK);
+            .key(5, ModelFx.pose().scale(1f), ModelFx.Ease.OUT_BACK);
 
     private static final ParticleFx FROST = ParticleFx.of("fx/flake")
             .color(0xFFE8FBFF).fadeOut()
