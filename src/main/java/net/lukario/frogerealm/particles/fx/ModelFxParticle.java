@@ -32,7 +32,7 @@ public class ModelFxParticle extends Particle {
         this.lastTickTime = level.getGameTime();
 
         if (fx.isClear()) {
-            ModelFxRenderer.clearFollowing(fx.followId());
+            ModelFxRenderer.clearFollowing(fx.followId(), fx.tagName());
             this.remove();
             return;
         }

@@ -2,6 +2,7 @@ package net.lukario.frogerealm.particles.fx;
 
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.lukario.frogerealm.ForgeRealm;
+import net.lukario.frogerealm.client.ClientConcealment;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -78,10 +79,11 @@ public final class ModelFxRenderer {
         ACTIVE.add(particle);
     }
 
-    /** Removes every model stuck to this entity id. */
-    static void clearFollowing(int entityId) {
+    /** Removes the models stuck to this entity id: all of them, or only the ones with this tag ("" = all). */
+    static void clearFollowing(int entityId, String tag) {
         for (ModelFxParticle particle : ACTIVE) {
-            if (particle.fx().followId() == entityId) particle.discard();
+            if (particle.fx().followId() != entityId) continue;
+            if (tag.isEmpty() || tag.equals(particle.fx().tagName())) particle.discard();
         }
     }
 
@@ -112,6 +114,8 @@ public final class ModelFxRenderer {
             ModelFx fx = particle.fx();
             float time = particle.time(partialTick);
             if (time < 0 || time > fx.lifetimeTicks()) continue;
+            // what is stuck to someone concealed is not drawn either: it would give them away (see status/Concealment)
+            if (fx.followsEntity() && ClientConcealment.isHidden(fx.followId())) continue;
 
             ModelFx.Pose pose = fx.poseAt(time);
             float alpha = ((fx.tintColor() >>> 24) / 255f) * pose.alpha() * fx.fadeAt(time);

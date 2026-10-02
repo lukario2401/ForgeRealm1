@@ -24,6 +24,7 @@ import net.minecraft.world.phys.Vec3;
  *   ParticleShapes.model(sl, HAMMER, grip, player.getYRot(), 0, 0);                 // 3D model effect (ModelFx)
  *   ParticleShapes.modelOn(sl, CRYSTALS, mob, Vec3.ZERO, 0, 0, 0);                  // 3D model stuck to an entity
  *   ParticleShapes.modelAlong(sl, SPEAR, from, player.getLookAngle());              // 3D model pointing along a direction
+ *   ParticleShapes.clearModels(sl, mob, "ice");                                     // remove the models tagged "ice" from it
  *
  * For effects in stages (this now, that 5 ticks later) use combat.Later.run(serverLevel, 5, () -> ...).
  *
@@ -254,6 +255,15 @@ public final class ParticleShapes {
     /** Removes every ModelFx stuck to this entity (for everyone who can see it). */
     public static void clearModels(Level level, Entity entity) {
         spawnFar(level, ModelFx.clearing(entity), entity.position(), Vec3.ZERO);
+    }
+
+    /**
+     * Removes only the models stuck to this entity that were given this tag: MODEL.tag("ice").
+     * Use it when several effects can sit on the same entity (ice, a mark, a puppet's strings...) so that
+     * ending one of them does not wipe the others.
+     */
+    public static void clearModels(Level level, Entity entity, String tag) {
+        spawnFar(level, ModelFx.clearing(entity, tag), entity.position(), Vec3.ZERO);
     }
 
     /** Random unit vector at most angleDegrees/2 away from forward (uniform over the cone). */

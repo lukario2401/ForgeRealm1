@@ -42,16 +42,18 @@ public final class Freeze {
     private static final String TAG = "forgerealm_freeze";
     private static final String TICKS = "Ticks";
     private static final String WAS_NO_AI = "WasNoAi";
+    /** The ice models carry this tag, so thawing removes them and nothing else that is stuck to the entity. */
+    private static final String MODEL_TAG = "freeze";
 
     // ---------- looks ----------
 
     /** See-through ice block, scaled to the entity's size. */
     public static final ModelFx ICE_SHELL = ModelFx.of("ice_shell")
-            .seeThrough().glow().fadeIn(3);
+            .seeThrough().glow().fadeIn(3).tag(MODEL_TAG);
 
     /** Glowing crystal cluster that pops out of the ice. */
     public static final ModelFx ICE_CRYSTALS = ModelFx.of("ice_crystals")
-            .glow().aura(0x5560D8FF, 0.05f, 2).fadeIn(2)
+            .glow().aura(0x5560D8FF, 0.05f, 2).fadeIn(2).tag(MODEL_TAG)
             .key(0, ModelFx.pose().scale(0.1f))
             .key(5, ModelFx.pose().scale(1f), ModelFx.Ease.OUT_BACK);
 
@@ -136,7 +138,7 @@ public final class Freeze {
         target.getPersistentData().remove(TAG);
         if (target instanceof Mob mob) mob.setNoAi(tag.getBoolean(WAS_NO_AI));
         if (target.level() instanceof ServerLevel sl) {
-            ParticleShapes.clearModels(sl, target);
+            ParticleShapes.clearModels(sl, target, MODEL_TAG);
             shatter(sl, target);
         }
     }

@@ -110,6 +110,13 @@ public class PacketHandler {
                 .decoder(STextPromptAnswerPacket::new)
                 .consumerMainThread(STextPromptAnswerPacket::handle)
                 .add();
+
+        // Server -> Client: who is hidden (see status/Concealment)
+        INSTANCE.messageBuilder(CConcealPacket.class, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(CConcealPacket::encode)
+                .decoder(CConcealPacket::new)
+                .consumerMainThread(CConcealPacket::handle)
+                .add();
     }
 
     public static void sendToServer(Object msg) {

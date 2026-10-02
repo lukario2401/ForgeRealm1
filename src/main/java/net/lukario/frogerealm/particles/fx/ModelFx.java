@@ -55,6 +55,8 @@ import java.util.Locale;
  *   ParticleShapes.model(sl, HAMMER, position, player.getYRot(), 0, 0);           // at a spot, facing a yaw
  *   ParticleShapes.modelOn(sl, CRYSTALS, mob, offset, yaw, 0, 0);                // stuck to an entity, gone when it dies
  *   ParticleShapes.clearModels(sl, mob);                                         // remove everything stuck to it
+ *   ParticleShapes.modelOn(sl, CRYSTALS.tag("ice"), mob, offset, yaw, 0, 0);     // ...give it a name...
+ *   ParticleShapes.clearModels(sl, mob, "ice");                                  // ...and remove only the ones with that name
  *
  * ---------- Animation ----------
  * A keyframe says: "by this tick, these things have these values". Ticks count from when it appears.
@@ -234,6 +236,7 @@ public final class ModelFx implements ParticleOptions {
     private int followId;                   // -1 = stays where it was played
     private Vec3 followOffset;
     private boolean clear;                  // special: removes models stuck to followId
+    private String tag;                     // name for clearModels(entity, tag); "" = no name
     private List<Key> keys;                 // sorted by tick
     private Key[] timeline;                 // keys with their real start tick, in the order they apply (made when needed)
 
@@ -247,7 +250,7 @@ public final class ModelFx implements ParticleOptions {
         c.pivotX = pivotX; c.pivotY = pivotY; c.pivotZ = pivotZ;
         c.yaw = yaw; c.pitch = pitch; c.roll = roll;
         c.lifetime = lifetime; c.delay = delay; c.fadeIn = fadeIn; c.fadeOut = fadeOut; c.spin = spin;
-        c.followId = followId; c.followOffset = followOffset; c.clear = clear;
+        c.followId = followId; c.followOffset = followOffset; c.clear = clear; c.tag = tag;
         c.keys = keys;
         return c;
     }
@@ -274,13 +277,19 @@ public final class ModelFx implements ParticleOptions {
         fx.lifetime = 20;
         fx.followId = -1;
         fx.followOffset = Vec3.ZERO;
+        fx.tag = "";
         fx.keys = List.of();
         return fx;
     }
 
     /** Special "effect" that removes every model stuck to this entity (see ParticleShapes.clearModels). */
     public static ModelFx clearing(Entity entity) {
-        ModelFx fx = of("clear").following(entity).lifetime(1);
+        return clearing(entity, "");
+    }
+
+    /** Same, but only the models that were given this tag with .tag(...). "" = all of them. */
+    public static ModelFx clearing(Entity entity, String tag) {
+        ModelFx fx = of("clear").following(entity).lifetime(1).tag(tag);
         fx.clear = true;
         return fx;
     }
@@ -421,6 +430,13 @@ public final class ModelFx implements ParticleOptions {
 
     public ModelFx notFollowing() { ModelFx c = copy(); c.followId = -1; c.followOffset = Vec3.ZERO; return c; }
 
+    /**
+     * A name for this model, so it can be removed on its own: ParticleShapes.clearModels(sl, entity, "ice")
+     * removes the models on that entity tagged "ice" and leaves everything else stuck to it alone.
+     * Only matters for models stuck to an entity (modelOn). Give every status its own tag.
+     */
+    public ModelFx tag(String tag) { ModelFx c = copy(); c.tag = tag == null ? "" : tag; return c; }
+
     // ---------- animation math (client renderer uses this, the server can too) ----------
 
     /**
@@ -500,6 +516,7 @@ public final class ModelFx implements ParticleOptions {
     public boolean followsEntity() { return followId >= 0; }
     public Vec3 followOffset() { return followOffset; }
     public boolean isClear() { return clear; }
+    public String tagName() { return tag; }
     public List<Key> keys() { return keys; }
 
     @Override
@@ -574,7 +591,7 @@ public final class ModelFx implements ParticleOptions {
                         int auraColor, float auraSize, int auraLayers) {}
     private record Shape(Vec3 scale, Vec3 pivot, Vec3 rotation) {}
     private record Timing(int lifetime, int delay, int fadeIn, int fadeOut, float spin) {}
-    private record Link(int followId, Vec3 followOffset, boolean clear) {}
+    private record Link(int followId, Vec3 followOffset, boolean clear, String tag) {}
 
     private static final ResourceLocation DEFAULT_MODEL =
             ResourceLocation.fromNamespaceAndPath(ForgeRealm.MOD_ID, FOLDER + "/order_hammer");
@@ -607,7 +624,8 @@ public final class ModelFx implements ParticleOptions {
     private static final MapCodec<Link> LINK_CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
             Codec.INT.optionalFieldOf("follow", -1).forGetter(Link::followId),
             Vec3.CODEC.optionalFieldOf("follow_offset", Vec3.ZERO).forGetter(Link::followOffset),
-            Codec.BOOL.optionalFieldOf("clear", false).forGetter(Link::clear)
+            Codec.BOOL.optionalFieldOf("clear", false).forGetter(Link::clear),
+            Codec.STRING.optionalFieldOf("tag", "").forGetter(Link::tag)
     ).apply(i, Link::new));
 
     private static ModelFx fromParts(Look look, Shape shape, Timing timing, Link link, List<Key> keys) {
@@ -621,6 +639,7 @@ public final class ModelFx implements ParticleOptions {
         fx.lifetime = Math.max(1, timing.lifetime()); fx.delay = Math.max(0, timing.delay());
         fx.fadeIn = Math.max(0, timing.fadeIn()); fx.fadeOut = Math.max(0, timing.fadeOut()); fx.spin = timing.spin();
         fx.followId = link.followId(); fx.followOffset = link.followOffset(); fx.clear = link.clear();
+        fx.tag = link.tag();
         List<Key> sorted = new ArrayList<>(keys);
         sorted.sort((a, b) -> Integer.compare(a.tick(), b.tick()));
         fx.keys = List.copyOf(sorted);
@@ -633,7 +652,7 @@ public final class ModelFx implements ParticleOptions {
             SHAPE_CODEC.forGetter((ModelFx fx) -> new Shape(new Vec3(fx.scaleX, fx.scaleY, fx.scaleZ),
                     new Vec3(fx.pivotX, fx.pivotY, fx.pivotZ), new Vec3(fx.yaw, fx.pitch, fx.roll))),
             TIMING_CODEC.forGetter((ModelFx fx) -> new Timing(fx.lifetime, fx.delay, fx.fadeIn, fx.fadeOut, fx.spin)),
-            LINK_CODEC.forGetter((ModelFx fx) -> new Link(fx.followId, fx.followOffset, fx.clear)),
+            LINK_CODEC.forGetter((ModelFx fx) -> new Link(fx.followId, fx.followOffset, fx.clear, fx.tag)),
             KEY_CODEC.listOf().optionalFieldOf("keys", List.of()).forGetter(ModelFx::keys)
     ).apply(i, ModelFx::fromParts));
 
@@ -668,6 +687,7 @@ public final class ModelFx implements ParticleOptions {
         buffer.writeDouble(followOffset.y);
         buffer.writeDouble(followOffset.z);
         buffer.writeBoolean(clear);
+        buffer.writeUtf(tag);
         int count = Math.min(keys.size(), MAX_KEYS);
         buffer.writeVarInt(count);
         for (int i = 0; i < count; i++) {
@@ -710,6 +730,7 @@ public final class ModelFx implements ParticleOptions {
         fx.followId = buffer.readInt();
         fx.followOffset = new Vec3(buffer.readDouble(), buffer.readDouble(), buffer.readDouble());
         fx.clear = buffer.readBoolean();
+        fx.tag = buffer.readUtf();
         int count = Math.min(buffer.readVarInt(), MAX_KEYS); // safety cap
         List<Key> keys = new ArrayList<>(count);
         for (int i = 0; i < count; i++) {
