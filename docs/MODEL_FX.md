@@ -52,7 +52,7 @@ A purple and black cube means the model or texture path is wrong.
 You can try an animation the same way, without restarting the game. `keys` takes the same things as the code in section 4 (`from` + `tick` is a `.during`):
 
 ```
-/particle forgerealmmod:model{model:"forgerealmmod:model_fx/<name>",glow:1b,lifetime:100,keys:[{tick:20,pitch:90f,ease:"in"},{tick:30,yaw:90f},{tick:100,forward:12f},{from:30,tick:100,spin:1440f}]} ~ ~2 ~ 0 0 0 0 1
+/particle forgerealmmod:model{model:"forgerealmmod:model_fx/<name>",glow:1b,lifetime:100,keys:[{tick:20,pitch:90f,ease:"in"},{tick:30,spin:90f},{tick:100,forward:12f},{from:30,tick:100,yaw:1440f}]} ~ ~2 ~ 0 0 0 0 1
 ```
 
 ## 3. Describe the effect in code
@@ -128,9 +128,24 @@ All rotations happen around the pivot. Go past 360 to keep turning: `yaw(720)` i
 
 **How rotations combine.** They are always applied in the same order, whatever order you write them in: `spin` first, then `roll`, then `pitch`, then `yaw`. For a sword modelled standing up:
 
-- `pitch(90)` tips it over so the blade points forward.
-- adding `yaw(90)` swings that forward-pointing blade round to the right, so it ends up sideways-on.
-- adding `spin(90)` instead gives it a quarter turn around its own length, so it still points forward.
+- `pitch(90)` tips it over so the blade points forward. It is now lying on its **edge**.
+- adding `spin(90)` gives it a quarter turn around its own length: it still points forward, and now lies **flat** against the ground.
+- adding `yaw(90)` instead swings the forward-pointing blade round to the right. It ends up sideways-on and still on its edge.
+
+### Making a model lie flat
+
+For a thin model that stands upright in Blockbench (a sword, a card, a rune plate):
+
+| You want | Use |
+|---|---|
+| Lying flat, top pointing forward | `pose().pitch(90).spin(90)` |
+| Lying flat, top pointing right | `pose().roll(90)` |
+| Lying on its edge, top pointing forward | `pose().pitch(90)` |
+| Flat and spinning like a thrown disc | one of the flat ones, then animate `yaw` (it turns around the world's up, so it stays flat) |
+
+Once `pitch` is 90, no amount of `yaw` or `roll` will lay it flat: `yaw` only turns it around the world's up, and `roll` happens before the pitch. `spin` is the one that turns it around its own length. If the flat side ends up facing the wrong way, use `-90`.
+
+To have it flat from the first frame, with no rotating into place, put it in a tick-0 key: `.key(0, ModelFx.pose().pitch(90).spin(90))`.
 
 ### Several things at the same time
 
@@ -161,28 +176,28 @@ Which spin to animate:
 
 If a `.during` and a key change the *same* thing during the same ticks, the one that started later takes over.
 
-Example: the Hand of Order sword (ability 3). It rotates in two steps, keeps both rotations, then flies forward while it spins flat like a thrown blade.
+Example: the Hand of Order sword (ability 3). It tips forward, turns flat, then flies forward while it spins flat like a thrown disc.
 
 ```java
 ModelFx sword = HAND_OF_ORDER_SWORD
-        .key(20, ModelFx.pose().pitch(90), ModelFx.Ease.IN)       // ticks 0-20: tips forward
-        .key(30, ModelFx.pose().yaw(90), ModelFx.Ease.IN)         // 20-30: turns sideways (still tipped)
-        .key(40, ModelFx.pose().forward(5), ModelFx.Ease.IN)      // 30-40: lunges forward (still tipped + turned)
+        .key(20, ModelFx.pose().pitch(90), ModelFx.Ease.IN)       // ticks 0-20: tips forward (on its edge)
+        .key(30, ModelFx.pose().spin(90), ModelFx.Ease.IN)        // 20-30: quarter turn around its own length -> flat
+        .key(40, ModelFx.pose().forward(5), ModelFx.Ease.IN)      // 30-40: lunges forward (still flat)
         .key(100, ModelFx.pose().forward(12), ModelFx.Ease.IN)    // 40-100: flies on
-        .during(30, 100, ModelFx.pose().yaw(90 + 1440));          // ticks 30-100: 4 full turns on top of the 90
+        .during(30, 100, ModelFx.pose().yaw(1440));               // ticks 30-100: 4 full turns, staying flat
 
 ParticleShapes.model(sl, sword, player.position().add(0, 3, 0), player.getYRot(), 0f, 0f);
 ```
 
-| Tick | pitch | yaw | forward |
-|---|---|---|---|
-| 0 | 0 | 0 | 0 |
-| 20 | 90 | 0 | 0 |
-| 30 | 90 | 90 | 0 |
-| 40 | 90 | about 296 (spinning) | 5 |
-| 100 | 90 | 1530 | 12 |
+| Tick | pitch | spin | yaw | forward |
+|---|---|---|---|---|
+| 0 | 0 | 0 | 0 | 0 |
+| 20 | 90 | 0 | 0 | 0 |
+| 30 | 90 | 90 | 0 | 0 |
+| 40 | 90 | 90 | about 206 (spinning) | 5 |
+| 100 | 90 | 90 | 1440 | 12 |
 
-The spin starts from 90 because that is where the tick-30 key left the yaw, so the target is `90 + 1440`. Swap the last line for `pose().spin(1440)` to roll it around its own blade, or `pose().pitch(90 + 1440)` to tumble it end over end.
+A `.during` carries on from wherever that value already is. If an earlier key had left the yaw at 90, four more turns would be `yaw(90 + 1440)`.
 
 **Easing** (how it gets to a keyframe from the previous one):
 
@@ -294,6 +309,7 @@ Freeze.thaw(target);          // break the ice early (with the shatter effect)
 | Model doesn't load at all | A cube is outside -16..32 px, or a rotation isn't -45/-22.5/0/22.5/45. Check the game log |
 | Keyframes do nothing / it doesn't move | You called `.key(...)` but played the original. Save the result in a variable and play that |
 | It never comes back from a key (stays small / invisible / rotated) | Keys stick. Name the value to return to in a later key (`.scale(1f).alpha(1f)`), or use `ModelFx.rest()` |
+| Can't get it to lie flat | After `pitch(90)` use `spin(90)`, not `yaw` or `roll`. See "Making a model lie flat" in section 4 |
 | Spin goes around the wrong axis | `spin` = its own up axis, `yaw` = the world's up, `pitch` = end over end. See the table in section 4 |
 | Aura invisible | The color needs an alpha: `0xFFFF0000`, not `0xFF0000` |
 | Points the wrong way | The front must be North (-Z) in Blockbench, or add `.rotation(180, 0, 0)` |
