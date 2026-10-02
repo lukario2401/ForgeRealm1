@@ -37,6 +37,8 @@ Open the JSON and check the `textures` part points at the PNG like this:
 
 Blockbench usually writes this for you if the PNG is saved in that folder. Subfolders work too (`model_fx/swords/blade.json` → `"forgerealmmod:model_fx/swords/blade"`).
 
+A model can use several textures (`"1"`, `"2"`, `"3"`...), as the Hand of Order sword does; each one just needs its PNG in `textures/model_fx/`. Animated textures work like on blocks: stack the frames vertically in the PNG and put a `<name>.png.mcmeta` next to it, e.g. `{"animation":{"frametime":3}}`.
+
 Every model in `models/model_fx/` is loaded automatically when the game starts.
 
 **Quick check in game** (shows it at your feet for 5 seconds):
@@ -46,6 +48,12 @@ Every model in `models/model_fx/` is loaded automatically when the game starts.
 ```
 
 A purple and black cube means the model or texture path is wrong.
+
+You can try an animation the same way, without restarting the game. `keys` takes the same things as the code in section 4 (`from` + `tick` is a `.during`):
+
+```
+/particle forgerealmmod:model{model:"forgerealmmod:model_fx/<name>",glow:1b,lifetime:100,keys:[{tick:20,pitch:90f,ease:"in"},{tick:30,yaw:90f},{tick:100,forward:12f},{from:30,tick:100,spin:1440f}]} ~ ~2 ~ 0 0 0 0 1
+```
 
 ## 3. Describe the effect in code
 
@@ -118,6 +126,12 @@ ModelFx.pose()            // changes nothing until you name something
 
 All rotations happen around the pivot. Go past 360 to keep turning: `yaw(720)` is two full turns.
 
+**How rotations combine.** They are always applied in the same order, whatever order you write them in: `spin` first, then `roll`, then `pitch`, then `yaw`. For a sword modelled standing up:
+
+- `pitch(90)` tips it over so the blade points forward.
+- adding `yaw(90)` swings that forward-pointing blade round to the right, so it ends up sideways-on.
+- adding `spin(90)` instead gives it a quarter turn around its own length, so it still points forward.
+
 ### Several things at the same time
 
 **Same timing:** put them in one key. They move together.
@@ -147,6 +161,29 @@ Which spin to animate:
 
 If a `.during` and a key change the *same* thing during the same ticks, the one that started later takes over.
 
+Example: the Hand of Order sword (ability 3). It rotates in two steps, keeps both rotations, then flies forward while it spins flat like a thrown blade.
+
+```java
+ModelFx sword = HAND_OF_ORDER_SWORD
+        .key(20, ModelFx.pose().pitch(90), ModelFx.Ease.IN)       // ticks 0-20: tips forward
+        .key(30, ModelFx.pose().yaw(90), ModelFx.Ease.IN)         // 20-30: turns sideways (still tipped)
+        .key(40, ModelFx.pose().forward(5), ModelFx.Ease.IN)      // 30-40: lunges forward (still tipped + turned)
+        .key(100, ModelFx.pose().forward(12), ModelFx.Ease.IN)    // 40-100: flies on
+        .during(30, 100, ModelFx.pose().yaw(90 + 1440));          // ticks 30-100: 4 full turns on top of the 90
+
+ParticleShapes.model(sl, sword, player.position().add(0, 3, 0), player.getYRot(), 0f, 0f);
+```
+
+| Tick | pitch | yaw | forward |
+|---|---|---|---|
+| 0 | 0 | 0 | 0 |
+| 20 | 90 | 0 | 0 |
+| 30 | 90 | 90 | 0 |
+| 40 | 90 | about 296 (spinning) | 5 |
+| 100 | 90 | 1530 | 12 |
+
+The spin starts from 90 because that is where the tick-30 key left the yaw, so the target is `90 + 1440`. Swap the last line for `pose().spin(1440)` to roll it around its own blade, or `pose().pitch(90 + 1440)` to tumble it end over end.
+
 **Easing** (how it gets to a keyframe from the previous one):
 
 | Ease | Feels like |
@@ -157,6 +194,8 @@ If a `.during` and a key change the *same* thing during the same ticks, the one 
 | `IN_OUT` | slow, fast, slow: winding up |
 | `OUT_BACK` | overshoots then settles: popping into existence |
 | `OUT_BOUNCE` | bounces at the end |
+
+> **Effects written before keys stuck:** a key used to be a complete pose, so anything it didn't name snapped back to rest. If an old effect now stays small, invisible or rotated, add the value it should return to in the next key.
 
 Example: the Hand of Order hammer swing. It starts small and invisible, so the next key says what size and alpha to go to.
 
