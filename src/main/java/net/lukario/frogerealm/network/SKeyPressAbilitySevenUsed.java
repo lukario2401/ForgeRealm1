@@ -31,6 +31,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidRes
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidWalker.voidWalkerAbilitySevenUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.expeditioners.Verso.crescendoBladeEndBringer;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.beyonder_characteristics.HandOfOrder.handOfOrderBind;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.beyonder_characteristics.PrinceOfAbolition.princeOfAbolitionAbolition;
 
 public class SKeyPressAbilitySevenUsed {
 
@@ -74,6 +75,7 @@ public class SKeyPressAbilitySevenUsed {
         keyOfStarsCosmicPlague(player,level,serverLevel,false);
         crescendoBladeEndBringer(player,level,serverLevel);
         handOfOrderBind(player,level,serverLevel,false);
+        princeOfAbolitionAbolition(player,level,serverLevel,false);
 
 
     }

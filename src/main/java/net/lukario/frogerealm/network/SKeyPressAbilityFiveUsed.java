@@ -38,6 +38,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidAsc
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidResonator.frequencySurge;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidWalker.voidWalkerAbilityFiveUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.expeditioners.Verso.crescendoBladeOverload;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.beyonder_characteristics.PrinceOfAbolition.princeOfAbolitionMeteor;
 
 public class SKeyPressAbilityFiveUsed {
 
@@ -88,6 +89,7 @@ public class SKeyPressAbilityFiveUsed {
         attendantOfMysteriesCountdown(player,level,serverLevel, false);
         handOfOrderAbility5(player,level,serverLevel, false);
         crescendoBladeOverload(player,serverLevel);
+        princeOfAbolitionMeteor(player,level,serverLevel,false);
 
 
     }

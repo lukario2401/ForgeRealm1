@@ -39,6 +39,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidRes
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidWalker.voidWalkerAbilitySixUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.expeditioners.Verso.crescendoBladeFromFire;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.beyonder_characteristics.HandOfOrder.handOfOrderWords;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.beyonder_characteristics.PrinceOfAbolition.princeOfAbolitionEntropy;
 
 public class SKeyPressAbilitySixUsed {
 
@@ -90,6 +91,7 @@ public class SKeyPressAbilitySixUsed {
         keyOfStarsOrbital(player,level,serverLevel,false);
         crescendoBladeFromFire(player,level,serverLevel);
         handOfOrderWords(player,level,serverLevel,false);
+        princeOfAbolitionEntropy(player,level,serverLevel,false);
 
     }
 }
