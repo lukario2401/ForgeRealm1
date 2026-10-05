@@ -581,10 +581,10 @@ public class HandOfOrder {
 
             // A key only changes what it names; everything else stays where the earlier keys left it.
             ModelFx sword = HAND_OF_ORDER_SWORD
-                    .key(20, ModelFx.pose().pitch(90), ModelFx.Ease.IN)       // ticks 0-20: tips forward (blade points ahead, on its edge)
-                    .key(30, ModelFx.pose().spin(90), ModelFx.Ease.IN)        // 20-30: quarter turn around its own length -> lies flat
-                    .key(40, ModelFx.pose().forward(5), ModelFx.Ease.IN)      // 30-40: lunges forward (still flat)
-                    .key(100, ModelFx.pose().forward(12), ModelFx.Ease.IN)    // 40-100: flies on
+                    .key(5, ModelFx.pose().pitch(90), ModelFx.Ease.IN)       // ticks 0-20: tips forward (blade points ahead, on its edge)
+                    .key(10, ModelFx.pose().spin(90), ModelFx.Ease.IN)        // 20-30: quarter turn around its own length -> lies flat
+                    .key(30, ModelFx.pose().forward(5), ModelFx.Ease.LINEAR)      // 30-40: lunges forward (still flat)
+                    .key(40, ModelFx.pose().forward(12), ModelFx.Ease.LINEAR)    // 40-100: flies on
                     // at the same time as the flight (ticks 30-100): 4 full turns. yaw turns around the world's up,
                     // so it stays flat against the ground the whole time, like a thrown disc.
                     .during(30, 100, ModelFx.pose().yaw(1440));
@@ -607,7 +607,6 @@ public class HandOfOrder {
 
         } else {
             ParticleShapes.sphere(sl, MUSHROOMS_V2, getPos(player,3), 0.35, 16);
-
         }
     }
 
