@@ -365,6 +365,8 @@ These are in `models/model_fx/` and any class can use them. Sizes are at `.scale
 | `pale_emperor/skeletal_hand`, `skeletal_hand_grab` | The first skeletal hand, open and closed, 3 blocks tall with its forearm | the end of the forearm `(8, -16, 8)` | Palm = front |
 | `pale_emperor/skeletal_hand_spread` | Skeletal hand wide open: fingers fanned, tips hooked. 3 blocks tall | the end of the forearm `(8, -16, 8)` | Palm = front, thumb on the model's +X side. `.mirrored()` gives the other hand |
 | `pale_emperor/skeletal_hand_grasp` | The same hand closing, in 5 stages: 0 = wide open (the same as `skeletal_hand_spread`), 4 = clenched | `(8, -16, 8)` | `.frames(5).smooth()`, then animate `frame` (see "Models that change shape") |
+| `pale_emperor/emperor_hand` | The hand of the Pale Emperor, closing in 5 stages: bleached bone, gold talons and rings, a sigil in the palm, a feathered serpent coiled round the wrist with its head on the back of the hand | the cut end of the forearm `(8, -16, 8)` | `.frames(5).smooth()`. Without keys it shows stage 0, the open hand. `.glow()` suits the gold |
+| `pale_emperor/underworld_arm` | An arm from behind the Door to the Underworld, closing in 5 stages: pale dead flesh torn to the bone, burial wrappings, black nails, a coin in the palm | `(8, -16, 8)` | `.frames(5).smooth()`. Play several from the gate with different yaw, roll and timing; `.mirrored()` for left arms |
 
 The fire and light ones (`orb`, `thread` and `projection` too) want `.glow().unshaded().seeThrough()`; the solid ones `.glow()`.
 
