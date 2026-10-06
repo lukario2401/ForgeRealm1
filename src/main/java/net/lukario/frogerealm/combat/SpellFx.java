@@ -120,6 +120,7 @@ public final class SpellFx {
         tether(sl, line, () -> middleOf(from, sl), () -> middleOf(to, sl), ticks);
     }
 
+
     // The three below give a tether its ends. Each returns null once the entity is dead, gone or in another
     // dimension, which is what ends the tether.
 
