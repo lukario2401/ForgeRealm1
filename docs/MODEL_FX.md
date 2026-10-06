@@ -367,10 +367,71 @@ These are in `models/model_fx/` and any class can use them. Sizes are at `.scale
 | `pale_emperor/skeletal_hand_grasp` | The same hand closing, in 5 stages: 0 = wide open (the same as `skeletal_hand_spread`), 4 = clenched | `(8, -16, 8)` | `.frames(5).smooth()`, then animate `frame` (see "Models that change shape") |
 | `pale_emperor/emperor_hand` | The hand of the Pale Emperor, closing in 5 stages: bleached bone, gold talons and rings, a sigil in the palm, a feathered serpent coiled round the wrist with its head on the back of the hand | the cut end of the forearm `(8, -16, 8)` | `.frames(5).smooth()`. Without keys it shows stage 0, the open hand. `.glow()` suits the gold |
 | `pale_emperor/underworld_arm` | An arm from behind the Door to the Underworld, closing in 5 stages: pale dead flesh torn to the bone, burial wrappings, black nails, a coin in the palm | `(8, -16, 8)` | `.frames(5).smooth()`. Play several from the gate with different yaw, roll and timing; `.mirrored()` for left arms |
+| `pale_emperor/feathered_serpent` | The Feathered Serpent rearing out of the ground, 3 blocks tall, in 3 stages: 0 = mouth shut, its collar of feathers laid back; 2 = jaws wide, collar flared. Gold mask, pale-green eyes, fangs, forked tongue | where the neck leaves the ground `(8, -16, 12)` | `.frames(3).smooth()` |
+| `pale_emperor/feathered_serpent_coil` | Its body, coiled in three rings on the ground, 2.5 blocks across | the middle of the coils `(8, -16, 8)` | Play it at the same spot as the head, each with its own pivot: the neck rises from the middle |
+| `pale_emperor/pale_wing` | A wing of bleached bone and pale feathers stained yellow-green, in 5 stages: 0 = folded, 4 = spread, 2.5 blocks from shoulder to tip | the shoulder `(-10, 11.5, 8)` | `.frames(5).smooth()`. It grows toward the model's +X (the player's right); `.mirrored()` gives the other wing |
+| `pale_emperor/death_skull` | A giant skull, 1.4 blocks wide and 2 tall: a band of pale-green mosaic edged in gold, a light in each eye. 3 stages: 0 = teeth clenched, 2 = jaw dropped wide | its middle `(8, 8, 8)` | `.frames(3).smooth()` |
+| `pale_emperor/rib_cage` | Six pairs of ribs on a spine that lies along the ground, in 5 stages: 0 = spread open, 4 = closed into a cage. Inside it is 1.3 blocks wide and 1.7 tall, 2.9 long | the middle of the spine `(8, -16, 8)` | `.frames(5).smooth()`. The spine runs front to back. `.scale(2f)` closes round a player |
+| `pale_emperor/bone_spikes` | A cluster of bone spikes breaking out of the ground, 2.75 blocks tall | the base of the tallest `(8, -16, 8)` | Start it under the ground with `pose().up(...)` and bring it up fast |
+| `pale_emperor/bone_spear` | A spear of bone, 3 blocks long, tip up: a notched blade with barbs, a gold socket, two feathers | middle of the shaft `(8, 8, 8)`, tip `(8, 32, 8)` | For `modelAlong` |
+| `pale_emperor/coffin` | A black coffin standing upright, 2.75 blocks tall, gold pictures on its lid. 4 stages: 0 = shut, 3 = the lid swung wide open on its left edge. A skeleton lies inside, a coin on each eye | the middle of its foot `(8, -16, 8)` | `.frames(4).smooth()`. Lid = front |
+| `pale_emperor/tombstone` | A weathered headstone, 1.75 blocks tall, with a glowing hourglass mark and a candle; a grave mound in front of it with three bone fingers coming out | under the stone `(8, -16, 8)` | The grave reaches 1.2 blocks toward the front: a good place to play a `skeletal_hand` |
+| `pale_emperor/underworld_chain` | A chain of dark iron, 2.9 blocks long, a four-clawed grab at its upper end | the far end `(8, -14, 8)`, or the tips of the claws `(8, 32, 8)` | For `modelAlong`. `.scale(1, length, 1)` stretches it |
+| `pale_emperor/pale_crown` | The crown of the Pale Emperor: a gold band with pale-green stones, a serpent rearing at its front, a fan of pale feathers behind | default `(8, 0, 8)` = the middle of the band, at its lower edge | The band is 10 px wide: at `.scale(1)` it fits a player's head |
+| `pale_emperor/pale_feather` | One pale feather, 1.5 blocks long, tip up | its middle `(8, 8, 8)` | `.scale(0.4f)` for a feather that drifts down; full size and `modelAlong` for one that is thrown |
+| `pale_emperor/wraith` | A hooded spirit of the dead, 2.7 blocks tall: a skull deep in the hood with lights for eyes, a robe worn to rags, clawed arms of bare bone. 3 stages: 0 = arms hanging, 2 = reaching out | under it `(8, -16, 8)` | `.frames(3).smooth()`. Face = front |
+| `pale_emperor/death_sigil` | A flat seal for the ground, 3 blocks wide: a ring of runes, a feathered serpent biting its tail, eight feathers and an hourglass | default (its middle) | `.glow().unshaded().seeThrough()` |
+| `pale_emperor/death_sigil_ring`, `death_sigil_core` | The outer and the inner half of that seal | default | Play both and give them opposite `.spin(...)` |
 
 The fire and light ones (`orb`, `thread` and `projection` too) want `.glow().unshaded().seeThrough()`; the solid ones `.glow()`.
 
 Flat plates (`rune_circle`, `shock_ring`) lie on the ground as they are. Play them a little above it so they don't flicker inside the block: `ground.add(0, 0.05, 0)`.
+
+### Pale Emperor: models that go together
+
+The Feathered Serpent rises from its coils, opens its jaws and shuts them again:
+
+```java
+private static final ModelFx SERPENT = ModelFx.of("pale_emperor/feathered_serpent").frames(3).smooth()
+        .scale(2f).pivot(8, -16, 12).glow().lifetime(80).fade(4, 10)
+        .key(0,  ModelFx.pose().up(-6f))                                  // under the ground: 3 blocks tall x scale 2
+        .key(16, ModelFx.pose().up(0), ModelFx.Ease.OUT)                  // rears up
+        .during(22, 28, ModelFx.pose().frame(2), ModelFx.Ease.OUT)        // jaws open, the collar flares
+        .during(56, 64, ModelFx.pose().frame(0), ModelFx.Ease.IN_OUT);    // and shut
+private static final ModelFx COIL = ModelFx.of("pale_emperor/feathered_serpent_coil")
+        .scale(2f).pivot(8, -16, 8).glow().lifetime(80).fade(4, 10);
+
+ParticleShapes.model(sl, COIL, ground, yaw, 0f, 0f);
+ParticleShapes.model(sl, SERPENT, ground, yaw, 0f, 0f);
+```
+
+A cage of ribs breaks out of the ground round a target and snaps shut:
+
+```java
+private static final ModelFx CAGE = ModelFx.of("pale_emperor/rib_cage").frames(5).smooth()
+        .scale(2f).pivot(8, -16, 8).glow().lifetime(100).fade(3, 10)
+        .key(0, ModelFx.pose().up(-4.2f))
+        .key(8, ModelFx.pose().up(0), ModelFx.Ease.OUT)                   // the open ribs come up
+        .during(10, 18, ModelFx.pose().frame(4), ModelFx.Ease.IN);        // and close
+
+ParticleShapes.model(sl, CAGE, target.position(), yaw, 0f, 0f);
+Later.run(sl, 18, () -> cageShut(player, sl, target));                    // 18 = closed
+```
+
+The seal on the ground, its two halves turning against each other:
+
+```java
+private static final ModelFx SEAL_RING = ModelFx.of("pale_emperor/death_sigil_ring")
+        .scale(3f).glow().unshaded().seeThrough().lifetime(100).fade(6, 12).spin(1.5f);
+private static final ModelFx SEAL_CORE = ModelFx.of("pale_emperor/death_sigil_core")
+        .scale(3f).glow().unshaded().seeThrough().lifetime(100).fade(6, 12).spin(-3f);
+
+Vec3 floor = ground.add(0, 0.05, 0);                                      // a little above the blocks
+ParticleShapes.model(sl, SEAL_RING, floor, yaw, 0f, 0f);
+ParticleShapes.model(sl, SEAL_CORE, floor.add(0, 0.02, 0), yaw, 0f, 0f);
+```
+
+The other animated ones work the same way, with their own number of stages: `pale_wing` 5, `death_skull` 3, `coffin` 4, `wraith` 3. Without keys a model shows its stage 0.
 
 ## Tricks worth copying
 
