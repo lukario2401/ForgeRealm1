@@ -387,51 +387,49 @@ The fire and light ones (`orb`, `thread` and `projection` too) want `.glow().uns
 
 Flat plates (`rune_circle`, `shock_ring`) lie on the ground as they are. Play them a little above it so they don't flicker inside the block: `ground.add(0, 0.05, 0)`.
 
-### Pale Emperor: models that go together
+### Pale Emperor: ready-made displays
 
-The Feathered Serpent rises from its coils, opens its jaws and shuts them again:
+`PaleEmperorFx` (next to `PaleEmperor`) shows every Death-pathway model the way it looks best: size, pivot, timing and animation are already chosen. Each display is one call.
 
-```java
-private static final ModelFx SERPENT = ModelFx.of("pale_emperor/feathered_serpent").frames(3).smooth()
-        .scale(2f).pivot(8, -16, 12).glow().lifetime(80).fade(4, 10)
-        .key(0,  ModelFx.pose().up(-6f))                                  // under the ground: 3 blocks tall x scale 2
-        .key(16, ModelFx.pose().up(0), ModelFx.Ease.OUT)                  // rears up
-        .during(22, 28, ModelFx.pose().frame(2), ModelFx.Ease.OUT)        // jaws open, the collar flares
-        .during(56, 64, ModelFx.pose().frame(0), ModelFx.Ease.IN_OUT);    // and shut
-private static final ModelFx COIL = ModelFx.of("pale_emperor/feathered_serpent_coil")
-        .scale(2f).pivot(8, -16, 8).glow().lifetime(80).fade(4, 10);
+**See them in game** (needs cheats, like `/soul`). Stand on flat ground:
 
-ParticleShapes.model(sl, COIL, ground, yaw, 0f, 0f);
-ParticleShapes.model(sl, SERPENT, ground, yaw, 0f, 0f);
-```
+| Command | What you get |
+|---|---|
+| `/palefx all` | Every display at once in a ring 16 blocks around you, played three times. `/palefx all 5` plays them five times |
+| `/palefx serpent` | Just that one, 7 blocks in front of you and turned toward you. Press TAB after `/palefx` for the names |
 
-A cage of ribs breaks out of the ground round a target and snaps shut:
+**Use them in an ability.** `ground` is a spot on the floor, `yaw` the way the front looks (`player.getYRot()` = away from the player):
 
 ```java
-private static final ModelFx CAGE = ModelFx.of("pale_emperor/rib_cage").frames(5).smooth()
-        .scale(2f).pivot(8, -16, 8).glow().lifetime(100).fade(3, 10)
-        .key(0, ModelFx.pose().up(-4.2f))
-        .key(8, ModelFx.pose().up(0), ModelFx.Ease.OUT)                   // the open ribs come up
-        .during(10, 18, ModelFx.pose().frame(4), ModelFx.Ease.IN);        // and close
-
-ParticleShapes.model(sl, CAGE, target.position(), yaw, 0f, 0f);
-Later.run(sl, 18, () -> cageShut(player, sl, target));                    // 18 = closed
+PaleEmperorFx.ribCage(sl, enemy.position(), player.getYRot());
+Later.run(sl, PaleEmperorFx.RIB_CAGE_SHUT, () -> cageShut(player, sl, enemy));    // the tick the cage is shut
 ```
 
-The seal on the ground, its two halves turning against each other:
+| Call | What happens | Ticks to hang damage on |
+|---|---|---|
+| `serpent(sl, ground, yaw)` | A seal opens, the coils rise, the Feathered Serpent rears up 6 blocks, roars, strikes once and sinks | `SERPENT_ROARS`, `SERPENT_BITES` (4 blocks in front of it) |
+| `skull(sl, ground, yaw)` | A skull 4 blocks tall hangs in the air, throws its head back with its jaw wide, chatters its teeth and fades | `SKULL_SCREAMS` |
+| `ribCage(sl, ground, yaw)` | Ribs break out of the ground, snap shut, hold, open and sink | `RIB_CAGE_SHUT`, `RIB_CAGE_OPENS` |
+| `boneSpikes(sl, ground, yaw)` | Spikes burst out, stand and sink back | `SPIKES_OUT` |
+| `boneSpear(sl, ground, yaw)` | A spear appears point up, turns once, tips forward and flies 26 blocks | `SPEAR_FLIES` |
+| `boneSpearThrow(sl, from, direction)` | A spear thrown along a direction: 24 blocks in 16 ticks | |
+| `coffin(sl, ground, yaw)` | A coffin rises, its lid swings open, a wraith comes out; the lid slams and it sinks | `COFFIN_OPEN` |
+| `wraith(sl, ground, yaw)` | A wraith rises, drifts forward with its arms out and fades | `WRAITH_REACHES` |
+| `tombstone(sl, ground, yaw)` | A headstone rises and a skeletal hand breaks out of its grave and grasps | `GRAVE_HAND_GRASPS` |
+| `chain(sl, from, to)` | One chain shoots from a spot and its claws reach another; it is stretched to fit | `CHAIN_ARRIVES` |
+| `chains(sl, ground, yaw)` | A seal opens and four chains shoot from its rim to its middle | `CHAIN_ARRIVES` |
+| `seal(sl, ground, yaw, blocksWide, ticks)` | The seal, its two halves turning against each other | |
+| `featherFall(sl, ground, radius, count)` | Feathers drift down onto a round patch, swaying and turning | |
+| `emperorHand(sl, ground, yaw)` | The Emperor's hand rises 6 blocks, opens, closes and sinks | `EMPEROR_HAND_GRASPS` |
+| `underworldArms(sl, ground, yaw, count)` | Arms of the dead rise in a ring, lean in and clutch at the middle | |
+| `wings(sl, entity)` | Wings on its back: they unfold, beat four times and fold away | |
+| `crown(sl, entity)` | The crown comes down turning and settles on its head | |
 
-```java
-private static final ModelFx SEAL_RING = ModelFx.of("pale_emperor/death_sigil_ring")
-        .scale(3f).glow().unshaded().seeThrough().lifetime(100).fade(6, 12).spin(1.5f);
-private static final ModelFx SEAL_CORE = ModelFx.of("pale_emperor/death_sigil_core")
-        .scale(3f).glow().unshaded().seeThrough().lifetime(100).fade(6, 12).spin(-3f);
+Each display also has a `..._TICKS` number: how long it lasts.
 
-Vec3 floor = ground.add(0, 0.05, 0);                                      // a little above the blocks
-ParticleShapes.model(sl, SEAL_RING, floor, yaw, 0f, 0f);
-ParticleShapes.model(sl, SEAL_CORE, floor.add(0, 0.02, 0), yaw, 0f, 0f);
-```
+The effects themselves are public constants (`PaleEmperorFx.SKULL`, `RIB_CAGE`, `COFFIN`, `WING_RIGHT` ...). To change one, copy it into your class and edit it, or adjust a copy on the spot: `PaleEmperorFx.SKULL.scale(4f)`.
 
-The other animated ones work the same way, with their own number of stages: `pale_wing` 5, `death_skull` 3, `coffin` 4, `wraith` 3. Without keys a model shows its stage 0.
+The wings and the crown move with the entity they are on, but they keep the direction they were given: they do not turn when it turns.
 
 ## Tricks worth copying
 
