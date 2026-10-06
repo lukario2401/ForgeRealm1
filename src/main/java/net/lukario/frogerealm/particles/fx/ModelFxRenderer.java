@@ -23,6 +23,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
+import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.api.distmarker.Dist;
@@ -44,6 +45,7 @@ import java.util.Map;
 /**
  * Draws every active ModelFx, right after vanilla particles.
  * Order: normal models, then .seeThrough() ones (far to near), then the glowing auras on top.
+ * Models with .frames(n) show one of their models, or (with .smooth()) a shape in between two of them.
  * Also loads every model in models/model_fx/ automatically.
  * You shouldn't need to edit this to make new effects — only to add new ModelFx options.
  */
@@ -62,6 +64,9 @@ public final class ModelFxRenderer {
     // scratch space (render thread only)
     private static final float[] PX = new float[4], PY = new float[4], PZ = new float[4];
     private static final float[] U = new float[4], V = new float[4];
+    // the same corners in the frame it is gliding toward
+    private static final float[] QX = new float[4], QY = new float[4], QZ = new float[4];
+    private static final float[] QU = new float[4], QV = new float[4];
     private static final Vector3f POSITION = new Vector3f();
     private static final Vector3f NORMAL = new Vector3f();
     /**
@@ -72,8 +77,9 @@ public final class ModelFxRenderer {
 
     private ModelFxRenderer() {}
 
-    private record Drawn(ModelFx fx, BakedModel model, Matrix4f pose, Matrix3f normal,
-                         float alpha, int light, float modelScale, double distance) {}
+    /** next / blend: with .smooth() frames, the model it is gliding toward and how far it has got (0..1). next = null: just 'model'. */
+    private record Drawn(ModelFx fx, BakedModel model, BakedModel next, float blend, boolean mirrored,
+                         Matrix4f pose, Matrix3f normal, float alpha, int light, float modelScale, double distance) {}
 
     static void track(ModelFxParticle particle) {
         ACTIVE.add(particle);
@@ -145,8 +151,31 @@ public final class ModelFxRenderer {
                     : LevelRenderer.getLightColor(level, BlockPos.containing(anchor));
             float modelScale = (Math.abs(fx.scaleX()) + Math.abs(fx.scaleY()) + Math.abs(fx.scaleZ())) / 3f * Math.abs(scale);
 
-            BakedModel model = models.getModel(location(fx.model()));
-            drawn.add(new Drawn(fx, model, matrix, normal, alpha, light, modelScale, anchor.distanceToSqr(cam)));
+            BakedModel model;
+            BakedModel next = null;
+            float blend = 0f;
+            int frames = fx.frameCount();
+            if (frames > 1) {
+                float frame = Mth.clamp(pose.frame(), 0f, frames - 1f);
+                if (fx.isSmooth()) {
+                    int from = Math.min((int) frame, frames - 2);
+                    blend = frame - from;
+                    model = models.getModel(location(fx.frameModel(from)));
+                    if (blend > 0.999f) {
+                        model = models.getModel(location(fx.frameModel(from + 1)));
+                    } else if (blend > 0.001f) {
+                        next = models.getModel(location(fx.frameModel(from + 1)));
+                    }
+                } else {
+                    model = models.getModel(location(fx.frameModel(Math.round(frame))));
+                }
+            } else {
+                model = models.getModel(location(fx.model()));
+            }
+            // a mirrored model (negative scale on one axis) has its faces wound the other way round
+            boolean mirrored = matrix.determinant() < 0f;
+            drawn.add(new Drawn(fx, model, next, blend, mirrored, matrix, normal, alpha, light, modelScale,
+                    anchor.distanceToSqr(cam)));
         }
         if (drawn.isEmpty()) return;
         drawn.sort((a, b) -> Double.compare(b.distance(), a.distance())); // far first, so see-through ones blend right
@@ -202,13 +231,78 @@ public final class ModelFxRenderer {
                                   float inflate, float flatU, float flatV) {
         for (Direction side : SIDES) {
             RANDOM.setSeed(42L);
-            for (BakedQuad quad : d.model().getQuads(null, side, RANDOM)) {
-                drawQuad(consumer, quad, d.pose(), d.normal(), d.fx().isUnshaded(), r, g, b, a, light, inflate, flatU, flatV);
+            List<BakedQuad> quads = d.model().getQuads(null, side, RANDOM);
+            List<BakedQuad> toward = null;
+            if (d.next() != null) {
+                RANDOM.setSeed(42L);
+                toward = d.next().getQuads(null, side, RANDOM);
+                if (toward.size() != quads.size()) {
+                    // the two frames are not made of the same faces: no gliding, show the nearer one
+                    if (d.blend() >= 0.5f) quads = toward;
+                    toward = null;
+                }
+            }
+            for (int i = 0; i < quads.size(); i++) {
+                drawQuad(consumer, quads.get(i), toward == null ? null : toward.get(i), d.blend(), d.mirrored(),
+                        d.pose(), d.normal(), d.fx().isUnshaded(), r, g, b, a, light, inflate, flatU, flatV);
             }
         }
     }
 
-    private static void drawQuad(VertexConsumer consumer, BakedQuad quad, Matrix4f pose, Matrix3f normalMatrix,
+    /**
+     * Moves the corners in PX/PY/PZ 'blend' of the way to the same face in the next frame. Returns false when that
+     * face cannot be read. Which corner belongs to which is found by the texture: the corner that shows the same
+     * spot of the texture is the same corner of the same cube, however the cube was turned in between.
+     */
+    private static boolean glideToward(BakedQuad toward, float blend) {
+        int[] data = toward.getVertices();
+        int stride = IQuadTransformer.STRIDE;
+        if (data.length < stride * 4) return false;
+        for (int i = 0; i < 4; i++) {
+            int position = i * stride + IQuadTransformer.POSITION;
+            int uv = i * stride + IQuadTransformer.UV0;
+            QX[i] = Float.intBitsToFloat(data[position]);
+            QY[i] = Float.intBitsToFloat(data[position + 1]);
+            QZ[i] = Float.intBitsToFloat(data[position + 2]);
+            QU[i] = Float.intBitsToFloat(data[uv]);
+            QV[i] = Float.intBitsToFloat(data[uv + 1]);
+        }
+        int shift = -1;
+        for (int s = 0; s < 4 && shift != -2; s++) {
+            boolean same = true;
+            for (int i = 0; i < 4 && same; i++) {
+                int j = (i + s) & 3;
+                same = Math.abs(U[i] - QU[j]) < 1.0E-5f && Math.abs(V[i] - QV[j]) < 1.0E-5f;
+            }
+            if (same) shift = shift == -1 ? s : -2;   // -2: fits more than one way, the texture can't tell
+        }
+        if (shift < 0) {
+            // painted differently in the two frames: take the turn that moves the corners least
+            float best = Float.MAX_VALUE;
+            for (int s = 0; s < 4; s++) {
+                float cost = 0f;
+                for (int i = 0; i < 4; i++) {
+                    int j = (i + s) & 3;
+                    float dx = PX[i] - QX[j], dy = PY[i] - QY[j], dz = PZ[i] - QZ[j];
+                    cost += dx * dx + dy * dy + dz * dz;
+                }
+                if (cost < best) {
+                    best = cost;
+                    shift = s;
+                }
+            }
+        }
+        for (int i = 0; i < 4; i++) {
+            int j = (i + shift) & 3;
+            PX[i] += (QX[j] - PX[i]) * blend;
+            PY[i] += (QY[j] - PY[i]) * blend;
+            PZ[i] += (QZ[j] - PZ[i]) * blend;
+        }
+        return true;
+    }
+
+    private static void drawQuad(VertexConsumer consumer, BakedQuad quad, BakedQuad toward, float blend, boolean mirrored,
+                                 Matrix4f pose, Matrix3f normalMatrix,
                                  boolean unshaded, float r, float g, float b, float a, int light,
                                  float inflate, float flatU, float flatV) {
         int[] data = quad.getVertices();
@@ -224,6 +318,11 @@ public final class ModelFxRenderer {
             U[i] = Float.intBitsToFloat(data[uv]);
             V[i] = Float.intBitsToFloat(data[uv + 1]);
         }
+
+        // gliding between two frames: the face is somewhere between where it is in this frame and in the next.
+        // Half way through a turn it no longer looks along the direction the model file gave it, so its normal
+        // is taken from its corners as they are (the corners of a face always go round the same way).
+        boolean gliding = toward != null && glideToward(toward, blend);
 
         // face normal from the corners (also right for rotated cubes), pointing the way the face looks
         float e1x = PX[1] - PX[0], e1y = PY[1] - PY[0], e1z = PZ[1] - PZ[0];
@@ -241,7 +340,7 @@ public final class ModelFxRenderer {
             nx /= length;
             ny /= length;
             nz /= length;
-            if (nx * direction.getStepX() + ny * direction.getStepY() + nz * direction.getStepZ() < 0) {
+            if (!gliding && nx * direction.getStepX() + ny * direction.getStepY() + nz * direction.getStepZ() < 0) {
                 nx = -nx;
                 ny = -ny;
                 nz = -nz;
@@ -279,7 +378,8 @@ public final class ModelFxRenderer {
         }
         boolean flat = !Float.isNaN(flatU);
 
-        for (int i = 0; i < 4; i++) {
+        for (int n = 0; n < 4; n++) {
+            int i = mirrored ? 3 - n : n;        // mirrored: go round the other way, or the game hides the face as a back side
             POSITION.set(PX[i], PY[i], PZ[i]);
             pose.transformPosition(POSITION);
             consumer.addVertex(POSITION.x(), POSITION.y(), POSITION.z())

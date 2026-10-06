@@ -79,6 +79,17 @@ import java.util.Locale;
  *   roll  + = tips the top to the right                spin  + = turns around its OWN up axis, however it is tilted
  * Go past 360 to keep turning: yaw(720) = two full turns. All rotations happen around the pivot.
  *
+ * ---------- Models that change shape (a hand closing, wings beating) ----------
+ * Make one model per stage of the movement and name them <name>_0, <name>_1, <name>_2 ... Then:
+ *   ModelFx.of("pale_emperor/skeletal_hand_grasp").frames(5)       // the files skeletal_hand_grasp_0 .. _4
+ *           .smooth()                                              // glide between the frames instead of jumping
+ *           .key(8,  ModelFx.pose().frame(4), ModelFx.Ease.IN)     // ticks 0-8: frame 0 -> 4 (the hand closes)
+ *           .key(30, ModelFx.pose().frame(4))                      // holds
+ *           .key(36, ModelFx.pose().frame(0), ModelFx.Ease.OUT);   // opens again
+ * "frame" is animated like everything else: keys, .during(...), every Ease, and it can run backwards.
+ * .smooth() needs frames made of the same cubes in the same order (copy the model and only move/turn its cubes);
+ * frames that don't match simply jump. .mirrored() flips a model left-right (a left hand out of a right hand).
+ *
  * Test in game (shows the model at your feet for 100 ticks):
  *   /particle forgerealmmod:model{model:"forgerealmmod:model_fx/order_hammer",glow:1b,lifetime:100} ~ ~ ~ 0 0 0 0 1
  */
@@ -134,14 +145,15 @@ public final class ModelFx implements ParticleOptions {
      */
     public static final class Pose {
 
-        private static final int FORWARD = 0, UP = 1, RIGHT = 2, YAW = 3, PITCH = 4, ROLL = 5, SPIN = 6, SCALE = 7, ALPHA = 8;
-        private static final int COUNT = 9;
+        private static final int FORWARD = 0, UP = 1, RIGHT = 2, YAW = 3, PITCH = 4, ROLL = 5, SPIN = 6, SCALE = 7, ALPHA = 8,
+                FRAME = 9;
+        private static final int COUNT = 10;
         private static final int EVERYTHING = (1 << COUNT) - 1;
-        private static final float[] START = {0f, 0f, 0f, 0f, 0f, 0f, 0f, 1f, 1f};
+        private static final float[] START = {0f, 0f, 0f, 0f, 0f, 0f, 0f, 1f, 1f, 0f};
 
         /** Changes nothing (what ModelFx.pose() starts from). */
         static final Pose NOTHING = new Pose(START.clone(), 0);
-        /** Sets everything back to the start: no offset, no rotation, scale 1, alpha 1. */
+        /** Sets everything back to the start: no offset, no rotation, scale 1, alpha 1, frame 0. */
         public static final Pose REST = new Pose(START.clone(), EVERYTHING);
 
         private final float[] values;
@@ -182,6 +194,11 @@ public final class ModelFx implements ParticleOptions {
         public Pose scale(float scale) { return with(SCALE, scale); }
         /** 0 = invisible, 1 = normal */
         public Pose alpha(float alpha) { return with(ALPHA, alpha); }
+        /**
+         * For models with .frames(n): which of the models <name>_0 .. <name>_(n-1) shows. 0 = the first.
+         * Halves are fine: with .smooth(), frame(1.5f) is half way between frame 1 and frame 2.
+         */
+        public Pose frame(float frame) { return with(FRAME, frame); }
 
         // ----- values (meaningful on the pose that poseAt(...) returns) -----
 
@@ -194,6 +211,7 @@ public final class ModelFx implements ParticleOptions {
         public float spin() { return values[SPIN]; }
         public float scale() { return values[SCALE]; }
         public float alpha() { return values[ALPHA]; }
+        public float frame() { return values[FRAME]; }
     }
 
     /**
@@ -216,6 +234,7 @@ public final class ModelFx implements ParticleOptions {
 
     public static final String FOLDER = "model_fx";
     private static final int MAX_KEYS = 64;
+    private static final int MAX_FRAMES = 64;
 
     private ResourceLocation model;
     private int color;
@@ -233,6 +252,9 @@ public final class ModelFx implements ParticleOptions {
     private int fadeIn;
     private int fadeOut;
     private float spin;                     // degrees per tick, around the model's own up
+    private int frames;                     // 1 = one model; more = the models <model>_0 .. <model>_(frames-1)
+    private boolean smooth;                 // glide between frames instead of jumping
+    private ResourceLocation[] frameModels; // made when needed
     private int followId;                   // -1 = stays where it was played
     private Vec3 followOffset;
     private boolean clear;                  // special: removes models stuck to followId
@@ -250,6 +272,7 @@ public final class ModelFx implements ParticleOptions {
         c.pivotX = pivotX; c.pivotY = pivotY; c.pivotZ = pivotZ;
         c.yaw = yaw; c.pitch = pitch; c.roll = roll;
         c.lifetime = lifetime; c.delay = delay; c.fadeIn = fadeIn; c.fadeOut = fadeOut; c.spin = spin;
+        c.frames = frames; c.smooth = smooth;
         c.followId = followId; c.followOffset = followOffset; c.clear = clear; c.tag = tag;
         c.keys = keys;
         return c;
@@ -275,6 +298,7 @@ public final class ModelFx implements ParticleOptions {
         fx.scaleX = fx.scaleY = fx.scaleZ = 1f;
         fx.pivotX = 8f; fx.pivotY = 0f; fx.pivotZ = 8f;
         fx.lifetime = 20;
+        fx.frames = 1;
         fx.followId = -1;
         fx.followOffset = Vec3.ZERO;
         fx.tag = "";
@@ -339,6 +363,12 @@ public final class ModelFx implements ParticleOptions {
         ModelFx c = copy(); c.scaleX = x; c.scaleY = y; c.scaleZ = z; return c;
     }
 
+    /**
+     * Flipped left-right, like in a mirror (a left hand out of a right hand). The pivot stays where it is.
+     * Calling it twice flips it back.
+     */
+    public ModelFx mirrored() { return scale(-scaleX, scaleY, scaleZ); }
+
     /** The point (in Blockbench pixels) that sits on the spawn position and everything turns around. */
     public ModelFx pivot(float x, float y, float z) {
         ModelFx c = copy(); c.pivotX = x; c.pivotY = y; c.pivotZ = z; return c;
@@ -374,6 +404,20 @@ public final class ModelFx implements ParticleOptions {
      * To spin only for a while, animate it instead: .during(30, 100, ModelFx.pose().spin(1440))
      */
     public ModelFx spin(float degreesPerTick) { ModelFx c = copy(); c.spin = degreesPerTick; return c; }
+
+    /**
+     * A model that changes shape: instead of one model there are 'count' of them, named like this one with
+     * _0, _1, _2 ... at the end (ModelFx.of("hand").frames(5) = hand_0.json .. hand_4.json).
+     * It shows frame 0 until a key says otherwise:  .key(10, ModelFx.pose().frame(4))  goes through 0..4 in 10 ticks.
+     */
+    public ModelFx frames(int count) { ModelFx c = copy(); c.frames = Mth.clamp(count, 1, MAX_FRAMES); return c; }
+
+    /**
+     * With .frames(n): glide from one frame to the next instead of jumping, so a few frames give a fluid movement.
+     * Works when the frames are the same cubes in the same order, only moved or turned (and painted the same way);
+     * frames that don't match just jump. Keep each cube's turn between two frames small (45 degrees or less).
+     */
+    public ModelFx smooth() { ModelFx c = copy(); c.smooth = true; return c; }
 
     /** Add a keyframe reached at constant speed (Ease.LINEAR). */
     public ModelFx key(int tick, Pose pose) { return key(tick, pose, Ease.LINEAR); }
@@ -518,6 +562,22 @@ public final class ModelFx implements ParticleOptions {
     public boolean isClear() { return clear; }
     public String tagName() { return tag; }
     public List<Key> keys() { return keys; }
+    /** 1 = an ordinary model; more = it is made of the models frameModel(0) .. frameModel(frameCount() - 1). */
+    public int frameCount() { return frames; }
+    public boolean isSmooth() { return smooth; }
+
+    /** The model of one frame: this model's name with _<index> at the end. */
+    public ResourceLocation frameModel(int index) {
+        ResourceLocation[] all = frameModels;
+        if (all == null) {
+            all = new ResourceLocation[frames];
+            for (int i = 0; i < frames; i++) {
+                all[i] = ResourceLocation.fromNamespaceAndPath(model.getNamespace(), model.getPath() + "_" + i);
+            }
+            frameModels = all;
+        }
+        return all[Mth.clamp(index, 0, all.length - 1)];
+    }
 
     @Override
     public ParticleType<?> getType() {
@@ -548,8 +608,8 @@ public final class ModelFx implements ParticleOptions {
     }
 
     private static Pose poseFromFields(float forward, float up, float right, float yaw, float pitch, float roll,
-                                       float spin, float scale, float alpha) {
-        float[] given = {forward, up, right, yaw, pitch, roll, spin, scale, alpha};
+                                       float spin, float scale, float alpha, float frame) {
+        float[] given = {forward, up, right, yaw, pitch, roll, spin, scale, alpha, frame};
         float[] values = Pose.START.clone();
         int set = 0;
         for (int i = 0; i < Pose.COUNT; i++) {
@@ -569,7 +629,8 @@ public final class ModelFx implements ParticleOptions {
             poseField("roll").forGetter((Pose p) -> fieldOf(p, Pose.ROLL)),
             poseField("spin").forGetter((Pose p) -> fieldOf(p, Pose.SPIN)),
             poseField("scale").forGetter((Pose p) -> fieldOf(p, Pose.SCALE)),
-            poseField("alpha").forGetter((Pose p) -> fieldOf(p, Pose.ALPHA))
+            poseField("alpha").forGetter((Pose p) -> fieldOf(p, Pose.ALPHA)),
+            poseField("frame").forGetter((Pose p) -> fieldOf(p, Pose.FRAME))
     ).apply(i, ModelFx::poseFromFields));
 
     // {tick:20, pitch:90f} = a .key(...);  {from:30, tick:100, spin:1440f} = a .during(...)
@@ -590,7 +651,7 @@ public final class ModelFx implements ParticleOptions {
     private record Look(ResourceLocation model, int color, boolean glow, boolean seeThrough, boolean unshaded,
                         int auraColor, float auraSize, int auraLayers) {}
     private record Shape(Vec3 scale, Vec3 pivot, Vec3 rotation) {}
-    private record Timing(int lifetime, int delay, int fadeIn, int fadeOut, float spin) {}
+    private record Timing(int lifetime, int delay, int fadeIn, int fadeOut, float spin, int frames, boolean smooth) {}
     private record Link(int followId, Vec3 followOffset, boolean clear, String tag) {}
 
     private static final ResourceLocation DEFAULT_MODEL =
@@ -618,7 +679,9 @@ public final class ModelFx implements ParticleOptions {
             Codec.INT.optionalFieldOf("delay", 0).forGetter(Timing::delay),
             Codec.INT.optionalFieldOf("fade_in", 0).forGetter(Timing::fadeIn),
             Codec.INT.optionalFieldOf("fade_out", 0).forGetter(Timing::fadeOut),
-            Codec.FLOAT.optionalFieldOf("spin", 0f).forGetter(Timing::spin)
+            Codec.FLOAT.optionalFieldOf("spin", 0f).forGetter(Timing::spin),
+            Codec.INT.optionalFieldOf("frames", 1).forGetter(Timing::frames),
+            Codec.BOOL.optionalFieldOf("smooth", false).forGetter(Timing::smooth)
     ).apply(i, Timing::new));
 
     private static final MapCodec<Link> LINK_CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
@@ -638,6 +701,7 @@ public final class ModelFx implements ParticleOptions {
         fx.yaw = (float) shape.rotation().x; fx.pitch = (float) shape.rotation().y; fx.roll = (float) shape.rotation().z;
         fx.lifetime = Math.max(1, timing.lifetime()); fx.delay = Math.max(0, timing.delay());
         fx.fadeIn = Math.max(0, timing.fadeIn()); fx.fadeOut = Math.max(0, timing.fadeOut()); fx.spin = timing.spin();
+        fx.frames = Mth.clamp(timing.frames(), 1, MAX_FRAMES); fx.smooth = timing.smooth();
         fx.followId = link.followId(); fx.followOffset = link.followOffset(); fx.clear = link.clear();
         fx.tag = link.tag();
         List<Key> sorted = new ArrayList<>(keys);
@@ -651,7 +715,8 @@ public final class ModelFx implements ParticleOptions {
                     fx.auraColor, fx.auraSize, fx.auraLayers)),
             SHAPE_CODEC.forGetter((ModelFx fx) -> new Shape(new Vec3(fx.scaleX, fx.scaleY, fx.scaleZ),
                     new Vec3(fx.pivotX, fx.pivotY, fx.pivotZ), new Vec3(fx.yaw, fx.pitch, fx.roll))),
-            TIMING_CODEC.forGetter((ModelFx fx) -> new Timing(fx.lifetime, fx.delay, fx.fadeIn, fx.fadeOut, fx.spin)),
+            TIMING_CODEC.forGetter((ModelFx fx) -> new Timing(fx.lifetime, fx.delay, fx.fadeIn, fx.fadeOut, fx.spin,
+                    fx.frames, fx.smooth)),
             LINK_CODEC.forGetter((ModelFx fx) -> new Link(fx.followId, fx.followOffset, fx.clear, fx.tag)),
             KEY_CODEC.listOf().optionalFieldOf("keys", List.of()).forGetter(ModelFx::keys)
     ).apply(i, ModelFx::fromParts));
@@ -682,6 +747,8 @@ public final class ModelFx implements ParticleOptions {
         buffer.writeVarInt(fadeIn);
         buffer.writeVarInt(fadeOut);
         buffer.writeFloat(spin);
+        buffer.writeVarInt(frames);
+        buffer.writeBoolean(smooth);
         buffer.writeInt(followId);
         buffer.writeDouble(followOffset.x);
         buffer.writeDouble(followOffset.y);
@@ -727,6 +794,8 @@ public final class ModelFx implements ParticleOptions {
         fx.fadeIn = buffer.readVarInt();
         fx.fadeOut = buffer.readVarInt();
         fx.spin = buffer.readFloat();
+        fx.frames = Mth.clamp(buffer.readVarInt(), 1, MAX_FRAMES);
+        fx.smooth = buffer.readBoolean();
         fx.followId = buffer.readInt();
         fx.followOffset = new Vec3(buffer.readDouble(), buffer.readDouble(), buffer.readDouble());
         fx.clear = buffer.readBoolean();

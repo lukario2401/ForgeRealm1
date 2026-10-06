@@ -93,6 +93,9 @@ private static final ModelFx RUNE = ModelFx.of("rune")      // models/model_fx/r
 | `.key(tick, pose)` / `.key(tick, pose, ease)` | Animation keyframe (see below) |
 | `.during(from, to, pose)` / `.during(from, to, pose, ease)` | Extra animation that runs at the same time as the keyframes (see below) |
 | `.noKeys()` | Remove all keyframes and `.during` animations |
+| `.frames(n)` | The model is `n` models, `<name>_0` .. `<name>_(n-1)`, and changes shape (see "Models that change shape") |
+| `.smooth()` | With `.frames(n)`: glide between the frames instead of jumping |
+| `.mirrored()` | Flipped left-right, like in a mirror: a left hand out of a right hand |
 | `.tag("name")` | A name for a model stuck to an entity, so it can be removed on its own (see section 5) |
 
 ### Solid things, or fire and light?
@@ -247,6 +250,29 @@ ORDER_HAMMER
     .key(23, ModelFx.pose().pitch(90),  ModelFx.Ease.IN);
 ```
 
+### Models that change shape
+
+A keyframe moves, turns and scales the whole model. For something that changes its *shape* (a hand closing, jaws snapping, wings beating), make one model per stage and let the effect step through them:
+
+1. Build the first stage and export it as `<name>_0.json`.
+2. Copy it, move or turn the cubes for the next stage, and export that as `<name>_1.json`, and so on. Don't add or delete cubes in between and don't repaint them, only move and turn them. All stages can share one texture.
+3. Describe it with `.frames(count)` and animate `frame` in the keys, like any other value:
+
+```java
+private static final ModelFx HAND = ModelFx.of("pale_emperor/skeletal_hand_grasp")
+        .frames(5).smooth()                 // skeletal_hand_grasp_0 .. _4, gliding from one to the next
+        .scale(1.5f).pivot(8, -16, 8).lifetime(60).fade(3, 8)
+        .key(0,  ModelFx.pose().frame(3).up(-4.5f))                     // starts half closed, under the ground
+        .key(10, ModelFx.pose().up(0), ModelFx.Ease.OUT)                // rises out of it
+        .during(4, 14,  ModelFx.pose().frame(0), ModelFx.Ease.OUT)      // while rising, opens wide
+        .during(26, 32, ModelFx.pose().frame(4), ModelFx.Ease.IN);      // snaps shut
+```
+
+- `frame(n)` is which stage shows. It is animated like everything else: it eases, it can hold, it can run backwards (`frame(4)` then `frame(0)` closes and reopens).
+- Without `.smooth()` the model jumps from stage to stage, like a flip book. With it the cubes travel from where they are in one stage to where they are in the next, so 5 stages are enough for a fluid movement.
+- `.smooth()` needs stages made of the same cubes in the same order (step 2). Stages that don't match just jump. Keep each cube's turn between two stages at 45 degrees or less, or it looks squashed half way.
+- Test it: `/particle forgerealmmod:model{model:"forgerealmmod:model_fx/pale_emperor/skeletal_hand_grasp",frames:5,smooth:1b,glow:1b,lifetime:100,pivot:[8.0,-16.0,8.0],keys:[{tick:20,frame:4f},{tick:60,frame:4f},{tick:80,frame:0f}]} ~ ~1 ~ 0 0 0 0 1`
+
 ## 5. Play it
 
 Works from server code (everyone nearby sees it). Call it inside your ability method:
@@ -333,6 +359,12 @@ These are in `models/model_fx/` and any class can use them. Sizes are at `.scale
 | `attendant_of_mysteries/needle` | Sewing needle hanging point down, 3 blocks long | its point `(8, -16, 8)`, eye `(8, 32, 8)` | |
 | `attendant_of_mysteries/thread` | A taut thread standing up, 3 blocks long, fading toward its top | its lower end `(8, -16, 8)` | White, tint it. Stretch it with `.scale(width, length, width)` |
 | `attendant_of_mysteries/fool_card` | Tarot card standing upright, 10 x 16 px | its middle `(8, 8, 8)` | Face and back are different |
+| `pale_emperor/underworld_gate` | Dark stone gate frame with a pointed arch, 3 blocks wide and tall | the middle of its threshold `(8, -16, 8)` | Both faces are the same |
+| `pale_emperor/underworld_gate_door_left`, `_right` | Its two bronze doors | their hinges `(-7, -16, 8)` and `(23, -16, 8)` | Played with the frame's pivot they sit closed in it. To swing them, use the hinge pivots, move them there with `pose().right(-/+ 15/16 * scale)` and animate `yaw` |
+| `pale_emperor/underworld_void` | The inside of the doorway: animated mist with eyes | `(8, -16, 8)` | `.glow().unshaded()` |
+| `pale_emperor/skeletal_hand`, `skeletal_hand_grab` | The first skeletal hand, open and closed, 3 blocks tall with its forearm | the end of the forearm `(8, -16, 8)` | Palm = front |
+| `pale_emperor/skeletal_hand_spread` | Skeletal hand wide open: fingers fanned, tips hooked. 3 blocks tall | the end of the forearm `(8, -16, 8)` | Palm = front, thumb on the model's +X side. `.mirrored()` gives the other hand |
+| `pale_emperor/skeletal_hand_grasp` | The same hand closing, in 5 stages: 0 = wide open (the same as `skeletal_hand_spread`), 4 = clenched | `(8, -16, 8)` | `.frames(5).smooth()`, then animate `frame` (see "Models that change shape") |
 
 The fire and light ones (`orb`, `thread` and `projection` too) want `.glow().unshaded().seeThrough()`; the solid ones `.glow()`.
 
