@@ -10,6 +10,7 @@ import net.lukario.frogerealm.root.Root;
 import net.lukario.frogerealm.root.RootRestriction;
 import net.lukario.frogerealm.shadow_slave.soul_shards.SoulCore;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
@@ -17,7 +18,11 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 import java.util.function.Supplier;
 
 public class PaleEmperor {
@@ -488,7 +493,15 @@ public class PaleEmperor {
         return entity.getBoundingBox().getCenter();
     }
 
+    // =====================================================================================
+    // FEATHERED SERPENT MODELS
+    // =====================================================================================
+
     public static final int SERPENT_TICKS = 150;
+
+    /** The tick the serpent's jaws are wide open: the screech leaves it, or the lines do. */
+    public static final int SERPENT_ROARS = 40;
+
     public static final ModelFx SERPENT = ModelFx.of("pale_emperor/feathered_serpent").frames(3).smooth()
             .scale(2f).pivot(8, -16, 12).glow().lifetime(SERPENT_TICKS).fade(0, 4)
             .key(0, pose().up(-6.2f))                                    // under the ground
@@ -501,6 +514,20 @@ public class PaleEmperor {
             .during(86, 89, pose().frame(0), ModelFx.Ease.IN)                    // the bite
             .during(94, 108, pose().pitch(0), ModelFx.Ease.IN_OUT)               // draws back
             .during(128, 148, pose().up(-6.2f), ModelFx.Ease.IN);                // sinks away
+
+    /**
+     * The serpent of the sneak cast: it rears up, opens its jaws and keeps them open for as long as
+     * its lines hold, then shuts them and sinks away. No bite.
+     */
+    public static final ModelFx SERPENT_BINDING = ModelFx.of("pale_emperor/feathered_serpent").frames(3).smooth()
+            .scale(2f).pivot(8, -16, 12).glow().lifetime(SERPENT_TICKS).fade(0, 4)
+            .key(0, pose().up(-6.2f))                                    // under the ground
+            .key(12, pose().up(-6.2f))                                   // waits for the coils and the seal
+            .key(30, pose().up(0), ModelFx.Ease.OUT)                             // rears up
+            .during(34, 40, pose().frame(2), ModelFx.Ease.OUT)                   // jaws wide: the lines leave its mouth
+            .during(100, 108, pose().frame(0), ModelFx.Ease.IN_OUT)              // lets go and shuts its mouth
+            .during(128, 148, pose().up(-6.2f), ModelFx.Ease.IN);                // sinks away
+
     /** Its coiled body, 5 blocks across. */
     public static final ModelFx SERPENT_COIL = ModelFx.of("pale_emperor/feathered_serpent_coil")
             .scale(2f).pivot(8, -16, 8).glow().lifetime(SERPENT_TICKS).fade(0, 4)
@@ -510,10 +537,247 @@ public class PaleEmperor {
 
     /** A seal opens, the coils rise out of it, the serpent rears up, roars, strikes once and sinks away. */
     public static void serpent(ServerLevel sl, Vec3 ground, float yaw) {
+        serpent(sl, SERPENT, ground, yaw);
+    }
+
+    /** The same with another animation for the head, e.g. SERPENT_BINDING. */
+    public static void serpent(ServerLevel sl, ModelFx head, Vec3 ground, float yaw) {
         seal(sl, ground, yaw, 7.5f, SERPENT_TICKS);
         ParticleShapes.model(sl, SERPENT_COIL, ground, yaw, 0f, 0f);
-        ParticleShapes.model(sl, SERPENT, ground, yaw, 0f, 0f);
+        ParticleShapes.model(sl, head, ground, yaw, 0f, 0f);
     }
+
+    /** Where the open mouth of a serpent that rose at 'ground' is. */
+    private static Vec3 serpentMouth(Vec3 ground, float yaw) {
+        return ground.add(0, 2.4, 0).add(Vec3.directionFromRotation(0f, yaw).scale(1.7));
+    }
+
+    // =====================================================================================
+    // SERPENT: SCREECH (normal cast)
+    // =====================================================================================
+
+    /** What the screech does to everyone its wave reaches. */
+    public static final float SCREECH_DAMAGE = 45f;
+
+    /** How far the wave travels from the serpent, in blocks. */
+    public static final double SCREECH_RADIUS = 16;
+
+    /** How far above and below the serpent's ground the wave still catches someone. */
+    public static final double SCREECH_HEIGHT = 6;
+
+    /** How long the wave takes to get that far: 16 blocks in 20 ticks = 16 blocks a second. */
+    public static final int SCREECH_TICKS = 20;
+
+    /**
+     * The serpent screeches: a wave races outward from it in every direction, and each enemy is hurt
+     * once, at the moment the wave gets to it.
+     */
+    private static void screech(Player player, ServerLevel sl, Vec3 ground, float yaw) {
+        if (!Spells.casterStillHere(player, sl)) return;
+
+        Vec3 mouth = serpentMouth(ground, yaw);
+
+        Spells.sound(sl, mouth, SoundEvents.ENDER_DRAGON_GROWL, 1.6f, 1.7f);
+        Spells.sound(sl, mouth, SoundEvents.WARDEN_SONIC_BOOM, 1.2f, 1.4f);
+
+        // the first ring is the wave itself, the others follow it like an echo
+        screechRing(sl, ground.add(0, 0.07, 0), 0xF09CFFD2, 0);
+        screechRing(sl, ground.add(0, 0.09, 0), 0xB0F5C211, 3);
+        screechRing(sl, ground.add(0, 0.11, 0), 0x809CFFD2, 6);
+        screechRing(sl, new Vec3(ground.x, mouth.y, ground.z), 0x709CFFD2, 0);
+
+        Set<UUID> alreadyHit = new HashSet<>();
+
+        for (int tick = 1; tick <= SCREECH_TICKS; tick++) {
+
+            double reach = SCREECH_RADIUS * tick / SCREECH_TICKS;
+
+            Later.run(
+                    sl,
+                    tick,
+                    () -> screechWaveHits(player, sl, ground, reach, alreadyHit)
+            );
+        }
+    }
+
+    /** A ring that grows at a steady speed until it is as wide as the screech reaches. */
+    private static void screechRing(ServerLevel sl, Vec3 at, int color, int delay) {
+        ModelFx ring = SpellFx.SHOCK_RING.color(color).delay(delay).lifetime(SCREECH_TICKS)
+                .key(0, pose().scale(1f))
+                .key(SCREECH_TICKS, pose().scale((float) (SCREECH_RADIUS * 2.0)))    // steady: the damage keeps pace with it
+                .during(0, SCREECH_TICKS, pose().alpha(0f), ModelFx.Ease.IN);        // stays bright, fades at the end
+
+        ParticleShapes.model(sl, ring, at, sl.getRandom().nextFloat() * 360f, 0f, 0f);
+    }
+
+    /** Hurts every enemy the wave has reached by now and has not hurt before. */
+    private static void screechWaveHits(
+            Player player,
+            ServerLevel sl,
+            Vec3 ground,
+            double reach,
+            Set<UUID> alreadyHit
+    ) {
+        if (!Spells.casterStillHere(player, sl)) return;
+
+        List<LivingEntity> near = Spells.enemiesAround(
+                player,
+                sl,
+                ground,
+                SCREECH_RADIUS + SCREECH_HEIGHT
+        );
+
+        for (LivingEntity enemy : near) {
+
+            if (Math.abs(enemy.getY() - ground.y) > SCREECH_HEIGHT) continue;
+
+            double dx = enemy.getX() - ground.x;
+            double dz = enemy.getZ() - ground.z;
+
+            // measured to the edge of its body, so the wave hits when the ring touches it
+            double distance = Math.sqrt(dx * dx + dz * dz) - enemy.getBbWidth() / 2.0;
+
+            if (distance > reach) continue;
+
+            if (!alreadyHit.add(enemy.getUUID())) continue;
+
+            Spells.strike(player, enemy, SCREECH_DAMAGE);
+        }
+    }
+
+    // =====================================================================================
+    // SERPENT: LINES (sneak cast)
+    // =====================================================================================
+
+    private static final SlashFx SERPENT_LINE = SlashFx.line("slash/smooth")
+            .color(0xC09CFFD2)
+            .core(0xE0F4FFE8)
+            .width(0.1f)
+            .taper(SlashFx.Taper.UNIFORM);
+
+    /** How far in front of the serpent a mob can stand and still be caught, in blocks. */
+    public static final double LINE_RANGE = 24;
+
+    /** How far to either side of straight ahead still counts as "in front", in degrees. */
+    public static final double LINE_HALF_ANGLE = 50;
+
+    /** How long the lines hold. The serpent keeps its jaws open exactly this long. */
+    public static final int LINE_TICKS = 60;
+
+    /** A line hurts what it holds once every this many ticks: 6 times in all. */
+    public static final int LINE_PULSE = 10;
+
+    /** What each of those does. */
+    public static final float LINE_DAMAGE = 8f;
+
+    /**
+     * The serpent draws a line from its mouth to every enemy standing in front of it. Each line hurts
+     * what it holds again and again until its time is up, the enemy dies or it gets too far away.
+     */
+    private static void serpentLines(
+            Player player,
+            ServerLevel sl,
+            Vec3 ground,
+            float yaw,
+            Vec3 castFrom
+    ) {
+        if (!Spells.casterStillHere(player, sl)) return;
+
+        Vec3 mouth = serpentMouth(ground, yaw);
+
+        List<LivingEntity> caught = enemiesInFront(player, sl, ground, yaw, mouth, castFrom);
+
+        if (caught.isEmpty()) return;
+
+        Spells.sound(sl, mouth, SoundEvents.ENDER_DRAGON_GROWL, 1.0f, 1.9f);
+        Spells.sound(sl, mouth, SoundEvents.CHAIN_PLACE, 1.4f, 0.6f);
+
+        double snapsAt = (LINE_RANGE + 8) * (LINE_RANGE + 8);
+
+        for (LivingEntity enemy : caught) {
+
+            boolean[] snapped = {false};
+
+            // the far end of the line. Once it is null the line is gone for good, and so is its damage
+            Supplier<Vec3> end = () -> {
+                if (snapped[0]) return null;
+
+                Vec3 middle = Spells.casterStillHere(player, sl) && Spells.isEnemy(player, enemy)
+                        ? SpellFx.middleOf(enemy, sl)
+                        : null;
+
+                if (middle == null || middle.distanceToSqr(mouth) > snapsAt) {
+                    snapped[0] = true;
+                    return null;
+                }
+
+                return middle;
+            };
+
+            SpellFx.tether(
+                    sl,
+                    SERPENT_LINE,
+                    () -> mouth,
+                    end,
+                    LINE_TICKS
+            );
+
+            for (int tick = 0; tick < LINE_TICKS; tick += LINE_PULSE) {
+                Later.run(
+                        sl,
+                        tick,
+                        () -> {
+                            if (end.get() != null) Spells.strike(player, enemy, LINE_DAMAGE);
+                        }
+                );
+            }
+        }
+    }
+
+    /**
+     * Every enemy standing in front of the serpent: within LINE_RANGE of it, no more than
+     * LINE_HALF_ANGLE to either side of the way it faces, and not behind a wall.
+     */
+    private static List<LivingEntity> enemiesInFront(
+            Player player,
+            ServerLevel sl,
+            Vec3 ground,
+            float yaw,
+            Vec3 mouth,
+            Vec3 castFrom
+    ) {
+        Vec3 facing = Vec3.directionFromRotation(0f, yaw);
+
+        double narrowest = Math.cos(Math.toRadians(LINE_HALF_ANGLE));
+
+        List<LivingEntity> result = new ArrayList<>();
+
+        for (LivingEntity enemy : Spells.enemiesAround(player, sl, ground, LINE_RANGE)) {
+
+            Vec3 body = enemy.getBoundingBox().getCenter();
+
+            Vec3 toEnemy = new Vec3(
+                    body.x - ground.x,
+                    0,
+                    body.z - ground.z
+            );
+
+            // something standing right on the serpent has no direction: it counts as in front
+            if (toEnemy.lengthSqr() > 0.01 && toEnemy.normalize().dot(facing) < narrowest) continue;
+
+            // seen from the serpent's mouth, or from where the caster stood (the head may be up in a ceiling)
+            if (!Spells.clearLine(player, sl, mouth, body)
+                    && !Spells.clearLine(player, sl, castFrom, body)) continue;
+
+            result.add(enemy);
+        }
+
+        return result;
+    }
+
+    // =====================================================================================
+    // PALE EMPEROR SERPENT
+    // =====================================================================================
 
     public static void paleEmperorSerpent(Player player, Level level, ServerLevel sl, boolean bypassClassCheck) {
         if (!canUseCharacteristic(player, bypassClassCheck)) return;
@@ -522,12 +786,42 @@ public class PaleEmperor {
 
         SoulCore.setSoulEssence(player, SoulCore.getSoulEssence(player) - 6000);
 
-
         Vec3 direction = player.getLookAngle().normalize();
 
-        serpent(sl,player.position(),(float)Math.toDegrees(Math.atan2(-direction.x, direction.z)));
+        Vec3 ground = player.position();
+
+        float yaw = (float) Math.toDegrees(Math.atan2(-direction.x, direction.z));
+
+        // =====================================================================
+        // NORMAL CAST - THE SERPENT SCREECHES
+        // =====================================================================
+
+        if (!player.isShiftKeyDown()) {
+
+            serpent(sl, ground, yaw);
+
+            Later.run(
+                    sl,
+                    SERPENT_ROARS,
+                    () -> screech(player, sl, ground, yaw)
+            );
+
+            // =====================================================================
+            // SHIFT CAST - LINES TO THE MOBS IN FRONT OF IT
+            // =====================================================================
+
+        } else {
+
+            Vec3 castFrom = player.getEyePosition();
+
+            serpent(sl, SERPENT_BINDING, ground, yaw);
+
+            Later.run(
+                    sl,
+                    SERPENT_ROARS,
+                    () -> serpentLines(player, sl, ground, yaw, castFrom)
+            );
+        }
     }
-
-
 
 }
