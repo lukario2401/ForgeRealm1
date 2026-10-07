@@ -9,12 +9,21 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
-// 1. Remove Dist.CLIENT to allow this to run on both sides (or just the Server)
-@Mod.EventBusSubscriber(modid = "forgerealmmod")
+/**
+ * Double jump (jump again in the air) and the dash after it (sneak in the air).
+ *
+ * This runs on the player's own game only. It reads the keyboard and moves, plays the sound and shows the
+ * particles for the player sitting at this computer, and all of that belongs to the client thread. In single
+ * player the same tick event also arrives from the built-in server, on the server's thread: that one must be
+ * turned away (the first lines of onPlayerTick), or two threads use the client's world at once and the game
+ * crashes ("Accessing LegacyRandomSource from multiple threads", or an error in the particle or sound engine).
+ */
+@Mod.EventBusSubscriber(modid = "forgerealmmod", value = Dist.CLIENT)
 public class SneakLaunchHandler {
 
     private static final String DOUBLE_JUMP = "fr_double_jump";
@@ -26,9 +35,15 @@ public class SneakLaunchHandler {
     public static void onPlayerTick(TickEvent.PlayerTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
 
+        // only the tick of this game's own player, on the client thread (see the note at the top)
+        if (!event.player.level().isClientSide()) return;
+
         Minecraft mc = Minecraft.getInstance();
         LocalPlayer player = mc.player;
-        if (player == null) return;
+        if (player == null || event.player != player) return;
+
+        // while flying (creative, or the wings of an ability) jump and sneak mean up and down, not jump and dash
+        boolean flying = player.getAbilities().flying;
 
         var data = player.getPersistentData();
 
@@ -44,7 +59,7 @@ public class SneakLaunchHandler {
             boolean used = data.getBoolean(DOUBLE_JUMP);
             boolean can_use = data.getBoolean(CAN_USE);
 
-            if (!used && !player.onGround() && can_use && !player.isCreative()) {
+            if (!used && !player.onGround() && can_use && !player.isCreative() && !flying) {
                 launchPlayer(player,0.4,1.2);
                 data.putBoolean(DOUBLE_JUMP, true);
                 data.putBoolean(CAN_USE, false);
@@ -59,7 +74,7 @@ public class SneakLaunchHandler {
             data.putBoolean(COOLDOWN, false);
         }
 
-        if (!data.getBoolean(CAN_USE) && player.isShiftKeyDown() && !data.getBoolean(COOLDOWN) && !player.isCreative()){
+        if (!data.getBoolean(CAN_USE) && player.isShiftKeyDown() && !data.getBoolean(COOLDOWN) && !player.isCreative() && !flying){
             launchPlayer(player, 1.6, 0);
             data.putBoolean(COOLDOWN, true);
         }
