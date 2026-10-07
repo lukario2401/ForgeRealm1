@@ -12,6 +12,7 @@ import net.lukario.frogerealm.particles.fx.SlashFx;
 import net.lukario.frogerealm.root.Root;
 import net.lukario.frogerealm.root.RootRestriction;
 import net.lukario.frogerealm.shadow_slave.soul_shards.SoulCore;
+import net.lukario.frogerealm.status.Concealment;
 import net.lukario.frogerealm.status.FallGuard;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
@@ -27,11 +28,13 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.living.LivingChangeTargetEvent;
+import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -1611,6 +1614,319 @@ public class PaleEmperor {
     }
 
     // =====================================================================================
+    // WRAITHS AND THE UNDERWORLD (ability 7)
+    // =====================================================================================
+    //
+    // Normal cast: wraiths rise around the caster, three for every enemy within WRAITH_RADIUS, fly at the
+    //   enemies and slam into them. Each slam hurts and lays a curse: the cursed wither and take more damage.
+    // Sneak cast: the caster steps into the underworld. Nothing sees or hurts them there. They come back
+    //   when they deal damage, cast it again, or run out of soul essence.
+
+    private static final float WRAITHS_COST = 5000;
+    private static final float UNDERWORLD_COST = 3000;
+    private static final int WRAITHS_STAGE = 5;
+
+    /** Enemies this near are counted, each of them gets this many wraiths. */
+    public static final double WRAITH_RADIUS = 12;
+    public static final int WRAITHS_PER_ENEMY = 3;
+
+    /** Only the nearest this many enemies are counted, so a crowd does not bring a hundred wraiths. */
+    public static final int WRAITH_MAX_ENEMIES = 10;
+
+    /** What one wraith does when it slams into its enemy. */
+    public static final float WRAITH_DAMAGE = 12f;
+
+    /** The curse: how long it lasts, how many can lie on one enemy, and how much more damage each makes it take. */
+    public static final int CURSE_TICKS = 200;
+    public static final int CURSE_MAX = 6;
+    public static final float CURSE_DAMAGE_PER_STACK = 0.10f;
+
+    /** Soul essence the underworld takes each second. With too little left the caster is thrown back. 0 = it is free. */
+    public static final float UNDERWORLD_DRAIN = 100f;
+
+    // saved with the enemy / the player
+    private static final String CURSES = "pale_emperor_curses";
+    private static final String CURSES_UNTIL = "pale_emperor_curses_until";          // game time
+    private static final String IN_UNDERWORLD = "pale_emperor_underworld";
+
+    public static void paleEmperorWraiths(Player player, Level level, ServerLevel sl, boolean bypassClassCheck) {
+        if (!canUseCharacteristic(player, bypassClassCheck)) return;
+        if (SoulCore.getAscensionStage(player) < WRAITHS_STAGE) return;
+
+        // =====================================================================
+        // SHIFT CAST - INTO THE UNDERWORLD, OR BACK OUT OF IT
+        // =====================================================================
+
+        if (player.isShiftKeyDown()) {
+
+            if (inUnderworld(player)) {
+                leaveUnderworld(player, sl);                        // nothing spent
+                return;
+            }
+
+            if (!Spells.payEssence(player, UNDERWORLD_COST)) return;
+
+            enterUnderworld(player, sl);
+            return;
+        }
+
+        // =====================================================================
+        // NORMAL CAST - WRAITHS
+        // =====================================================================
+
+        Vec3 middle = player.getBoundingBox().getCenter();
+
+        List<LivingEntity> enemies = Spells.enemiesAround(player, sl, middle, WRAITH_RADIUS);
+
+        if (enemies.isEmpty()) {
+            player.sendSystemMessage(Component.literal("There is no one near for the dead to take."));
+            return;                                                 // nothing spent
+        }
+
+        if (!Spells.payEssence(player, WRAITHS_COST)) return;
+
+        enemies.sort(Comparator.comparingDouble(
+                (LivingEntity enemy) -> enemy.getBoundingBox().getCenter().distanceToSqr(middle)
+        ));
+
+        if (enemies.size() > WRAITH_MAX_ENEMIES) {
+            enemies = new ArrayList<>(enemies.subList(0, WRAITH_MAX_ENEMIES));
+        }
+
+        summonWraiths(player, sl, enemies);
+    }
+
+    // =====================================================================================
+    // WRAITHS (normal cast)
+    // =====================================================================================
+
+    /** How long a wraith takes to rise, and how fast it flies at its enemy after that (blocks per tick). */
+    private static final int WRAITH_RISES = 12;
+    private static final double WRAITH_SPEED = 0.9;
+
+    /** All the wraiths of one cast rise within this many ticks, one after another. */
+    private static final int WRAITHS_SPREAD = 20;
+
+    /** The wraith: 3 blocks tall, its pivot under it, its face its front. Frame 0 = arms hanging, 2 = reaching out. */
+    private static ModelFx wraithModel() {
+        return ModelFx.of("pale_emperor/wraith").frames(3).smooth()
+                .scale(1.1f).pivot(8, -16, 8).glow();
+    }
+
+    /** It rises out of the ground as it appears. It fades out at the end, while the flying one fades in. */
+    private static final ModelFx WRAITH_RISING = wraithModel()
+            .lifetime(WRAITH_RISES + 4).fade(0, 4)
+            .key(0, pose().up(-0.5f).alpha(0f))
+            .key(WRAITH_RISES, pose().up(0.35f).alpha(1f), ModelFx.Ease.OUT)
+            .during(WRAITH_RISES / 2, WRAITH_RISES, pose().frame(1), ModelFx.Ease.OUT);       // its arms begin to lift
+
+    /** Three wraiths for each enemy, in a ring around the caster, rising one after another. */
+    private static void summonWraiths(Player player, ServerLevel sl, List<LivingEntity> enemies) {
+        int total = enemies.size() * WRAITHS_PER_ENEMY;
+
+        Vec3 feet = player.position();
+        float yaw = player.getYRot();
+
+        for (int i = 0; i < total; i++) {
+
+            // going round the enemies again and again: each gets its first wraith before any gets its second
+            LivingEntity enemy = enemies.get(i % enemies.size());
+
+            double angle = Math.toRadians(yaw) + Math.PI * 2 * i / total;
+            double radius = 2.2 + (i % 3) * 0.8;
+
+            Vec3 spot = feet.add(
+                    -Math.sin(angle) * radius,
+                    0,
+                    Math.cos(angle) * radius
+            );
+
+            // on the ground there. A caster high in the air gets them at the height of their feet
+            Vec3 ground = Spells.groundAt(player, sl, spot);
+            Vec3 rises = Math.abs(ground.y - feet.y) <= 3.0 ? ground : spot;
+
+            Later.run(
+                    sl,
+                    i * WRAITHS_SPREAD / total,
+                    () -> wraithRises(player, sl, rises, enemy)
+            );
+        }
+
+        seal(sl, feet, yaw, 9f, WRAITHS_SPREAD + WRAITH_RISES + 20);
+
+        Spells.sound(sl, feet, SoundEvents.WITHER_SPAWN, 0.5f, 1.6f);
+    }
+
+    private static void wraithRises(Player player, ServerLevel sl, Vec3 ground, LivingEntity enemy) {
+        if (!Spells.casterStillHere(player, sl)) return;
+
+        Vec3 toEnemy = enemy.position().subtract(ground);
+        // it faces its enemy (one standing right on the spot has no direction: the way the caster looks, then)
+        float yaw = toEnemy.x * toEnemy.x + toEnemy.z * toEnemy.z < 0.01 ? player.getYRot() : Spells.yawOf(toEnemy);
+
+        ParticleShapes.model(sl, WRAITH_RISING, ground, yaw, 0f, 0f);
+
+        // where it hangs when it has risen: that is where it flies from
+        Vec3 hangs = ground.add(0, 0.35, 0);
+
+        Later.run(
+                sl,
+                WRAITH_RISES,
+                () -> wraithFlies(player, sl, hangs, enemy)
+        );
+    }
+
+    /**
+     * The wraith goes for its enemy. From here on its model is stuck to the enemy and only its keys bring it
+     * in from where it rose, so it cannot miss: if the enemy runs, the wraith's whole way moves with it.
+     */
+    private static void wraithFlies(Player player, ServerLevel sl, Vec3 from, LivingEntity wanted) {
+        if (!Spells.casterStillHere(player, sl)) return;
+
+        // its enemy may be dead by now (another wraith was faster): it takes the nearest one that is left
+        LivingEntity enemy = wanted;
+
+        if (!isPrey(player, sl, enemy)) {
+            enemy = null;
+
+            double nearest = Double.MAX_VALUE;
+
+            for (LivingEntity other : Spells.enemiesAround(player, sl, from, WRAITH_RADIUS)) {
+                double distance = other.position().distanceToSqr(from);
+                if (distance < nearest) {
+                    nearest = distance;
+                    enemy = other;
+                }
+            }
+
+            if (enemy == null) return;                              // no one left: it just fades
+        }
+
+        Vec3 toEnemy = enemy.position().subtract(from);
+
+        float away = (float) Math.sqrt(toEnemy.x * toEnemy.x + toEnemy.z * toEnemy.z);
+        float height = (float) -toEnemy.y;                           // how much higher than the enemy it starts
+        float yaw = away < 0.1f ? player.getYRot() : Spells.yawOf(toEnemy);
+
+        int flight = (int) Math.max(6, Math.min(18, Math.round(toEnemy.length() / WRAITH_SPEED)));
+
+        ModelFx flying = wraithModel()
+                .lifetime(flight + 6).fade(3, 6)
+                .key(0, pose().forward(-away).up(height).frame(1))                    // where it rose, seen from the enemy
+                .key(flight, pose().forward(-0.2f).up(0f), ModelFx.Ease.IN)           // into it, faster and faster
+                .key(flight + 6, pose().forward(1.0f))                                // and on through it as it fades
+                .during(0, Math.max(2, flight / 2), pose().frame(2), ModelFx.Ease.OUT);       // arms out
+
+        ParticleShapes.modelOn(sl, flying, enemy, Vec3.ZERO, yaw, 0f, 0f);
+
+        Spells.sound(sl, from, SoundEvents.WITHER_SHOOT, 0.25f, 1.6f);
+
+        LivingEntity prey = enemy;
+
+        Later.run(
+                sl,
+                flight,
+                () -> wraithSlams(player, sl, prey)
+        );
+    }
+
+    private static void wraithSlams(Player player, ServerLevel sl, LivingEntity enemy) {
+        if (!Spells.casterStillHere(player, sl)) return;
+        if (!isPrey(player, sl, enemy)) return;
+
+        Vec3 middle = enemy.getBoundingBox().getCenter();
+
+        Spells.strike(player, enemy, WRAITH_DAMAGE);
+
+        ParticleShapes.burst(sl, PALE_SPARK, middle, 12, 0.05, 0.3);
+        ParticleShapes.burst(sl, SpellFx.FIRE_SMOKE, middle, 4, 0.02, 0.08);
+        Spells.sound(sl, middle, SoundEvents.WITHER_HURT, 0.5f, 1.4f);
+
+        if (enemy.isAlive()) curse(sl, enemy);
+    }
+
+    private static boolean isPrey(Player player, ServerLevel sl, LivingEntity enemy) {
+        return enemy.level() == sl && !enemy.isRemoved() && Spells.isEnemy(player, enemy);
+    }
+
+    // ---------- the curse ----------
+
+    /** How many curses lie on this entity right now (0 once they have worn off). */
+    public static int curses(LivingEntity entity) {
+        if (entity.level().getGameTime() >= entity.getPersistentData().getLong(CURSES_UNTIL)) return 0;
+        return entity.getPersistentData().getInt(CURSES);
+    }
+
+    /** One more curse, and all of them last their full time again. */
+    private static void curse(ServerLevel sl, LivingEntity enemy) {
+        enemy.getPersistentData().putInt(CURSES, Math.min(CURSE_MAX, curses(enemy) + 1));
+        enemy.getPersistentData().putLong(CURSES_UNTIL, sl.getGameTime() + CURSE_TICKS);
+
+        // it withers for as long as it is cursed (the extra damage it takes is added in PaleEmperorEvents)
+        enemy.addEffect(new MobEffectInstance(MobEffects.WITHER, CURSE_TICKS, 0));
+    }
+
+    // =====================================================================================
+    // THE UNDERWORLD (sneak cast)
+    // =====================================================================================
+
+    /** True while the player is in the underworld of this ability. */
+    public static boolean inUnderworld(Player player) {
+        return player.getPersistentData().getBoolean(IN_UNDERWORLD);
+    }
+
+    private static void enterUnderworld(Player player, ServerLevel sl) {
+        Vec3 feet = player.position();
+
+        seal(sl, feet, player.getYRot(), 4f, 30);
+        SpellFx.closingRing(sl, feet, 3.0, 0xE09CFFD2, 10, 0);
+        Spells.sound(sl, feet, SoundEvents.WITHER_AMBIENT, 0.8f, 0.6f);
+
+        player.getPersistentData().putBoolean(IN_UNDERWORLD, true);
+
+        // unseen, untargeted, unhurt. It is kept up in underworldTick for as long as the player stays
+        Concealment.hide(player, 100);
+
+        player.sendSystemMessage(Component.literal("You step into the underworld. Deal damage or cast again to return."));
+    }
+
+    private static void leaveUnderworld(Player player, ServerLevel sl) {
+        player.getPersistentData().remove(IN_UNDERWORLD);
+
+        Concealment.reveal(player);                                  // (does nothing if they are back already)
+
+        Vec3 feet = player.position();
+
+        seal(sl, feet, player.getYRot(), 4f, 30);
+        SpellFx.shockRing(sl, feet, 3.0, 0xE09CFFD2, 10, 0);
+        Spells.sound(sl, feet, SoundEvents.WITHER_AMBIENT, 0.8f, 1.2f);
+
+        player.sendSystemMessage(Component.literal("You return from the underworld."));
+    }
+
+    /** One tick in the underworld: keeps the player hidden, takes its price, and notices when they are out of it. */
+    private static void underworldTick(Player player, ServerLevel sl) {
+        if (!inUnderworld(player)) return;
+
+        // something else brought them back (a normal attack does): tidy up
+        if (!Concealment.isHidden(player)) {
+            leaveUnderworld(player, sl);
+            return;
+        }
+
+        if (Concealment.ticksLeft(player) < 40) Concealment.hide(player, 100);
+
+        if (UNDERWORLD_DRAIN > 0 && player.tickCount % 20 == 0 && !player.isCreative()) {
+            if (SoulCore.getSoulEssence(player) < UNDERWORLD_DRAIN) {
+                player.sendSystemMessage(Component.literal("Your soul essence is spent."));
+                leaveUnderworld(player, sl);
+                return;
+            }
+            SoulCore.setSoulEssence(player, SoulCore.getSoulEssence(player) - UNDERWORLD_DRAIN);
+        }
+    }
+
+    // =====================================================================================
     // EVENTS
     // =====================================================================================
 
@@ -1630,9 +1946,12 @@ public class PaleEmperor {
             if (mob.distanceToSqr(target) > BLIND_MOB_SEES * BLIND_MOB_SEES) event.setCanceled(true);
         }
 
-        /** The flight of ability 6 is counted down here (it runs out even if the aspect is taken away meanwhile). */
+        /**
+         * The flight of ability 6 is counted down here and the underworld of ability 7 is kept up
+         * (both run on even if the aspect is taken away meanwhile).
+         */
         @SubscribeEvent
-        public static void onPaleEmperorFlightTick(TickEvent.PlayerTickEvent event) {
+        public static void onPaleEmperorPlayerTick(TickEvent.PlayerTickEvent event) {
             if (event.phase != TickEvent.Phase.END) return;
 
             Player player = event.player;
@@ -1640,6 +1959,28 @@ public class PaleEmperor {
             if (!(player.level() instanceof ServerLevel sl)) return;
 
             flightTick(player, sl);
+            underworldTick(player, sl);
+        }
+
+        /** The cursed take more damage from everything, and whoever deals damage is back from the underworld. */
+        @SubscribeEvent
+        public static void onPaleEmperorHurt(LivingHurtEvent event) {
+            LivingEntity victim = event.getEntity();
+
+            if (!(victim.level() instanceof ServerLevel sl)) return;
+
+            int curses = curses(victim);
+
+            if (curses > 0) {
+                event.setAmount(event.getAmount() * (1f + CURSE_DAMAGE_PER_STACK * curses));
+            }
+
+            if (event.getSource().getEntity() instanceof Player attacker
+                    && attacker != victim
+                    && event.getAmount() > 0
+                    && inUnderworld(attacker)) {
+                leaveUnderworld(attacker, sl);
+            }
         }
 
         // Models are forgotten by a player's game when they log in or change dimension, so the wings of a

@@ -513,7 +513,7 @@ Every tool has a worked example in `AttendantOfMysteries.java`:
 | `DamageLink.share` | `stitchTogether` |
 | `Substitute` | `readySubstitute` and `figurineEscape` |
 | `Marionette` | `takeHold` |
-| `Concealment` | `hideInHistory`, `miracleReturn` |
+| `Concealment` | `hideInHistory`, `miracleReturn`; kept up for as long as the caster wants in `enterUnderworld` / `underworldTick` (`PaleEmperor.java`) |
 | `DeathWard` | `miracle` and `miracleReturn` |
 | `FallGuard` | `attendantOfMysteriesAirCannon` |
 | `Spells.pull` | `graftImpact` |
@@ -535,6 +535,8 @@ All in `AttendantOfMysteries.java`, with the method to look at in brackets.
 **Two models, one flight** (`needleFlight`). The needle and its thread are two models that get the same keys from one method, so they move as one. Use it whenever a solid part and a glowing part belong together.
 
 **Strings on a held enemy** (`stringUp`). Three thin models stuck to the target with `modelOn`, two of them rolled a few degrees outward.
+
+**Something that cannot miss** (`wraithFlies` in `PaleEmperor.java`). Stick the model to the *target* with `modelOn` and let its keys bring it in from where it started: `key(0, pose().forward(-distance).up(height))`, then `key(ticks, pose().forward(0).up(0))`. If the target runs, the whole way moves with it, and the hit is one `Later.run(sl, ticks, ...)`. Good for spirits and curses; for something that should be dodgeable use a `Shot` or an `AnimatedShot`.
 
 **Small pictures for what is active** (`showStatus`). `ScreenImages.show(...)` with a duration fades by itself; `ScreenImages.hide(player, id)` removes it early when the effect is used up. The pictures are 16x16 PNGs in `textures/gui/attendant_of_mysteries/`.
 
