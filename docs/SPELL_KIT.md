@@ -486,7 +486,7 @@ ParticleShapes.clearModels(sl, target, "my_class_mark");       // cast again: on
 ParticleShapes.modelOn(sl, mark, target, new Vec3(0, target.getBbHeight() + 0.4, 0), 0f, 0f, 0f);
 ```
 
-Tags in use: `freeze`, `marionette`, the Attendant's `aom_strings`, `aom_transfer`, `aom_projection`, `aom_miracle`, and the Pale Emperor's `pale_emperor_hits`.
+Tags in use: `freeze`, `marionette`, the Attendant's `aom_strings`, `aom_transfer`, `aom_projection`, `aom_miracle`, and the Pale Emperor's `pale_emperor_hits` and `pale_emperor_wings`.
 
 A tag also lets you remove a model that is **not** on an entity before its time is up, for something that must vanish the moment it hits. An `AnimatedShot` does this by itself; this is for when you build something of your own. Give every cast a tag of its own, or one cast would remove the models of another:
 

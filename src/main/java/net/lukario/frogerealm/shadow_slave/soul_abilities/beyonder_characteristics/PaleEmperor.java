@@ -12,6 +12,7 @@ import net.lukario.frogerealm.particles.fx.SlashFx;
 import net.lukario.frogerealm.root.Root;
 import net.lukario.frogerealm.root.RootRestriction;
 import net.lukario.frogerealm.shadow_slave.soul_shards.SoulCore;
+import net.lukario.frogerealm.status.FallGuard;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
@@ -24,7 +25,9 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.living.LivingChangeTargetEvent;
+import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
@@ -1321,6 +1324,293 @@ public class PaleEmperor {
     }
 
     // =====================================================================================
+    // PALE WINGS AND THE STEP (ability 6)
+    // =====================================================================================
+    //
+    // Normal cast: wings grow from the caster's back and for FLIGHT_TICKS they can fly the way a creative
+    //   player does. Cast again to fold them early. However the flight ends, the fall after it does no harm.
+    // Sneak cast: the caster is at once where they look.
+
+    private static final float WINGS_COST = 4000;
+    private static final float STEP_COST = 1500;
+    private static final int WINGS_STAGE = 4;
+
+    /** How long the wings carry: 20 seconds. */
+    public static final int FLIGHT_TICKS = 400;
+
+    /** The caster is told this many ticks before the wings fold. */
+    private static final int FLIGHT_WARNING = 60;
+
+    /** How far the step reaches. */
+    public static final double STEP_RANGE = 32;
+
+    /** Ticks of flight left. Saved with the player, so a flight goes on after logging out and in. */
+    private static final String FLIGHT_LEFT = "pale_emperor_flight";
+
+    private static final String WINGS_TAG = "pale_emperor_wings";
+
+    public static void paleEmperorWings(Player player, Level level, ServerLevel sl, boolean bypassClassCheck) {
+        if (!canUseCharacteristic(player, bypassClassCheck)) return;
+        if (SoulCore.getAscensionStage(player) < WINGS_STAGE) return;
+
+        if (player.isShiftKeyDown()) {
+            stepThere(player, sl);
+            return;
+        }
+
+        if (hasWings(player)) {                                      // cast again: the wings fold, nothing spent
+            endFlight(player, sl, true);
+            return;
+        }
+
+        if (!Spells.payEssence(player, WINGS_COST)) return;
+
+        startFlight(player, sl);
+    }
+
+    // =====================================================================================
+    // WINGS (normal cast)
+    // =====================================================================================
+
+    /** True while the wings of this ability carry the player. */
+    public static boolean hasWings(Player player) {
+        return player.getPersistentData().getInt(FLIGHT_LEFT) > 0;
+    }
+
+    /** Creative and spectator players fly anyway: they get the wings, and their flying is left alone. */
+    private static boolean fliesByWings(Player player) {
+        return !player.isCreative() && !player.isSpectator();
+    }
+
+    private static void startFlight(Player player, ServerLevel sl) {
+        player.getPersistentData().putInt(FLIGHT_LEFT, FLIGHT_TICKS);
+
+        if (fliesByWings(player)) {
+            player.getAbilities().mayfly = true;
+            player.getAbilities().flying = true;
+            player.onUpdateAbilities();
+
+            // off the ground at once: a player who is told to fly while standing lands again right away
+            Vec3 motion = player.getDeltaMovement();
+            player.setDeltaMovement(motion.x, Math.max(motion.y, 0.5), motion.z);
+            player.hurtMarked = true;
+        }
+
+        showWings(sl, player, FLIGHT_TICKS);
+
+        PaleEmperorFx.featherFall(sl, player.position(), 1.5, 10);
+        Spells.sound(sl, player.position(), SoundEvents.ENDER_DRAGON_FLAP, 1.0f, 0.8f);
+    }
+
+    /** foldNow = it ends before its time (cast again): the wings have to be folded by hand. */
+    private static void endFlight(Player player, ServerLevel sl, boolean foldNow) {
+        player.getPersistentData().remove(FLIGHT_LEFT);
+
+        if (fliesByWings(player)) {
+            player.getAbilities().mayfly = false;
+            player.getAbilities().flying = false;
+            player.onUpdateAbilities();
+
+            FallGuard.protect(player, 400);                          // the way down does no harm
+        }
+
+        if (foldNow) {
+            Vec3 shoulders = shouldersOf(player);
+
+            ParticleShapes.clearModels(sl, player, WINGS_TAG);
+            ParticleShapes.modelOnTurning(sl, foldingWing(1), player, shoulders, 0f, 0f, 0f);
+            ParticleShapes.modelOnTurning(sl, foldingWing(-1), player, shoulders, 0f, 0f, 0f);
+        }
+
+        Spells.sound(sl, player.position(), SoundEvents.ENDER_DRAGON_FLAP, 0.7f, 0.6f);
+    }
+
+    // ---------- the wings themselves ----------
+
+    /** The first beat starts here, a beat takes this long, and folding away takes this long at the end. */
+    private static final int WINGS_SPREAD = 20;
+    private static final int WING_BEAT = 20;
+    private static final int WINGS_FOLD = 24;
+
+    private static Vec3 shouldersOf(Player player) {
+        return new Vec3(0, player.getBbHeight() * 0.75, 0);
+    }
+
+    /**
+     * The wing model, pivot at the shoulder. In the keys of the two below, side is 1 for the right wing and -1
+     * for the left: right(0.16 * side).forward(-0.28) puts it on that side of the back.
+     */
+    private static ModelFx wingModel() {
+        return ModelFx.of("pale_emperor/pale_wing").frames(5).smooth()
+                .scale(1.4f).pivot(-10, 11.5f, 8).glow()
+                .tag(WINGS_TAG);
+    }
+
+    /**
+     * A wing for a flight of 'ticks' ticks: it unfolds, beats for as long as the flight lasts and folds away
+     * in its last second. Played with modelOnTurning, so it stays on the back whichever way the player turns.
+     */
+    private static ModelFx flightWing(int side, int ticks) {
+        int foldAt = ticks - WINGS_FOLD;
+
+        // a model holds 64 keys at most: a very long flight gets slower beats instead of more of them
+        int beat = Math.max(WING_BEAT, (foldAt - WINGS_SPREAD) / 28 + 1);
+
+        ModelFx wing = wingModel().lifetime(ticks).fade(2, 6)
+                .key(0, pose().right(0.16f * side).forward(-0.28f).scale(0.5f))
+                .during(0, 8, pose().scale(1f), ModelFx.Ease.OUT_BACK)
+                .during(3, 15, pose().frame(4), ModelFx.Ease.OUT);                           // unfolds
+
+        for (int t = WINGS_SPREAD; t + beat <= foldAt; t += beat) {
+            int down = t + Math.round(beat * 0.3f);
+            int up = t + Math.round(beat * 0.9f);
+
+            wing = wing
+                    .during(t, down, pose().roll(24f * side).frame(3), ModelFx.Ease.IN_OUT)          // down
+                    .during(down, up, pose().roll(-10f * side).frame(4), ModelFx.Ease.IN_OUT);       // and up
+        }
+
+        wing = wing
+                .during(foldAt, foldAt + 8, pose().roll(0), ModelFx.Ease.IN_OUT)
+                .during(foldAt + 4, foldAt + 18, pose().frame(0), ModelFx.Ease.IN);          // folds away
+
+        return side > 0 ? wing : wing.mirrored();
+    }
+
+    /** A spread wing that folds away at once: for a flight that is ended early. */
+    private static ModelFx foldingWing(int side) {
+        ModelFx wing = wingModel().lifetime(20).fade(0, 6)
+                .key(0, pose().right(0.16f * side).forward(-0.28f).frame(4))
+                .during(0, 14, pose().frame(0), ModelFx.Ease.IN);
+
+        return side > 0 ? wing : wing.mirrored();
+    }
+
+    /** Puts the pair of wings on the player for 'ticks' more ticks (and takes off any they still wear). */
+    private static void showWings(ServerLevel sl, Player player, int ticks) {
+        ParticleShapes.clearModels(sl, player, WINGS_TAG);
+
+        if (ticks < WINGS_SPREAD + WING_BEAT + WINGS_FOLD) return;   // too little left to unfold them for
+
+        Vec3 shoulders = shouldersOf(player);
+
+        ParticleShapes.modelOnTurning(sl, flightWing(1, ticks), player, shoulders, 0f, 0f, 0f);
+        ParticleShapes.modelOnTurning(sl, flightWing(-1, ticks), player, shoulders, 0f, 0f, 0f);
+    }
+
+    /** One tick of a flight: counts it down and ends it, and keeps the player able to fly until then. */
+    private static void flightTick(Player player, ServerLevel sl) {
+        int left = player.getPersistentData().getInt(FLIGHT_LEFT);
+
+        if (left <= 0) return;
+
+        left--;
+
+        if (left <= 0) {
+            endFlight(player, sl, false);                            // (the wings fold by themselves at the end of their time)
+            return;
+        }
+
+        player.getPersistentData().putInt(FLIGHT_LEFT, left);
+
+        // a change of game mode takes flying away: give it back for as long as the wings last
+        if (fliesByWings(player) && !player.getAbilities().mayfly) {
+            player.getAbilities().mayfly = true;
+            player.onUpdateAbilities();
+        }
+
+        if (left == FLIGHT_WARNING) {
+            player.sendSystemMessage(Component.literal("Your wings grow heavy."));
+        }
+
+        if (player.getAbilities().flying && !player.isSpectator()) {
+            if (left % WING_BEAT == 0) {
+                Spells.sound(sl, player.position(), SoundEvents.ENDER_DRAGON_FLAP, 0.35f, 1.2f);
+            }
+            if (left % 10 == 0) {
+                // one feather, starting about where the player is and drifting down behind them
+                PaleEmperorFx.featherFall(sl, player.position().add(0, -3.5, 0), 0.5, 1);
+            }
+        }
+    }
+
+    // =====================================================================================
+    // THE STEP (sneak cast)
+    // =====================================================================================
+
+    private static final SlashFx STEP_STREAK = SlashFx.line("slash/smooth")
+            .color(0xA09CFFD2)
+            .core(0xC0F4FFE8)
+            .width(0.25f)
+            .taper(SlashFx.Taper.COMET);
+
+    private static void stepThere(Player player, ServerLevel sl) {
+        if (Root.has(player, RootRestriction.TELEPORT)) {
+            player.sendSystemMessage(Component.literal("You are held in place."));
+            return;
+        }
+
+        Vec3 there = stepSpot(player, sl);
+
+        if (there == null) {
+            player.sendSystemMessage(Component.literal("There is no room for you there."));
+            return;                                                  // nothing spent
+        }
+
+        if (!Spells.payEssence(player, STEP_COST)) return;
+
+        Vec3 left = player.position();
+
+        if (player.isPassenger()) player.stopRiding();
+
+        player.teleportTo(there.x, there.y, there.z);
+        player.fallDistance = 0;
+
+        FallGuard.protect(player, 200);                              // it may end in the air: the way down does no harm
+
+        for (Vec3 end : new Vec3[]{left, there}) {
+            ParticleShapes.burst(sl, PALE_SPARK, end.add(0, 1.0, 0), 18, 0.05, 0.3);
+            PaleEmperorFx.featherFall(sl, end, 0.9, 6);
+            Spells.sound(sl, end, SoundEvents.ENDERMAN_TELEPORT, 0.7f, 0.6f);
+        }
+
+        ParticleShapes.slashBetween(sl, STEP_STREAK.lifetime(8).sweep(3), left.add(0, 1.0, 0), there.add(0, 1.0, 0));
+    }
+
+    /**
+     * Where the player's feet go: at what the crosshair is on, as near to it as they fit. Looking at the
+     * ground they stand on that spot, looking at a wall they stand in front of it (or hang in the air in
+     * front of it, if it is a cliff), looking at the open sky they end up STEP_RANGE blocks out.
+     * Null when there is no room anywhere near.
+     */
+    private static Vec3 stepSpot(Player player, ServerLevel sl) {
+        Vec3 eye = player.getEyePosition();
+        Vec3 look = player.getLookAngle().normalize();
+        Vec3 point = Spells.aimPoint(player, sl, STEP_RANGE);
+
+        double far = eye.distanceTo(point);
+
+        // a little back from what was hit, then further back until there is room
+        for (double back : new double[]{0.4, 0.8, 1.2, 1.8, 2.6, 3.6}) {
+
+            if (back >= far) break;
+
+            Vec3 near = point.subtract(look.scale(back));
+            Vec3 ground = Spells.groundAt(player, sl, near);
+
+            // on the ground under it if that is close; else with the spot at the chest, the head or the feet
+            if (near.y - ground.y <= 3.0 && Spells.fits(player, sl, ground)) return ground;
+
+            for (double drop : new double[]{1.0, 1.85, 0.0}) {
+                Vec3 feet = near.add(0, -drop, 0);
+                if (Spells.fits(player, sl, feet)) return feet;
+            }
+        }
+
+        return null;
+    }
+
+    // =====================================================================================
     // EVENTS
     // =====================================================================================
 
@@ -1338,6 +1628,41 @@ public class PaleEmperor {
             if (mob.level().getGameTime() >= mob.getPersistentData().getLong(BLIND_UNTIL)) return;
 
             if (mob.distanceToSqr(target) > BLIND_MOB_SEES * BLIND_MOB_SEES) event.setCanceled(true);
+        }
+
+        /** The flight of ability 6 is counted down here (it runs out even if the aspect is taken away meanwhile). */
+        @SubscribeEvent
+        public static void onPaleEmperorFlightTick(TickEvent.PlayerTickEvent event) {
+            if (event.phase != TickEvent.Phase.END) return;
+
+            Player player = event.player;
+
+            if (!(player.level() instanceof ServerLevel sl)) return;
+
+            flightTick(player, sl);
+        }
+
+        // Models are forgotten by a player's game when they log in or change dimension, so the wings of a
+        // flight that is still going are put on again. A second later: by then their game knows where they are.
+
+        @SubscribeEvent
+        public static void onPaleEmperorLogin(PlayerEvent.PlayerLoggedInEvent event) {
+            wingsAgain(event.getEntity());
+        }
+
+        @SubscribeEvent
+        public static void onPaleEmperorChangedDimension(PlayerEvent.PlayerChangedDimensionEvent event) {
+            wingsAgain(event.getEntity());
+        }
+
+        private static void wingsAgain(Player player) {
+            if (!hasWings(player) || !(player.level() instanceof ServerLevel sl)) return;
+
+            Later.run(sl, 20, () -> {
+                if (player.isAlive() && !player.isRemoved() && player.level() == sl) {
+                    showWings(sl, player, player.getPersistentData().getInt(FLIGHT_LEFT));
+                }
+            });
         }
     }
 

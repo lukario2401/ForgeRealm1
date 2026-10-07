@@ -5,7 +5,9 @@ import net.minecraft.client.Camera;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.particle.Particle;
 import net.minecraft.client.particle.ParticleRenderType;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
 
 /**
@@ -109,6 +111,18 @@ public class ModelFxParticle extends Particle {
         return new Vec3(this.xo + (this.x - this.xo) * partialTick,
                 this.yo + (this.y - this.yo) * partialTick,
                 this.zo + (this.z - this.zo) * partialTick);
+    }
+
+    /**
+     * How far the entity it is stuck to has turned, in degrees, for models that turn with it (ModelFx.turning()).
+     * The way its BODY faces, not its head: what is worn on the back stays on the back while the head looks round.
+     * 0 for every other model.
+     */
+    float turn(float partialTick) {
+        if (!fx.turnsWithEntity() || !fx.followsEntity()) return 0f;
+        Entity entity = clientLevel.getEntity(fx.followId());
+        if (entity instanceof LivingEntity living) return Mth.rotLerp(partialTick, living.yBodyRotO, living.yBodyRot);
+        return entity == null ? 0f : entity.getViewYRot(partialTick);
     }
 
     /** True when the particle engine stopped ticking it (level changed, particles cleared...). */

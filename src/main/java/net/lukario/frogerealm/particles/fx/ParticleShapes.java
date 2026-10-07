@@ -23,6 +23,7 @@ import net.minecraft.world.phys.Vec3;
  *   ParticleShapes.alongSlash(sl, SHARD, SWING, center, yaw, 0, 0, 6, 20, 0.08, 0.03); // shards breaking off a slash
  *   ParticleShapes.model(sl, HAMMER, grip, player.getYRot(), 0, 0);                 // 3D model effect (ModelFx)
  *   ParticleShapes.modelOn(sl, CRYSTALS, mob, Vec3.ZERO, 0, 0, 0);                  // 3D model stuck to an entity
+ *   ParticleShapes.modelOnTurning(sl, WING, player, shoulders, 0, 0, 0);            // ...that also turns with it (worn)
  *   ParticleShapes.modelAlong(sl, SPEAR, from, player.getLookAngle());              // 3D model pointing along a direction
  *   ParticleShapes.clearModels(sl, mob, "ice");                                     // remove the models tagged "ice" from it
  *
@@ -238,6 +239,17 @@ public final class ParticleShapes {
      */
     public static void modelOn(Level level, ModelFx model, Entity entity, Vec3 offset, float yaw, float pitch, float roll) {
         spawnFar(level, model.following(entity, offset).rotated(yaw, pitch, roll), entity.position().add(offset), Vec3.ZERO);
+    }
+
+    /**
+     * A ModelFx WORN by an entity: stuck to it like modelOn, and it also turns when the entity turns its body
+     * (wings on a back, a crown, a shield on an arm). It keeps turning in the air and while flying.
+     * yaw is counted from the way the body faces: 0 = the model's front looks the way the entity does,
+     * 180 = it looks backward. offset = from the entity's feet; it does not turn, so use it for the height and
+     * put anything sideways in the model's keys (pose().right(...), pose().forward(...)), which do turn.
+     */
+    public static void modelOnTurning(Level level, ModelFx model, Entity entity, Vec3 offset, float yaw, float pitch, float roll) {
+        spawnFar(level, model.following(entity, offset).turning().rotated(yaw, pitch, roll), entity.position().add(offset), Vec3.ZERO);
     }
 
     /**

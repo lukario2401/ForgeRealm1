@@ -42,8 +42,8 @@ import java.util.concurrent.ThreadLocalRandom;
  * To change one, copy its constant into your class and edit it there; every method on a ModelFx returns a new
  * copy, so PaleEmperorFx.SKULL.scale(4f).lifetime(200) is also fine.
  *
- * The wings and the crown are stuck to an entity and move with it, but they keep the direction they were given:
- * they do not turn when the player turns.
+ * The wings and the crown are worn: they are stuck to an entity, move with it and turn when it turns
+ * (ParticleShapes.modelOnTurning).
  */
 @Mod.EventBusSubscriber(modid = "forgerealmmod")
 public final class PaleEmperorFx {
@@ -143,8 +143,8 @@ public final class PaleEmperorFx {
     /** A pair of wings on the back of an entity: they unfold, beat four times and fold away. */
     public static void wings(ServerLevel sl, Entity wearer) {
         Vec3 shoulders = new Vec3(0, wearer.getBbHeight() * 0.75, 0);
-        ParticleShapes.modelOn(sl, WING_RIGHT, wearer, shoulders, wearer.getYRot(), 0f, 0f);
-        ParticleShapes.modelOn(sl, WING_LEFT, wearer, shoulders, wearer.getYRot(), 0f, 0f);
+        ParticleShapes.modelOnTurning(sl, WING_RIGHT, wearer, shoulders, 0f, 0f, 0f);
+        ParticleShapes.modelOnTurning(sl, WING_LEFT, wearer, shoulders, 0f, 0f, 0f);
     }
 
     // =====================================================================================
@@ -159,7 +159,7 @@ public final class PaleEmperorFx {
 
     /** The crown comes down onto the head of an entity and stays there. */
     public static void crown(ServerLevel sl, Entity wearer) {
-        ParticleShapes.modelOn(sl, CROWN, wearer, new Vec3(0, wearer.getBbHeight(), 0), wearer.getYRot(), 0f, 0f);
+        ParticleShapes.modelOnTurning(sl, CROWN, wearer, new Vec3(0, wearer.getBbHeight(), 0), 0f, 0f, 0f);
     }
 
     // =====================================================================================

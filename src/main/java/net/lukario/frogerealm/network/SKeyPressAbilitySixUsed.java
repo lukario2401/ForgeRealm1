@@ -24,6 +24,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.Gravity
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.HangedAscetic.hangedAsceticShadowSweep;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.InfernalDuelist.cataclysmForm;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.beyonder_characteristics.KeyOfStars.keyOfStarsOrbital;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.beyonder_characteristics.PaleEmperor.paleEmperorWings;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PhantomSequence.veilOfMirrors;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.PlagueSovereign.necroticBurst;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.RuinBladeAscendant.cataclysmState;
@@ -94,6 +95,7 @@ public class SKeyPressAbilitySixUsed {
         handOfOrderWords(player,level,serverLevel,false);
         princeOfAbolitionEntropy(player,level,serverLevel,false);
         attendantOfMysteriesHistoricalVoid(player,level,serverLevel,false);
+        paleEmperorWings(player,level,serverLevel,false);
 
     }
 }

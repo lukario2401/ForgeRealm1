@@ -133,7 +133,8 @@ public final class ModelFxRenderer {
             Matrix4f matrix = new Matrix4f()
                     .translate((float) (anchor.x - cam.x), (float) (anchor.y - cam.y), (float) (anchor.z - cam.z))
                     // facing: the model's front (north, -Z) turns to the yaw; pitch tips it forward, roll to the right
-                    .rotateY(rad(180f - fx.yaw()))
+                    // (turn = how far the entity it is stuck to has turned, for the models that turn with it)
+                    .rotateY(rad(180f - fx.yaw() - particle.turn(partialTick)))
                     .rotateX(rad(-fx.pitch()))
                     .rotateZ(rad(-fx.roll()))
                     // keyframe: offset (right, up, forward = -Z), then rotation around the pivot

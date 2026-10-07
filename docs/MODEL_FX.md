@@ -288,6 +288,10 @@ ParticleShapes.model(sl, RUNE, position, player);
 // offset is from its feet, in world directions
 ParticleShapes.modelOn(sl, RUNE, mob, new Vec3(0, mob.getBbHeight(), 0), 0f, 0f, 0f);
 
+// worn by an entity: stuck to it AND turning when it turns its body (wings, a crown)
+// yaw 0 = the model's front looks the way the entity does
+ParticleShapes.modelOnTurning(sl, WING, player, new Vec3(0, player.getBbHeight() * 0.75, 0), 0f, 0f, 0f);
+
 // with its top (up in Blockbench) pointing along a direction: spears, arrows, meteors
 ParticleShapes.modelAlong(sl, SPEAR, from, player.getLookAngle());
 
@@ -308,6 +312,8 @@ ParticleShapes.modelOn(sl, MARK, mob, new Vec3(0, mob.getBbHeight() + 0.4, 0), 0
 ```
 
 `Freeze` does this (its ice is tagged `freeze`), so thawing a mob no longer removes other effects from it.
+
+**Stuck or worn?** `modelOn` keeps the direction you gave it: a mark over a head, ice round a body, strings going up. `modelOnTurning` turns with the entity's body, in the air and while flying too: wings on a back, a crown, something held. Its offset does not turn, so use the offset for the height only and put anything sideways into the model's keys (`pose().right(...)`, `pose().forward(...)`), which do turn. It follows the body, not the head: wings stay on the back while the player looks around.
 
 Models are sent to every player within 512 blocks, so a big one (a meteor, a falling blade) is seen from far away. The small 2D particles and slash trails are still only sent within 32 blocks.
 
@@ -429,7 +435,7 @@ Each display also has a `..._TICKS` number: how long it lasts.
 
 The effects themselves are public constants (`PaleEmperorFx.SKULL`, `RIB_CAGE`, `COFFIN`, `WING_RIGHT` ...). To change one, copy it into your class and edit it, or adjust a copy on the spot: `PaleEmperorFx.SKULL.scale(4f)`.
 
-The wings and the crown move with the entity they are on, but they keep the direction they were given: they do not turn when it turns.
+The wings and the crown are worn: they move with the entity they are on and turn when it turns (`modelOnTurning`).
 
 ## Tricks worth copying
 
