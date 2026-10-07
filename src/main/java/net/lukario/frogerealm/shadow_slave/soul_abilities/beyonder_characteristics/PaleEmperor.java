@@ -824,4 +824,43 @@ public class PaleEmperor {
         }
     }
 
+    public static final int SKULL_TICKS = 40;
+    public static final ModelFx SKULL = ModelFx.of("pale_emperor/death_skull").frames(3).smooth()
+            .scale(0.5f).pivot(8, 8, 8).glow().lifetime(SKULL_TICKS).fade(0, 12)
+            .key(0, pose().scale(0.15f).alpha(0f))
+            .key(10, pose().scale(1f).alpha(1f), ModelFx.Ease.OUT_BACK)
+            .during(10, 40, pose().forward(24f), ModelFx.Ease.IN_OUT);
+
+
+    public static final int SPEAR_TICKS = 80;
+    public static final ModelFx SPEAR = ModelFx.of("pale_emperor/bone_spear")
+            .scale(1.2f).pivot(8, 8, 8).glow().aura(0x409CFFD2, 0.07f, 2).lifetime(40).fade(0, 4);
+    private static final ModelFx SPEAR_HOVERS = SPEAR.lifetime(SPEAR_TICKS)
+            .key(0, pose().scale(0.3f).alpha(0f))
+            .key(8, pose().scale(1f).alpha(1f), ModelFx.Ease.OUT_BACK)           // appears, point up
+            .during(8, 50, pose().spin(360), ModelFx.Ease.IN_OUT)                // turns once
+            .during(50, 60, pose().pitch(90), ModelFx.Ease.IN_OUT)               // tips over: the point looks forward
+            .during(60, 64, pose().forward(-1f), ModelFx.Ease.OUT)               // draws back
+            .during(64, 76, pose().forward(26f), ModelFx.Ease.IN);
+
+
+    public static void paleEmperorSpearSkull(Player player, Level level, ServerLevel sl, boolean bypassClassCheck) {
+        if (!canUseCharacteristic(player, bypassClassCheck)) return;
+        if (SoulCore.getSoulEssence(player) < 600) return;
+        if (SoulCore.getAscensionStage(player) < 2) return;
+
+        SoulCore.setSoulEssence(player, SoulCore.getSoulEssence(player) - 600);
+
+        Vec3 ground = player.position();
+        Vec3 direction = player.getLookAngle();
+        float yaw = (float)Math.toDegrees(Math.atan2(-direction.x, direction.z));
+
+        if (!player.isShiftKeyDown()){
+            ParticleShapes.model(sl, SPEAR_HOVERS, ground.add(0, 2.2, 0), yaw, 0f, 0f);
+        }else{
+            ParticleShapes.model(sl, SKULL, ground.add(0, 2.6, 0), yaw, 0f, 0f);
+        }
+    }
+
+
 }

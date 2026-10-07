@@ -39,6 +39,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VectorA
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidAscendant.voidAscendantAbilityFour;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidResonator.frequencyShift;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidWalker.voidWalkerAbilityFourUsed;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.beyonder_characteristics.PaleEmperor.paleEmperorSpearSkull;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.expeditioners.Verso.crescendoBladeSteelStrike;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.beyonder_characteristics.PrinceOfAbolition.princeOfAbolitionHammer;
 
@@ -94,6 +95,7 @@ public class SKeyPressAbilityFourUsed {
         crescendoBladeSteelStrike(player,level,serverLevel);
         princeOfAbolitionHammer(player,level,serverLevel,false);
         handOfOrderAbility4(player,level,serverLevel,false);
+        paleEmperorSpearSkull(player,level,serverLevel,false);
     }
 
 }
