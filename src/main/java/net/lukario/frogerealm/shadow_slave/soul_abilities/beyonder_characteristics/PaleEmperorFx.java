@@ -147,6 +147,70 @@ public final class PaleEmperorFx {
         ParticleShapes.modelOnTurning(sl, WING_LEFT, wearer, shoulders, 0f, 0f, 0f);
     }
 
+    // ---------- wings for as long as you want (a flight, a transformation) ----------
+
+    /** The first beat starts here, a beat takes this long, and folding away takes this long at the end. */
+    private static final int WINGS_SPREAD = 20;
+    private static final int WING_BEAT = 20;
+    private static final int WINGS_FOLD = 24;
+    /** Fewer ticks than this are too few to unfold wings for: wings(sl, wearer, ticks, tag) shows none then. */
+    public static final int WINGS_SHORTEST = WINGS_SPREAD + WING_BEAT + WINGS_FOLD;
+
+    private static ModelFx wingModel() {
+        return ModelFx.of("pale_emperor/pale_wing").frames(5).smooth().scale(1.4f).pivot(-10, 11.5f, 8).glow();
+    }
+
+    /** One wing that unfolds, beats for as long as 'ticks' lasts and folds away in its last second. 1 = right, -1 = left. */
+    private static ModelFx wingFor(int side, int ticks) {
+        int foldAt = ticks - WINGS_FOLD;
+        // a model holds 64 keys at most: a very long time gets slower beats instead of more of them
+        int beat = Math.max(WING_BEAT, (foldAt - WINGS_SPREAD) / 28 + 1);
+
+        ModelFx wing = wingModel().lifetime(ticks).fade(2, 6)
+                .key(0, pose().right(0.16f * side).forward(-0.28f).scale(0.5f))     // on the back, small and folded
+                .during(0, 8, pose().scale(1f), Ease.OUT_BACK)
+                .during(3, 15, pose().frame(4), Ease.OUT);                           // unfolds
+        for (int t = WINGS_SPREAD; t + beat <= foldAt; t += beat) {
+            int down = t + Math.round(beat * 0.3f);
+            int up = t + Math.round(beat * 0.9f);
+            wing = wing.during(t, down, pose().roll(24f * side).frame(3), Ease.IN_OUT)        // down
+                    .during(down, up, pose().roll(-10f * side).frame(4), Ease.IN_OUT);        // and up
+        }
+        wing = wing.during(foldAt, foldAt + 8, pose().roll(0), Ease.IN_OUT)
+                .during(foldAt + 4, foldAt + 18, pose().frame(0), Ease.IN);          // folds away
+        return side > 0 ? wing : wing.mirrored();
+    }
+
+    /** A spread wing that folds away at once. */
+    private static ModelFx wingFolding(int side) {
+        ModelFx wing = wingModel().lifetime(20).fade(0, 6)
+                .key(0, pose().right(0.16f * side).forward(-0.28f).frame(4))
+                .during(0, 14, pose().frame(0), Ease.IN);
+        return side > 0 ? wing : wing.mirrored();
+    }
+
+    /**
+     * Wings on the back of an entity for 'ticks' ticks: they unfold, keep beating and fold away in the last
+     * second. They turn with the wearer, in the air too. 'tag' is their name: calling this again with the same
+     * tag replaces them (use it to show them again after the wearer logged in), and foldWings(...) with it
+     * takes them off early. Works with status/Flight: Flight.grant(player, 400); wings(sl, player, 400, "my_wings");
+     */
+    public static void wings(ServerLevel sl, Entity wearer, int ticks, String tag) {
+        ParticleShapes.clearModels(sl, wearer, tag);
+        if (ticks < WINGS_SHORTEST) return;
+        Vec3 shoulders = new Vec3(0, wearer.getBbHeight() * 0.75, 0);
+        ParticleShapes.modelOnTurning(sl, wingFor(1, ticks).tag(tag), wearer, shoulders, 0f, 0f, 0f);
+        ParticleShapes.modelOnTurning(sl, wingFor(-1, ticks).tag(tag), wearer, shoulders, 0f, 0f, 0f);
+    }
+
+    /** Folds away, now, the wings that were put on with this tag. */
+    public static void foldWings(ServerLevel sl, Entity wearer, String tag) {
+        ParticleShapes.clearModels(sl, wearer, tag);
+        Vec3 shoulders = new Vec3(0, wearer.getBbHeight() * 0.75, 0);
+        ParticleShapes.modelOnTurning(sl, wingFolding(1).tag(tag), wearer, shoulders, 0f, 0f, 0f);
+        ParticleShapes.modelOnTurning(sl, wingFolding(-1).tag(tag), wearer, shoulders, 0f, 0f, 0f);
+    }
+
     // =====================================================================================
     // The crown
     // =====================================================================================

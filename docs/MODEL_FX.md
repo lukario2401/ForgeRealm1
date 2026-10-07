@@ -429,6 +429,8 @@ Later.run(sl, PaleEmperorFx.RIB_CAGE_SHUT, () -> cageShut(player, sl, enemy));  
 | `emperorHand(sl, ground, yaw)` | The Emperor's hand rises 6 blocks, opens, closes and sinks | `EMPEROR_HAND_GRASPS` |
 | `underworldArms(sl, ground, yaw, count)` | Arms of the dead rise in a ring, lean in and clutch at the middle | |
 | `wings(sl, entity)` | Wings on its back: they unfold, beat four times and fold away | |
+| `wings(sl, entity, ticks, tag)` | The same for as long as you want (a flight, a transformation): they keep beating and fold in the last second. Calling it again with the same tag replaces them | `WINGS_SHORTEST` (fewer ticks than this shows none) |
+| `foldWings(sl, entity, tag)` | Folds away, now, the wings that were put on with that tag | |
 | `crown(sl, entity)` | The crown comes down turning and settles on its head | |
 
 Each display also has a `..._TICKS` number: how long it lasts.

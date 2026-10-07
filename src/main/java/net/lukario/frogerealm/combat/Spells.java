@@ -21,7 +21,11 @@ import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.Consumer;
 
 /**
  * The questions every ability asks, answered once: who is an enemy, what am I aiming at, where is the ground,
@@ -109,21 +113,60 @@ public final class Spells {
      */
     public static List<LivingEntity> enemiesInSight(Player caster, ServerLevel sl, double range, double halfAngle) {
         Vec3 eye = caster.getEyePosition();
-        Vec3 look = caster.getLookAngle().normalize();
+        List<LivingEntity> result = enemiesInCone(caster, sl, eye, caster.getLookAngle(), range, halfAngle);
+        // its body or its head showing is enough
+        result.removeIf(candidate -> !clearLine(caster, sl, eye, candidate.getBoundingBox().getCenter())
+                && !clearLine(caster, sl, eye, candidate.getEyePosition()));
+        return result;
+    }
+
+    /**
+     * Every enemy in a cone: within 'range' blocks of 'from' and no more than 'halfAngle' degrees away from
+     * 'direction'. Walls do not matter here (enemiesInSight is the one that looks). Nearest first.
+     * For a breath, a roar, a blast out of a summon's mouth.
+     */
+    public static List<LivingEntity> enemiesInCone(Player caster, ServerLevel sl, Vec3 from, Vec3 direction,
+                                                   double range, double halfAngle) {
+        Vec3 along = direction.normalize();
         double narrowest = Math.cos(Math.toRadians(halfAngle));
 
         List<LivingEntity> result = new ArrayList<>();
-        for (LivingEntity candidate : enemiesAround(caster, sl, eye, range)) {
-            Vec3 middle = candidate.getBoundingBox().getCenter();
-            Vec3 toIt = middle.subtract(eye);
-            // one that stands right on the caster has no direction: it counts as seen
-            if (toIt.lengthSqr() > 1.0 && toIt.normalize().dot(look) < narrowest) continue;
-            // its body or its head showing is enough
-            if (!clearLine(caster, sl, eye, middle) && !clearLine(caster, sl, eye, candidate.getEyePosition())) continue;
+        for (LivingEntity candidate : enemiesAround(caster, sl, from, range)) {
+            Vec3 toIt = candidate.getBoundingBox().getCenter().subtract(from);
+            // one that is right on the point has no direction: it counts as inside
+            if (toIt.lengthSqr() > 1.0 && toIt.normalize().dot(along) < narrowest) continue;
             result.add(candidate);
         }
-        result.sort(Comparator.comparingDouble(candidate -> candidate.getBoundingBox().getCenter().distanceToSqr(eye)));
+        result.sort(Comparator.comparingDouble(candidate -> candidate.getBoundingBox().getCenter().distanceToSqr(from)));
         return result;
+    }
+
+    /**
+     * A wave that spreads out from a spot along the ground and reaches 'radius' blocks after 'ticks' ticks.
+     * onReach runs once for each enemy, at the moment the wave gets to it: enemies near the middle first.
+     * 'height' = how far above and below the spot it still catches someone.
+     *
+     *   SpellFx.steadyRing(sl, ground, 16, 0xF09CFFD2, 20, 0);                       // what it looks like
+     *   Spells.wave(player, sl, ground, 16, 20, 6, enemy -> Spells.strike(player, enemy, 45f));
+     */
+    public static void wave(Player caster, ServerLevel sl, Vec3 ground, double radius, int ticks, double height,
+                            Consumer<LivingEntity> onReach) {
+        Set<UUID> reached = new HashSet<>();
+        int steps = Math.max(1, ticks);
+        for (int tick = 1; tick <= steps; tick++) {
+            double front = radius * tick / steps;
+            Later.run(sl, tick, () -> {
+                if (!casterStillHere(caster, sl)) return;
+                for (LivingEntity enemy : enemiesAround(caster, sl, ground, radius + height)) {
+                    if (Math.abs(enemy.getY() - ground.y) > height) continue;
+                    double dx = enemy.getX() - ground.x;
+                    double dz = enemy.getZ() - ground.z;
+                    // measured to the edge of its body, so it is caught when the ring touches it
+                    if (Math.sqrt(dx * dx + dz * dz) - enemy.getBbWidth() / 2.0 > front) continue;
+                    if (reached.add(enemy.getUUID())) onReach.accept(enemy);
+                }
+            });
+        }
     }
 
     /** The enemy on the line that is closest to 'from', or null. */
@@ -247,6 +290,52 @@ public final class Spells {
             }
         }
         return null;
+    }
+
+    /**
+     * Where the player's feet go to be at what the crosshair is on, as near to it as they fit: for a blink.
+     * Looking at the ground they stand on that spot; looking at a wall they stand in front of it (or hang in the
+     * air in front of it, if it is a cliff: FallGuard.protect(...) is kind then); looking at the open sky they
+     * end up 'range' blocks out. Never inside a block. Null when there is no room anywhere near.
+     *
+     *   Vec3 there = Spells.blinkSpot(player, sl, 32);
+     *   if (there != null) player.teleportTo(there.x, there.y, there.z);
+     */
+    public static Vec3 blinkSpot(Player player, ServerLevel sl, double range) {
+        Vec3 eye = player.getEyePosition();
+        Vec3 look = player.getLookAngle().normalize();
+        Vec3 point = aimPoint(player, sl, range);
+        double far = eye.distanceTo(point);
+
+        // a little back from what was hit, then further back until there is room
+        for (double back : new double[]{0.4, 0.8, 1.2, 1.8, 2.6, 3.6}) {
+            if (back >= far) break;
+            Vec3 near = point.subtract(look.scale(back));
+            Vec3 ground = groundAt(player, sl, near);
+
+            // on the ground under it if that is close; else with the spot at the chest, the head or the feet
+            if (near.y - ground.y <= 3.0 && fits(player, sl, ground)) return ground;
+            for (double drop : new double[]{1.0, 1.85, 0.0}) {
+                Vec3 feet = near.add(0, -drop, 0);
+                if (fits(player, sl, feet)) return feet;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * The ground an entity stands on or hangs just above (no more than 4 blocks): where spikes, hands or a
+     * circle for it should appear. For one higher in the air it is the spot at its feet.
+     */
+    public static Vec3 groundUnder(Player caster, ServerLevel sl, LivingEntity entity) {
+        if (entity.onGround()) return entity.position();
+        Vec3 ground = groundAt(caster, sl, entity.position());
+        return entity.getY() - ground.y <= 4.0 ? ground : entity.position();
+    }
+
+    /** The spot 'distance' blocks from 'center' the way 'yaw' looks, at the same height: for rings of things around a point. */
+    public static Vec3 spotAround(Vec3 center, float yaw, double distance) {
+        return center.add(Vec3.directionFromRotation(0f, yaw).scale(distance));
     }
 
     /** True if the player's body fits with their feet on this spot (for teleports: never into a wall). */
