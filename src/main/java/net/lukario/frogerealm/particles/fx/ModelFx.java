@@ -318,6 +318,17 @@ public final class ModelFx implements ParticleOptions {
         return fx;
     }
 
+    /**
+     * Special "effect" that removes every model that is NOT stuck to an entity and was given this tag
+     * (see ParticleShapes.clearModels(level, position, tag)). For a model that must be able to vanish
+     * before its time is up: a skull that bursts when it hits something.
+     */
+    public static ModelFx clearingTag(String tag) {
+        ModelFx fx = of("clear").lifetime(1).tag(tag);
+        fx.clear = true;
+        return fx;
+    }
+
     // ---------- look ----------
 
     /** Tint (multiplies the texture) and opacity, ARGB. 0x80FFFFFF = half see-through. */

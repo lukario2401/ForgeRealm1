@@ -266,6 +266,19 @@ public final class ParticleShapes {
         spawnFar(level, ModelFx.clearing(entity, tag), entity.position(), Vec3.ZERO);
     }
 
+    /**
+     * Removes the models that are NOT stuck to an entity and were given this tag, before their time is up:
+     *   String tag = "my_skull_" + UUID.randomUUID();                // its own tag for every cast
+     *   ParticleShapes.model(sl, SKULL.tag(tag), from, yaw, 0f, 0f);
+     *   ...
+     *   ParticleShapes.clearModels(sl, where, tag);                  // it hit something: gone
+     * 'position' is only where the message is sent from (players within 512 blocks get it).
+     */
+    public static void clearModels(Level level, Vec3 position, String tag) {
+        if (tag == null || tag.isEmpty()) return;                    // no tag would mean every model there is
+        spawnFar(level, ModelFx.clearingTag(tag), position, Vec3.ZERO);
+    }
+
     /** Random unit vector at most angleDegrees/2 away from forward (uniform over the cone). */
     public static Vec3 randomDirectionInCone(RandomSource random, Vec3 forward, double angleDegrees) {
         double halfAngle = Math.toRadians(Math.min(angleDegrees, 360) / 2.0);

@@ -419,6 +419,15 @@ ParticleShapes.modelOn(sl, mark, target, new Vec3(0, target.getBbHeight() + 0.4,
 
 Tags in use: `freeze`, `marionette`, and the Attendant's `aom_strings`, `aom_transfer`, `aom_projection`, `aom_miracle`.
 
+A tag also lets you remove a model that is **not** on an entity before its time is up, for something that flies and must vanish the moment it hits (the Pale Emperor's skull, `throwSkull` in `PaleEmperor.java`). Give every cast a tag of its own, or one cast would remove the models of another:
+
+```java
+String tag = "my_skull_" + UUID.randomUUID();
+ParticleShapes.model(sl, SKULL.tag(tag), from, yaw, 0f, 0f);
+// later, where it hit:
+ParticleShapes.clearModels(sl, where, tag);
+```
+
 ---
 
 ## 7. Where each tool is used
