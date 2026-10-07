@@ -13,6 +13,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
@@ -486,4 +487,47 @@ public class PaleEmperor {
         if (entity == null || !entity.isAlive() || entity.isRemoved() || entity.level() != sl) return null;
         return entity.getBoundingBox().getCenter();
     }
+
+    public static final int SERPENT_TICKS = 150;
+    public static final ModelFx SERPENT = ModelFx.of("pale_emperor/feathered_serpent").frames(3).smooth()
+            .scale(2f).pivot(8, -16, 12).glow().lifetime(SERPENT_TICKS).fade(0, 4)
+            .key(0, pose().up(-6.2f))                                    // under the ground
+            .key(12, pose().up(-6.2f))                                   // waits for the coils and the seal
+            .key(30, pose().up(0), ModelFx.Ease.OUT)                             // rears up
+            .during(34, 40, pose().frame(2), ModelFx.Ease.OUT)                   // roars: jaws wide, collar flared
+            .during(60, 68, pose().frame(0), ModelFx.Ease.IN_OUT)                // shuts its mouth
+            .during(78, 84, pose().frame(2), ModelFx.Ease.OUT)                   // opens it again...
+            .during(80, 86, pose().pitch(28), ModelFx.Ease.IN)                   // ...and strikes forward and down
+            .during(86, 89, pose().frame(0), ModelFx.Ease.IN)                    // the bite
+            .during(94, 108, pose().pitch(0), ModelFx.Ease.IN_OUT)               // draws back
+            .during(128, 148, pose().up(-6.2f), ModelFx.Ease.IN);                // sinks away
+    /** Its coiled body, 5 blocks across. */
+    public static final ModelFx SERPENT_COIL = ModelFx.of("pale_emperor/feathered_serpent_coil")
+            .scale(2f).pivot(8, -16, 8).glow().lifetime(SERPENT_TICKS).fade(0, 4)
+            .key(0, pose().up(-2.3f))
+            .key(12, pose().up(0), ModelFx.Ease.OUT)
+            .during(132, 148, pose().up(-2.3f), ModelFx.Ease.IN);
+
+    /** A seal opens, the coils rise out of it, the serpent rears up, roars, strikes once and sinks away. */
+    public static void serpent(ServerLevel sl, Vec3 ground, float yaw) {
+        seal(sl, ground, yaw, 7.5f, SERPENT_TICKS);
+        ParticleShapes.model(sl, SERPENT_COIL, ground, yaw, 0f, 0f);
+        ParticleShapes.model(sl, SERPENT, ground, yaw, 0f, 0f);
+    }
+
+    public static void paleEmperorSerpent(Player player, Level level, ServerLevel sl, boolean bypassClassCheck) {
+        if (!canUseCharacteristic(player, bypassClassCheck)) return;
+        if (SoulCore.getSoulEssence(player) < 6000) return;
+        if (SoulCore.getAscensionStage(player) < 2) return;
+
+        SoulCore.setSoulEssence(player, SoulCore.getSoulEssence(player) - 6000);
+
+
+        Vec3 direction = player.getLookAngle().normalize();
+
+        serpent(sl,player.position(),(float)Math.toDegrees(Math.atan2(-direction.x, direction.z)));
+    }
+
+
+
 }
