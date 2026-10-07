@@ -74,6 +74,13 @@ public class PacketHandler {
                 .consumerMainThread(CShowHudOverlayPacket::handle)
                 .add();
 
+        // Server -> Client: a small timer next to the hotbar (see combat/HudTimer)
+        INSTANCE.messageBuilder(CHudTimerPacket.class, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(CHudTimerPacket::encode)
+                .decoder(CHudTimerPacket::new)
+                .consumerMainThread(CHudTimerPacket::handle)
+                .add();
+
         INSTANCE.messageBuilder(CSyncAspectPacket.class, NetworkDirection.PLAY_TO_CLIENT)
                 .encoder(CSyncAspectPacket::encode)
                 .decoder(CSyncAspectPacket::new)

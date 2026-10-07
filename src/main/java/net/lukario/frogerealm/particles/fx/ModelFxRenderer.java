@@ -122,6 +122,9 @@ public final class ModelFxRenderer {
             if (time < 0 || time > fx.lifetimeTicks()) continue;
             // what is stuck to someone concealed is not drawn either: it would give them away (see status/Concealment)
             if (fx.followsEntity() && ClientConcealment.isHidden(fx.followId())) continue;
+            // what you wear on your own head is not drawn in first person, like a helmet: it would hang in your face
+            if (fx.turnsWithHead() && !camera.isDetached() && camera.getEntity() != null
+                    && camera.getEntity().getId() == fx.followId()) continue;
 
             ModelFx.Pose pose = fx.poseAt(time);
             float alpha = ((fx.tintColor() >>> 24) / 255f) * pose.alpha() * fx.fadeAt(time);
@@ -131,11 +134,22 @@ public final class ModelFxRenderer {
             float scale = Math.abs(pose.scale()) < 0.001f ? 0.001f : pose.scale();
             Vec3 anchor = particle.anchor(partialTick);
             Matrix4f matrix = new Matrix4f()
-                    .translate((float) (anchor.x - cam.x), (float) (anchor.y - cam.y), (float) (anchor.z - cam.z))
-                    // facing: the model's front (north, -Z) turns to the yaw; pitch tips it forward, roll to the right
-                    // (turn = how far the entity it is stuck to has turned, for the models that turn with it)
-                    .rotateY(rad(180f - fx.yaw() - particle.turn(partialTick)))
-                    .rotateX(rad(-fx.pitch()))
+                    .translate((float) (anchor.x - cam.x), (float) (anchor.y - cam.y), (float) (anchor.z - cam.z));
+            // facing: the model's front (north, -Z) turns to the yaw; pitch tips it forward, roll to the right
+            // (turn = how far the entity it is stuck to has turned, for the models that turn with it)
+            if (fx.turnsWithHead()) {
+                // worn on a head: first where the head looks, left/right and (around the neck) up/down,
+                // then the model's own yaw on that head
+                float neck = particle.aboveNeck();
+                matrix.rotateY(rad(180f - particle.turn(partialTick)))
+                        .translate(0f, -neck, 0f)
+                        .rotateX(rad(-particle.nod(partialTick)))
+                        .translate(0f, neck, 0f)
+                        .rotateY(rad(-fx.yaw()));
+            } else {
+                matrix.rotateY(rad(180f - fx.yaw() - particle.turn(partialTick)));
+            }
+            matrix.rotateX(rad(-fx.pitch()))
                     .rotateZ(rad(-fx.roll()))
                     // keyframe: offset (right, up, forward = -Z), then rotation around the pivot
                     .translate(pose.right(), pose.up(), -pose.forward())

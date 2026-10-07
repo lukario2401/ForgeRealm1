@@ -42,8 +42,8 @@ import java.util.concurrent.ThreadLocalRandom;
  * To change one, copy its constant into your class and edit it there; every method on a ModelFx returns a new
  * copy, so PaleEmperorFx.SKULL.scale(4f).lifetime(200) is also fine.
  *
- * The wings and the crown are worn: they are stuck to an entity, move with it and turn when it turns
- * (ParticleShapes.modelOnTurning).
+ * The wings and the crown are worn: they are stuck to an entity and move with it. The wings turn when its body
+ * turns (ParticleShapes.modelOnTurning), the crown follows its head (ParticleShapes.modelOnHead).
  */
 @Mod.EventBusSubscriber(modid = "forgerealmmod")
 public final class PaleEmperorFx {
@@ -221,9 +221,24 @@ public final class PaleEmperorFx {
             .key(0, pose().up(1.4f).alpha(0f).spin(-270))
             .key(26, pose().up(0f).alpha(1f).spin(0), Ease.OUT);     // comes down turning, and settles on the head
 
-    /** The crown comes down onto the head of an entity and stays there. */
+    /** The crown comes down onto the head of an entity and stays there. It looks where the head looks. */
     public static void crown(ServerLevel sl, Entity wearer) {
-        ParticleShapes.modelOnTurning(sl, CROWN, wearer, new Vec3(0, wearer.getBbHeight(), 0), 0f, 0f, 0f);
+        ParticleShapes.modelOnHead(sl, CROWN, wearer, 0, 0f, 0f, 0f);
+    }
+
+    /**
+     * The crown for 'ticks' ticks: it comes down onto the head, follows it wherever it looks and fades at the
+     * end. 'tag' is its name: calling this again with the same tag replaces it, and takeCrown(...) with it takes
+     * it off early. The wearer does not see it in first person.
+     */
+    public static void crown(ServerLevel sl, Entity wearer, int ticks, String tag) {
+        ParticleShapes.clearModels(sl, wearer, tag);
+        ParticleShapes.modelOnHead(sl, CROWN.lifetime(ticks).tag(tag), wearer, 0, 0f, 0f, 0f);
+    }
+
+    /** Takes off, now, the crown that was put on with this tag. */
+    public static void takeCrown(ServerLevel sl, Entity wearer, String tag) {
+        ParticleShapes.clearModels(sl, wearer, tag);
     }
 
     // =====================================================================================

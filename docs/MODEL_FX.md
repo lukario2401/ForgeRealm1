@@ -288,9 +288,13 @@ ParticleShapes.model(sl, RUNE, position, player);
 // offset is from its feet, in world directions
 ParticleShapes.modelOn(sl, RUNE, mob, new Vec3(0, mob.getBbHeight(), 0), 0f, 0f, 0f);
 
-// worn by an entity: stuck to it AND turning when it turns its body (wings, a crown)
+// worn by an entity: stuck to it AND turning when it turns its body (wings, a shield)
 // yaw 0 = the model's front looks the way the entity does
 ParticleShapes.modelOnTurning(sl, WING, player, new Vec3(0, player.getBbHeight() * 0.75, 0), 0f, 0f, 0f);
+
+// worn on the HEAD: it sits on top of the head and looks where the head looks, up and down too
+// (a crown, a halo, horns, a mask). The number = blocks above the top of the head
+ParticleShapes.modelOnHead(sl, CROWN, player, 0, 0f, 0f, 0f);
 
 // with its top (up in Blockbench) pointing along a direction: spears, arrows, meteors
 ParticleShapes.modelAlong(sl, SPEAR, from, player.getLookAngle());
@@ -313,7 +317,9 @@ ParticleShapes.modelOn(sl, MARK, mob, new Vec3(0, mob.getBbHeight() + 0.4, 0), 0
 
 `Freeze` does this (its ice is tagged `freeze`), so thawing a mob no longer removes other effects from it.
 
-**Stuck or worn?** `modelOn` keeps the direction you gave it: a mark over a head, ice round a body, strings going up. `modelOnTurning` turns with the entity's body, in the air and while flying too: wings on a back, a crown, something held. Its offset does not turn, so use the offset for the height only and put anything sideways into the model's keys (`pose().right(...)`, `pose().forward(...)`), which do turn. It follows the body, not the head: wings stay on the back while the player looks around.
+**Stuck or worn?** `modelOn` keeps the direction you gave it: a mark over a head, ice round a body, strings going up. `modelOnTurning` turns with the entity's body, in the air and while flying too: wings on a back, something held. Its offset does not turn, so use the offset for the height only and put anything sideways into the model's keys (`pose().right(...)`, `pose().forward(...)`), which do turn. It follows the body, not the head: wings stay on the back while the player looks around.
+
+**On the head.** `modelOnHead` is for what the head wears. It follows the head left and right and up and down (it nods around the neck, as a head does), and it sits on top of the head however tall the entity is or stands, so it comes down with a player who sneaks. Instead of an offset it takes one number, the blocks above the top of the head: `0` rests on it, `0.4` floats over it (a halo), a negative number brings it down in front of the face (a mask). The wearer does not see it in first person, like a helmet. Everyone else does, and so does the wearer in third person (F5).
 
 Models are sent to every player within 512 blocks, so a big one (a meteor, a falling blade) is seen from far away. The small 2D particles and slash trails are still only sent within 32 blocks.
 
@@ -431,13 +437,15 @@ Later.run(sl, PaleEmperorFx.RIB_CAGE_SHUT, () -> cageShut(player, sl, enemy));  
 | `wings(sl, entity)` | Wings on its back: they unfold, beat four times and fold away | |
 | `wings(sl, entity, ticks, tag)` | The same for as long as you want (a flight, a transformation): they keep beating and fold in the last second. Calling it again with the same tag replaces them | `WINGS_SHORTEST` (fewer ticks than this shows none) |
 | `foldWings(sl, entity, tag)` | Folds away, now, the wings that were put on with that tag | |
-| `crown(sl, entity)` | The crown comes down turning and settles on its head | |
+| `crown(sl, entity)` | The crown comes down turning and settles on its head. It follows the head wherever it looks | |
+| `crown(sl, entity, ticks, tag)` | The same for as long as you want. Calling it again with the same tag replaces it | |
+| `takeCrown(sl, entity, tag)` | Takes off, now, the crown that was put on with that tag | |
 
 Each display also has a `..._TICKS` number: how long it lasts.
 
 The effects themselves are public constants (`PaleEmperorFx.SKULL`, `RIB_CAGE`, `COFFIN`, `WING_RIGHT` ...). To change one, copy it into your class and edit it, or adjust a copy on the spot: `PaleEmperorFx.SKULL.scale(4f)`.
 
-The wings and the crown are worn: they move with the entity they are on and turn when it turns (`modelOnTurning`).
+The wings and the crown are worn: they move with the entity they are on. The wings turn when its body turns (`modelOnTurning`); the crown follows its head (`modelOnHead`).
 
 ## Tricks worth copying
 

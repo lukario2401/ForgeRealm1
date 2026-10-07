@@ -10,6 +10,9 @@ Nothing needs registering. Call them from your ability method. The 3D models the
 | A model that flies and hits things (dagger, bolt, shell) | [`Shot`](#2-shot-a-model-that-flies-and-hits) | `combat/` |
 | A model with an animation of my own that hits what it reaches | [`AnimatedShot`](#animatedshot-a-model-that-hits-along-its-own-animation) | `combat/` |
 | 5, 4, 3, 2, 1 on the screen and then something happens | [`Countdown`](#3-countdown) | `combat/` |
+| A small clock next to the hotbar ("Revive 27s") | [`HudTimer`](#hudtimer-a-small-clock-next-to-the-hotbar) | `combat/` |
+| Ground that keeps doing something to whoever stands on it, worse the longer they stay (cursed land, a healing circle, an aura) | [`Zone`](#zone-ground-that-keeps-doing-something) | `combat/` |
+| A potion effect kept up for as long as something lasts | [`Spells.keepEffect`](#1-spells-aiming-and-enemies) | `combat/` |
 | A line that keeps joining two moving things (thread, chain, beam) | [`SpellFx.tether`](#4-spellfx-looks-that-many-abilities-share) | `combat/` |
 | Rings, warning circles, a burst of fire or of any color | [`SpellFx`](#4-spellfx-looks-that-many-abilities-share) | `combat/` |
 | A wave that spreads and hits each enemy as it gets there | [`Spells.wave`](#1-spells-aiming-and-enemies) + `SpellFx.steadyRing` | `combat/` |
@@ -22,6 +25,7 @@ Nothing needs registering. Call them from your ability method. The 3D models the
 | Drag something under the ground and give it back | [`Burial`](#burial) | `status/` |
 | Let a player fly for a while | [`Flight`](#flight) | `status/` |
 | Wings (or anything worn) that turn with the player | `ParticleShapes.modelOnTurning`, `PaleEmperorFx.wings(sl, player, ticks, tag)` ([MODEL_FX.md](MODEL_FX.md)) | `particles/fx/` |
+| A crown (or anything on the head) that looks where the head looks | `ParticleShapes.modelOnHead`, `PaleEmperorFx.crown(sl, player, ticks, tag)` ([MODEL_FX.md](MODEL_FX.md)) | `particles/fx/` |
 | Damage that lands on someone else, or is shared by a group | [`DamageLink`](#damagelink) | `status/` |
 | "The next hit does not land, this happens instead" | [`Substitute`](#substitute) | `status/` |
 | Take over a mob | [`Marionette`](#marionette) | `status/` |
@@ -111,6 +115,7 @@ for (LivingEntity enemy : Spells.enemiesAround(player, sl, spot, 4)) {
 | `strike(player, target, damage)` | Damage from the player that always counts, even right after another hit. The target becomes "what the player last hit", which marionettes and tamed wolves go after |
 | `push(target, from, strength, lift)` | Throws the target away from a point |
 | `pull(target, to, maxSpeed, lift)` | Drags it toward a point, slowing as it gets there. Call it every couple of ticks for a steady pull |
+| `keepEffect(entity, MobEffects.X, amplifier, ticks)` | A potion effect you put on again and again while something lasts (a zone, an aura, a beam). It leaves the effect alone while more than half of `ticks` is left, so wither and poison keep hurting (started afresh every few ticks they never would), and it never replaces a stronger effect by a weaker one |
 | `cleanse(entity)` | Removes every harmful potion effect and puts out fire |
 | `harmfulEffects(entity)` | The harmful effects on it right now |
 | `payEssence(player, cost)` | Takes the soul essence and returns `true`. If there is too little it takes nothing, tells the player and returns `false` |
@@ -298,6 +303,69 @@ Good to know:
 - A player has **one countdown at a time**. Starting another cancels the one that is running. If your ability should not interrupt itself, begin with `if (Countdown.isRunning(player)) return;`.
 - Build a new one for every cast. Do not keep one in a constant: it holds its own count.
 - It is not saved. A server restart in the middle of one simply drops it.
+
+### HudTimer: a small clock next to the hotbar
+
+A word and the time that is left, to the right of the hotbar: `Revive` over `27s`. For anything that runs for a while and that the player should be able to keep an eye on: a ward, a buff, a transformation, a cooldown.
+
+```java
+HudTimer.show(player, "my_class_ward", "Ward", 600, 0x9CFFD2);     // 30 seconds, in this color (0xRRGGBB)
+HudTimer.hide(player, "my_class_ward");                            // it ended early
+```
+
+- The first text is its **name**. Showing a timer whose name is on screen already starts it again (new time, new word), so call `show` again to make it longer. Timers with different names stand above one another. Start the name with your class.
+- It only **shows** time. It counts down on the player's screen by itself and goes away at 0, and nothing happens when it does. What the time is for is yours to do (`DeathWard`, `Flight`, `Zone`, `Later.run`...). Remember to `hide` it when the thing ends early.
+- Its last five seconds are red. Under a minute it reads `27s`, from a minute on `1:05`.
+- Only that player sees it. It is gone when they log out.
+
+`Countdown` or `HudTimer`? `Countdown` is loud, sits in the middle of the screen and runs your code at the end. `HudTimer` is quiet, sits by the hotbar and only shows.
+
+---
+
+## Zone: ground that keeps doing something
+
+A round piece of ground that acts, again and again, on whoever stands in it, and knows how long each of them has been there. Cursed land, a healing circle, a storm, a slowing field, an aura around a player.
+
+```java
+Zone.at(ground, 8)                                       // its middle on the ground, and how far it reaches
+        .height(5)                                       // how far above the ground it still catches someone
+        .lasts(300)                                      // 15 seconds
+        .every(10)                                       // it acts twice a second
+        .onInside((enemy, ticksInside) -> {
+            int stage = Math.min(5, 1 + ticksInside / 40);               // deeper every 2 seconds they stay
+            Spells.keepEffect(enemy, MobEffects.MOVEMENT_SLOWDOWN, stage - 1, 60);
+        })
+        .onPulse(ticksLeft -> ParticleShapes.ring(sl, MIST, ground.add(0, 0.2, 0), 8, 28, 0))
+        .open(player, sl, "my_class_land");
+```
+
+| Part | What it does |
+|---|---|
+| `Zone.at(ground, radius)` | A zone lying on the ground. Nothing happens until `.open(...)` |
+| `Zone.around(entity, radius)` | A zone that goes with an entity (an aura). Its middle is always at that entity's feet. It ends when the entity dies |
+| `.height(blocks)` | How far above its ground it still catches someone (default 4). It always reaches 1.5 blocks below, for slopes |
+| `.lasts(ticks)` | How long it stays (default 200) |
+| `.every(ticks)` | How often it acts (default 10) |
+| `.affects(entity -> ...)` | Who it acts on, instead of the owner's enemies. The owner is never one of them |
+| `.countsTo(ticks)` | The time inside is not counted past this |
+| `.onEnter(entity -> ...)` | Someone stepped in (also those in it when it opens) |
+| `.onInside((entity, ticksInside) -> ...)` | Every beat, for each one in it. `ticksInside` is 0 when they have just come in |
+| `.onLeave(entity -> ...)` | Someone stepped out, or the zone ended with them in it |
+| `.onPulse(ticksLeft -> ...)` | Every beat, once: the look and the sound of the zone. The first time at once |
+| `.onEnd(() -> ...)` | It is over, however it ended |
+| `.open(player, sl, name)` | Opens it |
+
+`Zone.isOpen(player, name)`, `Zone.ticksLeft(player, name)`, `Zone.ticksInside(player, name, entity)` and `Zone.close(player, name)` work from anywhere.
+
+Good to know:
+
+- **Worse the longer they stay.** `ticksInside` grows while someone stays, so `1 + ticksInside / 40` is a stage that goes up every 2 seconds. Stepping out does not wipe it: it falls back as fast as it grew, so hopping out and in again does not help. `.countsTo(200)` stops the count at 200, so it starts falling from there the moment they leave.
+- **Who it acts on.** The owner's enemies, as every other spell. A zone for allies: `.affects(entity -> !Spells.isEnemy(player, entity))`. The owner themself is never in it; do the owner's part in `onPulse`.
+- **The name** tells one player's zones apart. Opening one with a name that player already has open closes the old one first (its `onEnd` runs), so casting again moves the zone. Start the name with your class.
+- Build a new one for every cast. Do not keep one in a constant: it holds its own count.
+- It ends by itself when its owner dies, logs out or changes dimension. It is not saved: a server restart drops it.
+- A zone has no look of its own. Draw it in `onPulse`, or play models when you open it. If it can end early, give those models a tag of their own and clear them in `onEnd` (see [tags](#6-several-models-on-one-entity-tags)).
+- Put potion effects on with `Spells.keepEffect`, not `addEffect`: a wither that is started afresh every half second never gets to hurt.
 
 ---
 
@@ -498,6 +566,7 @@ DeathWard.arm(player, 1200, 0.5f, (saved, source, level) -> {
 - Saves from everything except the void and `/kill`. A totem of undying in the hand is used first.
 - For 2 seconds afterwards nothing can hurt the saved entity, so what killed it does not simply do it again (`DeathWard.GRACE_TICKS`).
 - Arming again replaces the old ward. Gone on logout and after a restart.
+- To let the player see how long it still waits: `HudTimer.show(player, "my_class_ward", "Ward", 1200, 0x9CFFD2)` when you arm it, and `HudTimer.hide(...)` in the part that runs when it saves them.
 
 ### FallGuard
 
@@ -551,6 +620,8 @@ Vulnerable.add(target, 0.25f, 0.25f, 100);     // a fixed 25% that does not stac
 
 `Vulnerable.extra(entity)` (0.3 = it takes 30% more right now), `ticksLeft(entity)`, `remove(target)`. The damage is raised before armor is counted. Saved with the entity.
 
+An `add` never lowers or shortens what is already on the target, so two abilities can use it on the same enemy: a fixed 20% from one does not undo a stacked 60% from another.
+
 ### Burial
 
 An entity is pulled down into the ground, held there and put back where it stood.
@@ -592,7 +663,7 @@ ParticleShapes.clearModels(sl, target, "my_class_mark");       // cast again: on
 ParticleShapes.modelOn(sl, mark, target, new Vec3(0, target.getBbHeight() + 0.4, 0), 0f, 0f, 0f);
 ```
 
-Tags in use: `freeze`, `marionette`, the Attendant's `aom_strings`, `aom_transfer`, `aom_projection`, `aom_miracle`, and the Pale Emperor's `pale_emperor_hits` and `pale_emperor_wings`.
+Tags in use: `freeze`, `marionette`, the Attendant's `aom_strings`, `aom_transfer`, `aom_projection`, `aom_miracle`, and the Pale Emperor's `pale_emperor_hits`, `pale_emperor_wings`, `pale_emperor_crown` and `pale_emperor_land_<player id>` (the seal of the cursed land, on the ground).
 
 A tag also lets you remove a model that is **not** on an entity before its time is up, for something that must vanish the moment it hits. An `AnimatedShot` does this by itself; this is for when you build something of your own. Give every cast a tag of its own, or one cast would remove the models of another:
 
@@ -630,6 +701,8 @@ Every tool has a worked example in `AttendantOfMysteries.java`:
 | `Flight`, `PaleEmperorFx.wings` | `spreadWings`, `wingsTick` in `PaleEmperor.java` |
 | `Spells.blinkSpot` | `stepThere` in `PaleEmperor.java` |
 | `SpellFx.homing`, `Vulnerable` | `wraithFlies`, `curse` in `PaleEmperor.java` |
+| `Zone`, `Spells.keepEffect`, `PaleEmperorFx.crown` (`modelOnHead`) | `cursedLand`, `landCurses` in `PaleEmperor.java` |
+| `HudTimer` with `DeathWard` | `secondLife`, `risesAgain` in `PaleEmperor.java` |
 | Model tags | `stringUp`, `summonProjection` |
 
 ## Tricks worth copying
@@ -651,6 +724,8 @@ All in `AttendantOfMysteries.java`, with the method to look at in brackets.
 **Timing from one set of numbers** (`draggingArm`, `handsTake` in `PaleEmperor.java`). A few constants (`HANDS_OUT`, `HANDS_GRASP`, `HANDS_PULL`, `HANDS_UNDER`) build the model's keys AND say when the damage lands and the burial starts. Change one number and the animation and what happens move together.
 
 **Stay hidden until something happens** (`enterUnderworld`, `underworldTick` in `PaleEmperor.java`). `Concealment.hide` for a short time, topped up every tick for as long as a flag on the player is set. The flag is cleared by casting again, by dealing damage (a `LivingHurtEvent` whose attacker carries the flag) or when the upkeep cannot be paid.
+
+**A zone that gets worse in stages** (`cursedLand`, `landCurses`, `curseStage` in `PaleEmperor.java`). One small method turns the time someone has stood in the zone into a stage, and everything the zone does is written from that stage. "It just reached this stage" is `stage > curseStage(ticksOnLand - LAND_BEAT)`: use it for what should happen once (a sound, a hand that grabs). What must happen once per zone for each enemy is remembered in a `Set<UUID>` made at the cast.
 
 **Small pictures for what is active** (`showStatus`). `ScreenImages.show(...)` with a duration fades by itself; `ScreenImages.hide(player, id)` removes it early when the effect is used up. The pictures are 16x16 PNGs in `textures/gui/attendant_of_mysteries/`.
 
@@ -767,7 +842,7 @@ The `@Mod.EventBusSubscriber` line is all the registering there is.
 | Keep it in | When | Example |
 |---|---|---|
 | `entity.getPersistentData()` | It is only numbers and should survive a reload | `FallGuard`, `Concealment`, `Marionette`, `Root`, `Freeze` |
-| A `Map<UUID, ...>` in the class | It carries code to run later (a `-> { }` you were given), which cannot be saved, or it ties several entities together for a short time | `Substitute`, `DeathWard`, `Countdown`, `DamageLink` |
+| A `Map<UUID, ...>` in the class | It carries code to run later (a `-> { }` you were given), which cannot be saved, or it ties several entities together for a short time | `Substitute`, `DeathWard`, `Countdown`, `Zone`, `DamageLink` |
 
 A map needs cleaning up: remove the entry on `LivingDeathEvent` and on `PlayerEvent.PlayerLoggedOutEvent`.
 
@@ -812,9 +887,15 @@ If one status must get its say before another, add a priority: `@SubscribeEvent(
 | A tether cannot be seen from far away | Slash trails are only sent within 32 blocks (models reach 512) |
 | The substitute did not react to fire or a fall | By design: attacks, projectiles and explosions only |
 | The death ward did not save from the void or `/kill` | By design |
+| A wither or poison I keep putting on never hurts | Every `addEffect` starts its clock again, and it only hurts on certain ticks of that clock. Use `Spells.keepEffect` |
+| A zone does nothing to my allies / to me | It acts on the owner's enemies. Give it `.affects(...)`; the owner's own part goes in `onPulse` |
+| The models of a zone stay when it ends early | Give them a tag of their own and clear it in `.onEnd(...)` |
+| A HudTimer still counts though the thing is over | It only shows time. Call `HudTimer.hide(player, name)` where the thing ends early |
+| A message I show above the hotbar never appears | The line above the hotbar is rewritten every tick by the soul essence display. Use chat (`sendSystemMessage`), a `HudTimer` or `ScreenImages` |
+| My crown or mask is not there in first person | By design: what is worn on the head (`modelOnHead`) is hidden from its wearer in first person. Press F5 |
 | A marionette stands still | It only attacks what you hit, what hits you or it, or monsters within 16 blocks. Hit something |
 | Removing one model from a mob removed the others too | Give each a `.tag(...)` and clear by tag |
 | "Not enough soul essence." is in chat, not above the hotbar | The line above the hotbar is rewritten every tick by the soul essence display |
-| Something in a `-> { }` of a countdown, substitute or death ward broke | The error is in the game log ("A countdown failed", ...). The game goes on and that one effect ends |
+| Something in a `-> { }` of a countdown, zone, substitute or death ward broke | The error is in the game log ("A countdown failed", "A zone failed", ...). The game goes on and that one effect ends |
 
-The code lives in `src/main/java/net/lukario/frogerealm/combat/` (`Spells`, `SpellFx`, `Shot`, `AnimatedShot`, `Countdown`, `Later`) and `.../status/` (one file per status: `DamageLink`, `Substitute`, `Marionette`, `Concealment`, `DeathWard`, `FallGuard`, `Marks`, `Blind`, `Vulnerable`, `Burial`, `Flight`). `client/ClientConcealment` and `network/CConcealPacket` are the part of `Concealment` that runs on the players' screens; you should not need to touch them.
+The code lives in `src/main/java/net/lukario/frogerealm/combat/` (`Spells`, `SpellFx`, `Shot`, `AnimatedShot`, `Countdown`, `HudTimer`, `Zone`, `Later`) and `.../status/` (one file per status: `DamageLink`, `Substitute`, `Marionette`, `Concealment`, `DeathWard`, `FallGuard`, `Marks`, `Blind`, `Vulnerable`, `Burial`, `Flight`). `client/ClientConcealment` and `network/CConcealPacket` are the part of `Concealment` that runs on the players' screens, and `client/HudTimerOverlay` and `network/CHudTimerPacket` are that part of `HudTimer`; you should not need to touch them.

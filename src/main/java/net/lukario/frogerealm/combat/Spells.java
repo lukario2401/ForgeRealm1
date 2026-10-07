@@ -3,11 +3,13 @@ package net.lukario.frogerealm.combat;
 import net.lukario.frogerealm.shadow_slave.soul_shards.SoulCore;
 import net.lukario.frogerealm.status.Concealment;
 import net.lukario.frogerealm.status.Marionette;
+import net.minecraft.core.Holder;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
+import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.OwnableEntity;
@@ -419,6 +421,21 @@ public final class Spells {
             if (!effect.getEffect().value().isBeneficial()) harmful.add(effect);
         }
         return harmful;
+    }
+
+    /**
+     * A potion effect that is put on again and again while something lasts (a zone, an aura, a held beam):
+     *   Spells.keepEffect(enemy, MobEffects.WITHER, 0, 60);      // call it every few ticks: withered while it lasts,
+     *                                                           // and for up to 3 seconds after the last call
+     * Unlike a plain addEffect it leaves the effect alone while it still has more than half of 'ticks' to run,
+     * so wither and poison keep their beat (started afresh every few ticks they would never hurt at all), and it
+     * never replaces a stronger effect by a weaker one. A higher 'amplifier' than the one it has takes over at once.
+     */
+    public static void keepEffect(LivingEntity entity, Holder<MobEffect> effect, int amplifier, int ticks) {
+        MobEffectInstance has = entity.getEffect(effect);
+        if (has != null && has.getAmplifier() >= amplifier
+                && (has.getDuration() > ticks / 2 || has.isInfiniteDuration())) return;
+        entity.addEffect(new MobEffectInstance(effect, ticks, amplifier));
     }
 
     /** Takes every harmful potion effect off the entity and puts out the fire on it. */

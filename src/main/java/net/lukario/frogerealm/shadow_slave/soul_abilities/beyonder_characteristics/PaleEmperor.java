@@ -2,9 +2,11 @@ package net.lukario.frogerealm.shadow_slave.soul_abilities.beyonder_characterist
 
 import net.lukario.frogerealm.ForgeRealm;
 import net.lukario.frogerealm.combat.AnimatedShot;
+import net.lukario.frogerealm.combat.HudTimer;
 import net.lukario.frogerealm.combat.Later;
 import net.lukario.frogerealm.combat.SpellFx;
 import net.lukario.frogerealm.combat.Spells;
+import net.lukario.frogerealm.combat.Zone;
 import net.lukario.frogerealm.particles.fx.ModelFx;
 import net.lukario.frogerealm.particles.fx.ParticleFx;
 import net.lukario.frogerealm.particles.fx.ParticleShapes;
@@ -15,6 +17,7 @@ import net.lukario.frogerealm.shadow_slave.soul_shards.SoulCore;
 import net.lukario.frogerealm.status.Blind;
 import net.lukario.frogerealm.status.Burial;
 import net.lukario.frogerealm.status.Concealment;
+import net.lukario.frogerealm.status.DeathWard;
 import net.lukario.frogerealm.status.FallGuard;
 import net.lukario.frogerealm.status.Flight;
 import net.lukario.frogerealm.status.Marks;
@@ -38,8 +41,10 @@ import net.minecraftforge.fml.common.Mod;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.Supplier;
 
 public class PaleEmperor {
@@ -203,8 +208,12 @@ public class PaleEmperor {
             .fade(5, 10);
 
     // =====================================================================================
-    // PALE EMPEROR ROOT
+    // PALE EMPEROR ROOT (ability 1)
     // =====================================================================================
+    //
+    // Normal cast: the ground around the caster becomes cursed land, and the caster wears the crown
+    //   (THE CURSED LAND, below).
+    // Sneak cast: the enemy under the crosshair is held by a seal and four chains.
 
     public static void paleEmperorRoot(
             Player player,
@@ -213,9 +222,22 @@ public class PaleEmperor {
     ) {
         if (!canUseCharacteristic(player, bypassClassCheck)) return;
 
-        if (SoulCore.getSoulEssence(player) < 1250) return;
-
         if (SoulCore.getAscensionStage(player) < 0) return;
+
+        // =====================================================================
+        // NORMAL CAST — THE CURSED LAND
+        // =====================================================================
+
+        if (!player.isShiftKeyDown()) {
+            cursedLand(player, sl);
+            return;
+        }
+
+        // =====================================================================
+        // SHIFT CAST — SEAL + 4 CHAINS
+        // =====================================================================
+
+        if (SoulCore.getSoulEssence(player) < 1250) return;
 
         LivingEntity enemy = Spells.aimEnemy(
                 player,
@@ -250,104 +272,258 @@ public class PaleEmperor {
 
         float yaw = player.getYRot();
 
-        // =====================================================================
-        // NORMAL CAST
-        // =====================================================================
+        seal(
+                sl,
+                ground,
+                yaw,
+                6f,
+                CHAIN_TICKS
+        );
 
-        if (!player.isShiftKeyDown()) {
+        Vec3 heart = ground.add(
+                0,
+                1.5,
+                0
+        );
 
-            Vec3 position = ground.add(
-                    0,
-                    -1.5,
-                    0
+        for (int i = 0; i < 4; i++) {
+
+            double angle = Math.toRadians(
+                    yaw + 45 + i * 90
             );
 
-            ModelFx emperorHand = ModelFx.of(
-                            "pale_emperor/emperor_hand"
-                    )
-                    .frames(5)
-                    .smooth()
-                    .scale(1.5f)
-                    .pivot(7, -6, 7)
-                    .glow()
-                    .lifetime(duration)
-                    .fade(3, 8)
-                    .key(
-                            0,
-                            pose().frame(3)
-                    )
-                    .during(
-                            4,
-                            14,
-                            pose().frame(0),
-                            ModelFx.Ease.OUT
-                    )
-                    .during(
-                            26,
-                            32,
-                            pose().frame(4),
-                            ModelFx.Ease.IN
-                    );
+            Vec3 from = ground.add(
+                    -Math.sin(angle) * 2.6,
+                    0,
+                    Math.cos(angle) * 2.6
+            );
+
+            Vec3 stop = heart.add(
+                    from.subtract(heart)
+                            .normalize()
+                            .scale(0.45)
+            );
+
+            chain(
+                    sl,
+                    from,
+                    stop
+            );
+        }
+    }
+
+    // =====================================================================================
+    // THE CURSED LAND (ability 1, normal cast)
+    // =====================================================================================
+    //
+    // The ground around the caster is cursed for LAND_TICKS, and for as long the caster wears the crown.
+    // Every enemy standing on it (mobs and other players) is cursed, and the curse goes one stage deeper
+    // every CURSE_DEEPENS ticks it stays, CURSE_STAGES at most:
+    //
+    //   stage 1   slowed
+    //   stage 2   and weakened, and takes 10% more damage
+    //   stage 3   slowed more, takes 20% more damage, withers
+    //   stage 4   weakened more, takes 30% more damage, blind
+    //   stage 5   slowed more still, takes 40% more damage, withers faster,
+    //             and the hand of the emperor closes on it once and holds it where it stands
+    //
+    // Stepping off the land does not wipe the curse: the stage sinks back as slowly as it rose, and what
+    // is on them clings for a few seconds more. Casting again moves the land to where the caster stands now.
+    //
+    // Built from the kit: combat/Zone (the land, and who has stood on it for how long), Spells.keepEffect,
+    // status/Vulnerable, status/Blind, PaleEmperorFx.crown (worn on the head: ParticleShapes.modelOnHead).
+
+    private static final float LAND_COST = 1250;
+
+    /** How long the land stays cursed: 15 seconds. The crown is worn exactly as long. */
+    public static final int LAND_TICKS = 300;
+
+    /** How far the land reaches from its middle, and how far above the ground it still catches someone. */
+    public static final double LAND_RADIUS = 8;
+    public static final double LAND_HEIGHT = 5;
+
+    /** The land acts on those standing on it once every this many ticks. */
+    private static final int LAND_BEAT = 10;
+
+    /** The curse goes a stage deeper every this many ticks on the land (2 seconds), up to this many stages. */
+    public static final int CURSE_DEEPENS = 40;
+    public static final int CURSE_STAGES = 5;
+
+    /** What the land put on someone lasts this long after its last beat on them: up to 3 seconds after they got off it. */
+    private static final int CURSE_CLINGS = 60;
+
+    /** How much more damage each stage after the first makes them take: 10%, 20%, 30%, 40%. */
+    public static final float CURSE_WEAKENS = 0.10f;
+
+    /** At the deepest stage the hand holds them where they stand for this long, once per land. 0 = no hand. */
+    public static final int LAND_HAND_HOLDS = 50;
+
+    /** The name of the caster's land, of the crown on their head, and of the seal on the ground. */
+    private static final String LAND = "pale_emperor_land";
+    private static final String CROWN_TAG = "pale_emperor_crown";
+
+    private static final ParticleFx LAND_MIST = ParticleFx.of("fx/smoke")
+            .color(0x90183A2C).endColor(0x00081410)
+            .size(0.3f).endSize(0.8f).sizeRandom(0.3f)
+            .lifetime(30, 14).gravity(-0.02f).friction(0.92f)
+            .spin(2f).randomRotation();
+
+    /** The hand that closes on whoever reaches the deepest stage. It is shut at tick 32. */
+    private static final ModelFx EMPEROR_HAND = ModelFx.of("pale_emperor/emperor_hand")
+            .frames(5)
+            .smooth()
+            .scale(1.5f)
+            .pivot(7, -6, 7)
+            .glow()
+            .fade(3, 8)
+            .key(0, pose().frame(3))
+            .during(4, 14, pose().frame(0), ModelFx.Ease.OUT)
+            .during(26, 32, pose().frame(4), ModelFx.Ease.IN);
+
+    /** True while the land this player cursed is still there. */
+    public static boolean hasCursedLand(Player player) {
+        return Zone.isOpen(player, LAND);
+    }
+
+    /** The stage of the curse on someone who has stood on the land for this long: 1 to CURSE_STAGES. */
+    public static int curseStage(int ticksOnLand) {
+        return Math.min(CURSE_STAGES, 1 + ticksOnLand / CURSE_DEEPENS);
+    }
+
+    private static void cursedLand(Player player, ServerLevel sl) {
+        // the land lies on the ground: under a caster in the air it is the ground beneath them
+        Vec3 feet = player.position();
+        Vec3 ground = Spells.groundAt(player, sl, feet);
+
+        if (!player.onGround() && feet.y - ground.y < 0.05) {
+            player.sendSystemMessage(Component.literal("There is no ground beneath you to curse."));
+            return;                                                  // nothing spent
+        }
+
+        if (!Spells.payEssence(player, LAND_COST)) return;
+
+        float yaw = player.getYRot();
+
+        // the seal on the ground has its own name for every caster, so a land that ends early can take it away
+        String sealTag = LAND + "_" + player.getUUID();
+
+        // each of them is told once per land, and the hand takes each of them once per land
+        Set<UUID> told = new HashSet<>();
+        Set<UUID> held = new HashSet<>();
+
+        Zone.at(ground, LAND_RADIUS)
+                .height(LAND_HEIGHT)
+                .lasts(LAND_TICKS)
+                .every(LAND_BEAT)
+                .countsTo(CURSE_DEEPENS * CURSE_STAGES)              // past the deepest stage there is nothing to count
+                .onEnter(enemy -> landTakes(sl, enemy, told))
+                .onInside((enemy, ticksOnLand) -> landCurses(player, sl, enemy, ticksOnLand, held))
+                .onPulse(ticksLeft -> landBeats(sl, ground, ticksLeft))
+                .onEnd(() -> {
+                    // (when its time simply ran out these two have faded away already)
+                    ParticleShapes.clearModels(sl, ground, sealTag);
+                    PaleEmperorFx.takeCrown(sl, player, CROWN_TAG);
+                })
+                .open(player, sl, LAND);                             // a land this caster already had ends here
+
+        // only now what shows it: opening the land took away the seal and the crown of the one before it
+        float wide = (float) (LAND_RADIUS * 2);
+        float scale = wide / 3f;
+        Vec3 floor = ground.add(0, 0.06, 0);
+
+        ParticleShapes.model(sl, SEAL_RING.scale(scale).lifetime(LAND_TICKS).tag(sealTag), floor, yaw, 0f, 0f);
+        ParticleShapes.model(sl, SEAL_CORE.scale(scale).lifetime(LAND_TICKS).tag(sealTag), floor.add(0, 0.02, 0), yaw, 0f, 0f);
+
+        PaleEmperorFx.crown(sl, player, LAND_TICKS, CROWN_TAG);
+
+        SpellFx.shockRing(sl, ground, LAND_RADIUS, 0xE09CFFD2, 12, 0);
+        PaleEmperorFx.featherFall(sl, ground, LAND_RADIUS * 0.6, 12);
+
+        Spells.sound(sl, ground, SoundEvents.WITHER_SPAWN, 0.6f, 0.6f);
+        Spells.sound(sl, ground, SoundEvents.BELL_BLOCK, 1.2f, 0.5f);
+    }
+
+    /** One beat of the land itself: its edge smoulders, and every two seconds a ring runs out to it. */
+    private static void landBeats(ServerLevel sl, Vec3 ground, int ticksLeft) {
+        ParticleShapes.ring(sl, LAND_MIST, ground.add(0, 0.2, 0), LAND_RADIUS, 28, 0);
+
+        if (ticksLeft % 40 == 0 && ticksLeft > 20) {
+            SpellFx.steadyRing(sl, ground, LAND_RADIUS, 0x709CFFD2, 20, 0);
+            Spells.sound(sl, ground, SoundEvents.BEACON_POWER_SELECT, 0.5f, 0.5f);
+        }
+    }
+
+    /** Someone set foot on the land. */
+    private static void landTakes(ServerLevel sl, LivingEntity enemy, Set<UUID> told) {
+        // (in chat: the line above the hotbar is rewritten every tick by the soul essence display)
+        if (enemy instanceof Player victim && told.add(victim.getUUID())) {
+            victim.sendSystemMessage(Component.literal("You stand on cursed land. The longer you stay, the deeper its curse."));
+        }
+        ParticleShapes.burst(sl, LAND_MIST, enemy.position().add(0, 0.2, 0), 6, 0.02, 0.08);
+    }
+
+    /** One beat of the land on one of those standing on it: the curse of its stage is laid on it, or kept up. */
+    private static void landCurses(Player player, ServerLevel sl, LivingEntity enemy, int ticksOnLand, Set<UUID> held) {
+        int stage = curseStage(ticksOnLand);
+
+        Spells.keepEffect(enemy, MobEffects.MOVEMENT_SLOWDOWN, (stage - 1) / 2, CURSE_CLINGS);
+
+        if (stage >= 2) {
+            Spells.keepEffect(enemy, MobEffects.WEAKNESS, (stage - 2) / 2, CURSE_CLINGS);
+
+            // (the same number twice = it is set, not added again at every beat)
+            float more = CURSE_WEAKENS * (stage - 1);
+            Vulnerable.add(enemy, more, more, CURSE_CLINGS);
+        }
+
+        if (stage >= 3) {
+            Spells.keepEffect(enemy, MobEffects.WITHER, stage >= CURSE_STAGES ? 1 : 0, CURSE_CLINGS);
+        }
+
+        // (Blind also makes a mob forget what it hunts, so only when it is about to see again, not at every beat)
+        if (stage >= 4 && Blind.ticksLeft(enemy) < CURSE_CLINGS / 2) {
+            Blind.apply(enemy, CURSE_CLINGS);
+        }
+
+        Vec3 feet = enemy.position();
+
+        ParticleShapes.burst(sl, LAND_MIST, feet.add(0, 0.2, 0), stage, 0.01, 0.06);
+
+        // the beat at which it reached this stage
+        boolean deepened = ticksOnLand > 0 && stage > curseStage(ticksOnLand - LAND_BEAT);
+
+        if (!deepened) return;
+
+        ParticleShapes.burst(sl, PALE_SPARK, enemy.getBoundingBox().getCenter(), 6 + stage * 3, 0.04, 0.2);
+        Spells.sound(sl, feet, SoundEvents.WITHER_HURT, 0.35f, 0.5f + stage * 0.08f);
+
+        // the deepest stage: the hand of the emperor closes on it, once
+        if (stage >= CURSE_STAGES && LAND_HAND_HOLDS > 0 && held.add(enemy.getUUID())) {
+            Root.apply(enemy, LAND_HAND_HOLDS, RootRestriction.MOVEMENT);
 
             ParticleShapes.model(
                     sl,
-                    emperorHand,
-                    position,
-                    yaw,
+                    EMPEROR_HAND.lifetime(LAND_HAND_HOLDS),
+                    Spells.groundUnder(player, sl, enemy).add(0, -1.5, 0),
+                    player.getYRot(),
                     0f,
                     0f
             );
 
-            // =====================================================================
-            // SHIFT CAST — SEAL + 4 CHAINS
-            // =====================================================================
+            Spells.sound(sl, feet, SoundEvents.CHAIN_PLACE, 1.2f, 0.5f);
 
-        } else {
-
-            seal(
-                    sl,
-                    ground,
-                    yaw,
-                    6f,
-                    CHAIN_TICKS
-            );
-
-            Vec3 heart = ground.add(
-                    0,
-                    1.5,
-                    0
-            );
-
-            for (int i = 0; i < 4; i++) {
-
-                double angle = Math.toRadians(
-                        yaw + 45 + i * 90
-                );
-
-                Vec3 from = ground.add(
-                        -Math.sin(angle) * 2.6,
-                        0,
-                        Math.cos(angle) * 2.6
-                );
-
-                Vec3 stop = heart.add(
-                        from.subtract(heart)
-                                .normalize()
-                                .scale(0.45)
-                );
-
-                chain(
-                        sl,
-                        from,
-                        stop
-                );
+            if (enemy instanceof Player victim) {
+                victim.sendSystemMessage(Component.literal("The hand of the Pale Emperor closes on you."));
             }
         }
     }
 
     // =====================================================================================
-    // PALE EMPEROR DOOR
+    // PALE EMPEROR DOOR (ability 2)
     // =====================================================================================
+    //
+    // Normal cast: the gate of the underworld opens above the caster and drags everything near into it.
+    // Sneak cast: for 30 seconds death cannot keep the caster (THE SECOND LIFE, below).
 
     public static void paleEmperorDoor(
             Player player,
@@ -356,9 +532,22 @@ public class PaleEmperor {
     ) {
         if (!canUseCharacteristic(player, bypassClassCheck)) return;
 
-        if (SoulCore.getSoulEssence(player) < 11250) return;
-
         if (SoulCore.getAscensionStage(player) < 1) return;
+
+        // =====================================================================
+        // SHIFT CAST — THE SECOND LIFE
+        // =====================================================================
+
+        if (player.isShiftKeyDown()) {
+            secondLife(player, sl);
+            return;
+        }
+
+        // =====================================================================
+        // NORMAL CAST — THE GATE
+        // =====================================================================
+
+        if (SoulCore.getSoulEssence(player) < 11250) return;
 
         SoulCore.setSoulEssence(
                 player,
@@ -473,6 +662,86 @@ public class PaleEmperor {
                     4
             );
         }
+    }
+
+    // =====================================================================================
+    // THE SECOND LIFE (ability 2, sneak cast)
+    // =====================================================================================
+    //
+    // For REVIVE_TICKS the caster cannot be killed for good: if they die in that time they rise again where
+    // they fell, with part of their health, free of what was on them, and whoever stood over them is thrown
+    // back. It works once. A small clock next to the hotbar shows how long it still waits.
+    //
+    // Built from the kit: status/DeathWard (dying is undone), combat/HudTimer (the clock by the hotbar).
+
+    private static final float REVIVE_COST = 11250;
+
+    /** How long death waits: 30 seconds. */
+    public static final int REVIVE_TICKS = 600;
+
+    /** The health they rise with, as a part of their maximum. */
+    public static final float REVIVE_HEALTH = 0.5f;
+
+    /** Enemies this near are thrown back when the caster rises. */
+    public static final double REVIVE_THROWS = 5;
+
+    /** The name of the clock by the hotbar. */
+    private static final String REVIVE_TIMER = "pale_emperor_revive";
+
+    private static void secondLife(Player player, ServerLevel sl) {
+        if (DeathWard.isArmed(player)) {
+            int seconds = (DeathWard.ticksLeft(player) + 19) / 20;
+            player.sendSystemMessage(Component.literal("Death already waits for you: " + seconds + " seconds more."));
+            return;                                                  // nothing spent
+        }
+
+        if (!Spells.payEssence(player, REVIVE_COST)) return;
+
+        DeathWard.arm(
+                player,
+                REVIVE_TICKS,
+                REVIVE_HEALTH,
+                (saved, source, level) -> risesAgain(saved, level)
+        );
+
+        HudTimer.show(player, REVIVE_TIMER, "Revive", REVIVE_TICKS, 0x9CFFD2);
+
+        Vec3 feet = player.position();
+
+        seal(sl, feet, player.getYRot(), 4f, 40);
+        SpellFx.closingRing(sl, feet, 3.0, 0xE0F5C211, 12, 0);
+        PaleEmperorFx.featherFall(sl, feet, 1.2, 6);
+
+        Spells.sound(sl, feet, SoundEvents.BEACON_ACTIVATE, 0.8f, 0.6f);
+        Spells.sound(sl, feet, SoundEvents.ENCHANTMENT_TABLE_USE, 1.0f, 0.6f);
+
+        player.sendSystemMessage(Component.literal("For " + REVIVE_TICKS / 20 + " seconds death cannot keep you."));
+    }
+
+    /** The caster died while death waited: they stand again. (Their health is given back by the ward itself.) */
+    private static void risesAgain(LivingEntity saved, ServerLevel sl) {
+        Vec3 feet = saved.position();
+        Vec3 middle = saved.getBoundingBox().getCenter();
+
+        Spells.cleanse(saved);                                       // what was killing them is gone too
+
+        if (saved instanceof Player player) {
+            HudTimer.hide(player, REVIVE_TIMER);
+
+            for (LivingEntity enemy : Spells.enemiesAround(player, sl, middle, REVIVE_THROWS)) {
+                Spells.push(enemy, feet, 1.1, 0.35);                 // room to breathe
+            }
+
+            player.sendSystemMessage(Component.literal("You rise again."));
+        }
+
+        seal(sl, feet, saved.getYRot(), 6f, 50);
+        SpellFx.blast(sl, middle, 3.0, 0xE09CFFD2, PALE_SPARK);
+        SpellFx.shockRing(sl, feet, REVIVE_THROWS, 0xE0F5C211, 12, 0);
+        PaleEmperorFx.featherFall(sl, feet, 2.0, 14);
+
+        Spells.sound(sl, feet, SoundEvents.WITHER_SPAWN, 0.7f, 1.4f);
+        Spells.sound(sl, feet, SoundEvents.ZOMBIE_VILLAGER_CURE, 0.8f, 1.2f);
     }
 
     // =====================================================================================

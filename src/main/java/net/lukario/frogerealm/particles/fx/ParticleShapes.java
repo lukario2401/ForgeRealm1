@@ -243,13 +243,27 @@ public final class ParticleShapes {
 
     /**
      * A ModelFx WORN by an entity: stuck to it like modelOn, and it also turns when the entity turns its body
-     * (wings on a back, a crown, a shield on an arm). It keeps turning in the air and while flying.
+     * (wings on a back, a shield on an arm). It keeps turning in the air and while flying.
+     * For what is worn on the head use modelOnHead below: that one follows the head, not the body.
      * yaw is counted from the way the body faces: 0 = the model's front looks the way the entity does,
      * 180 = it looks backward. offset = from the entity's feet; it does not turn, so use it for the height and
      * put anything sideways in the model's keys (pose().right(...), pose().forward(...)), which do turn.
      */
     public static void modelOnTurning(Level level, ModelFx model, Entity entity, Vec3 offset, float yaw, float pitch, float roll) {
         spawnFar(level, model.following(entity, offset).turning().rotated(yaw, pitch, roll), entity.position().add(offset), Vec3.ZERO);
+    }
+
+    /**
+     * A ModelFx worn on the HEAD of an entity (a crown, a halo, horns, a mask): it sits on top of the head and
+     * looks where the head looks, left and right and up and down. 'above' = blocks above the top of the head:
+     * 0 = it rests on it, 0.4 = it floats over it, a negative number brings it down in front of the face.
+     * It follows the head when the wearer sneaks, and the wearer does not see it in first person.
+     * yaw is counted from the way the head looks, as with modelOnTurning.
+     */
+    public static void modelOnHead(Level level, ModelFx model, Entity entity, double above, float yaw, float pitch, float roll) {
+        Vec3 offset = new Vec3(0, above, 0);
+        spawnFar(level, model.following(entity, offset).turningWithHead().rotated(yaw, pitch, roll),
+                entity.position().add(0, entity.getBbHeight() + above, 0), Vec3.ZERO);
     }
 
     /**
