@@ -293,6 +293,25 @@ public final class PaleEmperorFx {
         ParticleShapes.model(sl, RIB_CAGE, ground, yaw, 0f, 0f);
     }
 
+    public static final int RIBS_AROUND_TICKS = 44;
+    /** The tick the ribs around an entity are shut. */
+    public static final int RIBS_AROUND_SHUT = 20;
+
+    /**
+     * Ribs break out of the ground round an ENTITY, snap shut over it and fade into it: a ward closing on
+     * someone. They are sized to fit the entity and go with it if it walks.
+     */
+    public static void ribsAround(ServerLevel sl, Entity entity) {
+        // at scale 1 the shut cage is 1.3 blocks wide and 1.7 tall inside
+        float scale = Math.max((entity.getBbHeight() + 0.2f) / 1.7f, (entity.getBbWidth() + 0.6f) / 1.3f);
+        ModelFx ribs = RIB_CAGE.noKeys().scale(scale).lifetime(RIBS_AROUND_TICKS).fade(0, 12)
+                .key(0, pose().up(-2.15f * scale))
+                .key(8, pose().up(0), Ease.OUT)                              // the open ribs break out of the ground
+                .during(12, RIBS_AROUND_SHUT, pose().frame(4), Ease.IN)      // and snap shut
+                .during(28, RIBS_AROUND_TICKS, pose().scale(0.85f), Ease.IN);    // they draw in on it as they fade
+        ParticleShapes.modelOn(sl, ribs, entity, Vec3.ZERO, entity.getYRot(), 0f, 0f);
+    }
+
     // =====================================================================================
     // Bone spikes
     // =====================================================================================
@@ -422,6 +441,19 @@ public final class PaleEmperorFx {
         ParticleShapes.model(sl, GRAVE_HAND, ground, yaw, 0f, 0f);
     }
 
+    /**
+     * A headstone (no hand) that rises, stands for as long as you want and sinks again in its last second:
+     * 'ticks' in all, 40 at least. It is returned, not played, so you can still add to it:
+     *   ParticleShapes.model(sl, PaleEmperorFx.tombstoneFor(300).delay(6).tag("my_graves"), ground, yaw, 0f, 0f);
+     */
+    public static ModelFx tombstoneFor(int ticks) {
+        int all = Math.max(40, ticks);
+        return TOMBSTONE.noKeys().lifetime(all)
+                .key(0, pose().up(-2.3f))
+                .key(14, pose().up(0), Ease.OUT_BACK)
+                .during(all - 16, all - 2, pose().up(-2.3f), Ease.IN);
+    }
+
     // =====================================================================================
     // Chains
     // =====================================================================================
@@ -519,6 +551,16 @@ public final class PaleEmperorFx {
             .during(52, 57, pose().frame(4), Ease.IN)                    // clutches again
             .during(64, 78, pose().up(-3.4f), Ease.IN);
 
+    /**
+     * One arm of the dead rises at a spot, its palm toward where 'yaw' looks and leaning that way, clutches
+     * twice and sinks: put it beside someone, looking at them. 'tag' is its name ("" = none), to take it away
+     * early with ParticleShapes.clearModels(sl, ground, tag).
+     */
+    public static void underworldArm(ServerLevel sl, Vec3 ground, float yaw, String tag) {
+        ModelFx arm = ThreadLocalRandom.current().nextBoolean() ? UNDERWORLD_ARM : UNDERWORLD_ARM.mirrored();
+        ParticleShapes.model(sl, arm.tag(tag), ground, yaw, 16f, 0f);
+    }
+
     /** 'count' arms of the dead rise in a ring, all leaning in and clutching at the spot in the middle. */
     public static void underworldArms(ServerLevel sl, Vec3 ground, float yaw, int count) {
         for (int i = 0; i < count; i++) {
@@ -557,7 +599,8 @@ public final class PaleEmperorFx {
             new Case("emperor_hand", EMPEROR_HAND_TICKS, false, false, (sl, viewer, spot, yaw) -> emperorHand(sl, spot, yaw)),
             new Case("arms", ARMS_TICKS, false, false, (sl, viewer, spot, yaw) -> underworldArms(sl, spot, yaw, 6)),
             new Case("wings", WINGS_TICKS, true, false, (sl, viewer, spot, yaw) -> wings(sl, viewer)),
-            new Case("crown", CROWN_TICKS, true, false, (sl, viewer, spot, yaw) -> crown(sl, viewer)));
+            new Case("crown", CROWN_TICKS, true, false, (sl, viewer, spot, yaw) -> crown(sl, viewer)),
+            new Case("ribs_around", RIBS_AROUND_TICKS, true, false, (sl, viewer, spot, yaw) -> ribsAround(sl, viewer)));
 
     /** The names /palefx knows. */
     public static List<String> names() {

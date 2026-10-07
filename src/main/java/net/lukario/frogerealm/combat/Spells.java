@@ -253,6 +253,21 @@ public final class Spells {
     }
 
     /**
+     * The ground at a spot whose height you only roughly know, for putting a ring or a field of things on
+     * uneven land: the top of the blocks no more than 'reach' above or below 'spot', or null if there is none
+     * there (a cliff, a pit, open air, the inside of a hill).
+     *
+     *   Vec3 stands = Spells.groundNear(player, sl, Spells.spotAround(ground, yaw, 8), 3);
+     *   if (stands != null) ParticleShapes.model(sl, STONE, stands, yaw, 0f, 0f);
+     */
+    public static Vec3 groundNear(Player caster, ServerLevel sl, Vec3 spot, double reach) {
+        Vec3 top = groundAt(caster, sl, spot.add(0, reach, 0));
+        // (groundAt hands back the point it was given when it finds nothing)
+        if (top.y > spot.y + reach - 0.01 || spot.y - top.y > reach) return null;
+        return top;
+    }
+
+    /**
      * Where something that should appear at 'wanted' can really appear: 'wanted' itself if nothing is between it
      * and the caster's eyes, else just in front of the block in the way. Without this, a spear that starts beside
      * you would start inside the wall whenever you stand next to one, and go nowhere.

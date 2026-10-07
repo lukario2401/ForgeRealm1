@@ -18,6 +18,8 @@ import java.util.function.Supplier;
  *   SpellFx.blast(sl, center, 4.5, 0xFFB8FFD8, SPARK);            // an explosion in a color of your own
  *   SpellFx.homing(sl, GHOST, from, target, 12);                  // a model that flies into an entity and cannot miss
  *   SpellFx.overHead(sl, target, FEATHER, 3, "my_marks");         // a ring of small models over a head, one per mark
+ *   SpellFx.circleUnder(sl, target, 1.2, 0xC0F5C211, 200, "my_curse");   // a rune circle that stays under an entity
+ *   SpellFx.risingRings(sl, ground, 2.0, 2.2, 4, 0xE09CFFD2);     // rings climbing from the ground: something rises
  *   SpellFx.warningCircle(sl, ground, 4.0, 0xE0FF4A1A, 20);       // a turning rune circle: "something lands here"
  *   SpellFx.shockRing(sl, ground, 5.0, 0xF0FFE0B0, 9, 0);         // a ring racing outward along the ground
  *   SpellFx.fireBurst(sl, center, 3.5);                           // an explosion of fire
@@ -99,6 +101,17 @@ public final class SpellFx {
     }
 
     /**
+     * 'count' rings one above the other, from the ground up to 'height', each a little later and a little
+     * narrower than the one below: something rises, is lifted, comes back. 'radius' is the lowest ring's.
+     */
+    public static void risingRings(ServerLevel sl, Vec3 ground, double radius, double height, int count, int color) {
+        for (int i = 0; i < count; i++) {
+            double part = count <= 1 ? 0.0 : (double) i / (count - 1);
+            shockRing(sl, ground.add(0, height * part, 0), radius * (1.0 - 0.4 * part), color, 10, i * 3);
+        }
+    }
+
+    /**
      * A blast in a color of your own: a ball of light swelling and fading, a ring and smoke, and 'spark'
      * particles thrown out of it (null = none). fireBurst below is the fire-colored one.
      */
@@ -152,6 +165,21 @@ public final class SpellFx {
                 .during(0, 0, ModelFx.pose().forward(-away).up((float) -toTarget.y))     // where it starts, seen from the target
                 .during(0, Math.max(1, ticks), ModelFx.pose().forward(0f).up(0f), ModelFx.Ease.IN);
         ParticleShapes.modelOn(sl, flying, target, Vec3.ZERO, yaw, 0f, 0f);
+    }
+
+    /**
+     * A rune circle that stays under an entity and goes where it goes: the mark of someone cursed, warded or
+     * chosen. 'radius' in blocks. 'tag' is its name: calling this again with the same tag replaces the circle
+     * (another color or size as the mark grows), and ParticleShapes.clearModels(sl, entity, tag) takes it away.
+     * It is gone by itself after 'ticks' ticks, or when the entity dies.
+     *
+     *   SpellFx.circleUnder(sl, enemy, 1.2, 0xC0F5C211, 200, "my_class_curse");
+     */
+    public static void circleUnder(ServerLevel sl, Entity entity, double radius, int color, int ticks, String tag) {
+        ParticleShapes.clearModels(sl, entity, tag);
+        ModelFx circle = RUNE_CIRCLE.color(color).scale((float) (radius * 2.0))
+                .lifetime(ticks).fade(4, Math.min(8, ticks / 2)).spin(3f).tag(tag);
+        ParticleShapes.modelOn(sl, circle, entity, new Vec3(0, 0.07, 0), sl.getRandom().nextFloat() * 360f, 0f, 0f);
     }
 
     /**

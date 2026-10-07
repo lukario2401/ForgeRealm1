@@ -434,6 +434,9 @@ Later.run(sl, PaleEmperorFx.RIB_CAGE_SHUT, () -> cageShut(player, sl, enemy));  
 | `featherFall(sl, ground, radius, count)` | Feathers drift down onto a round patch, swaying and turning | |
 | `emperorHand(sl, ground, yaw)` | The Emperor's hand rises 6 blocks, opens, closes and sinks | `EMPEROR_HAND_GRASPS` |
 | `underworldArms(sl, ground, yaw, count)` | Arms of the dead rise in a ring, lean in and clutch at the middle | |
+| `underworldArm(sl, ground, yaw, tag)` | One arm rises at a spot, its palm toward where `yaw` looks, clutches twice and sinks. Put it beside someone, looking at them | `ARMS_TICKS` |
+| `ribsAround(sl, entity)` | Ribs break out of the ground round an entity, snap shut over it and fade into it: a ward closing. Sized to the entity, and they go with it | `RIBS_AROUND_SHUT` |
+| `tombstoneFor(ticks)` | Not played but handed back: a headstone (no hand) that rises, stands for as long as you want and sinks in its last second. Add `.delay(...)` / `.tag(...)` and play it with `ParticleShapes.model` | |
 | `wings(sl, entity)` | Wings on its back: they unfold, beat four times and fold away | |
 | `wings(sl, entity, ticks, tag)` | The same for as long as you want (a flight, a transformation): they keep beating and fold in the last second. Calling it again with the same tag replaces them | `WINGS_SHORTEST` (fewer ticks than this shows none) |
 | `foldWings(sl, entity, tag)` | Folds away, now, the wings that were put on with that tag | |

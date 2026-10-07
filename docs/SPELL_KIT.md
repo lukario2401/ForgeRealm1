@@ -20,6 +20,8 @@ Nothing needs registering. Call them from your ability method. The 3D models the
 | Teleport to where the caster looks | [`Spells.blinkSpot`](#1-spells-aiming-and-enemies) | `combat/` |
 | A model that flies into an enemy and cannot miss | [`SpellFx.homing`](#models-on-an-entity) | `combat/` |
 | Count hits, stacks or charges on an entity, and show them | [`Marks`](#marks) + [`SpellFx.overHead`](#models-on-an-entity) | `status/` |
+| A mark under someone that follows them (cursed, warded), changing as it grows | [`SpellFx.circleUnder`](#models-on-an-entity) | `combat/` |
+| Put a ring or a field of things on uneven ground | [`Spells.groundNear`](#1-spells-aiming-and-enemies) | `combat/` |
 | Blind something (mobs too) | [`Blind`](#blind) | `status/` |
 | Make something take more damage for a while (a curse) | [`Vulnerable`](#vulnerable) | `status/` |
 | Drag something under the ground and give it back | [`Burial`](#burial) | `status/` |
@@ -105,6 +107,7 @@ for (LivingEntity enemy : Spells.enemiesAround(player, sl, spot, 4)) {
 | `wave(player, sl, ground, radius, ticks, height, enemy -> ...)` | A wave spreading from a spot: runs your code once for each enemy, at the moment the wave gets to it. Draw it with `SpellFx.steadyRing` and the same radius and ticks |
 | `blinkSpot(player, sl, range)` | Where the player's feet go to be at what the crosshair is on: on the ground they aim at, in front of a wall, or out in the open air. Never inside a block. `null` if there is no room |
 | `groundUnder(player, sl, entity)` | The ground an entity stands on or hangs just above: where spikes or hands for it should appear |
+| `groundNear(player, sl, spot, reach)` | The ground at a spot whose height you only roughly know: the top of the blocks within `reach` above or below it, or `null` (a cliff, a pit, open air). For a ring or a field of things on uneven land |
 | `spotAround(center, yaw, distance)` | The spot `distance` blocks from a point the way `yaw` looks. For rings: `spotAround(center, yaw + i * 360f / count, radius)` |
 | `firstEnemyOnLine(...)` | The nearest of those, or `null` |
 | `isEnemy(player, other)` | The rule itself (see below) |
@@ -382,7 +385,9 @@ Visual only. Nothing here hurts anyone. Colors are ARGB (`0xAARRGGBB`); the alph
 | `SpellFx.steadyRing(sl, ground, radius, color, ticks, delay)` | A ring growing at one speed all the way. `Spells.wave` with the same radius and ticks hurts each enemy exactly when it touches them |
 | `SpellFx.fireBurst(sl, center, radius)` | An explosion of fire: flash, ring, embers, smoke |
 | `SpellFx.blast(sl, center, radius, color, spark)` | The same in a color of your own, throwing your own particles (`null` = none) |
+| `SpellFx.risingRings(sl, ground, radius, height, count, color)` | Rings one above the other, each a little later and narrower: something rises, is lifted, comes back |
 | `SpellFx.homing(sl, model, from, target, ticks)` | A model that flies into an entity and cannot miss (see below) |
+| `SpellFx.circleUnder(sl, entity, radius, color, ticks, tag)` | A rune circle that stays under an entity and goes where it goes (see below) |
 | `SpellFx.overHead(sl, entity, model, count, tag)` | A ring of small models over a head, one for each mark (see below) |
 | `SpellFx.tether(sl, line, entityA, entityB, ticks)` | A line that keeps joining two entities |
 | `SpellFx.tether(sl, line, () -> pointA, () -> pointB, ticks)` | The same between any two moving points |
@@ -410,6 +415,14 @@ Give it a model whose own keys do not move it (frames, turning and fading are fi
 int hits = Marks.add(target, "my_class_hits", 10, 300);
 SpellFx.overHead(sl, target, hits >= 3 ? FEATHER.color(0xFFFFC83C) : FEATHER, hits, "my_class_hits");
 ```
+
+**`circleUnder`: a mark that follows.** A turning rune circle under an entity, for as long as you say: someone is cursed, warded, chosen. Call it again with the same tag and it is replaced, so a mark can grow and change color as what it stands for gets worse. `ParticleShapes.clearModels(sl, entity, tag)` takes it away early:
+
+```java
+SpellFx.circleUnder(sl, enemy, 0.8 + stage * 0.12, COLORS[stage - 1], ticksLeft, "my_class_curse");
+```
+
+Everyone sees it, also under a player's own feet. It is not drawn under someone who is concealed.
 
 ### Tethers
 
@@ -663,7 +676,7 @@ ParticleShapes.clearModels(sl, target, "my_class_mark");       // cast again: on
 ParticleShapes.modelOn(sl, mark, target, new Vec3(0, target.getBbHeight() + 0.4, 0), 0f, 0f, 0f);
 ```
 
-Tags in use: `freeze`, `marionette`, the Attendant's `aom_strings`, `aom_transfer`, `aom_projection`, `aom_miracle`, and the Pale Emperor's `pale_emperor_hits`, `pale_emperor_wings`, `pale_emperor_crown` and `pale_emperor_land_<player id>` (the seal of the cursed land, on the ground).
+Tags in use: `freeze`, `marionette`, the Attendant's `aom_strings`, `aom_transfer`, `aom_projection`, `aom_miracle`, and the Pale Emperor's `pale_emperor_hits`, `pale_emperor_wings`, `pale_emperor_crown`, `pale_emperor_curse` (the mark under those on cursed land), `pale_emperor_revive` (the mark of the second life), `pale_emperor_revive_wings` and `pale_emperor_land_<player id>` (what the cursed land put on the ground: seal, headstones, arms).
 
 A tag also lets you remove a model that is **not** on an entity before its time is up, for something that must vanish the moment it hits. An `AnimatedShot` does this by itself; this is for when you build something of your own. Give every cast a tag of its own, or one cast would remove the models of another:
 
@@ -702,7 +715,10 @@ Every tool has a worked example in `AttendantOfMysteries.java`:
 | `Spells.blinkSpot` | `stepThere` in `PaleEmperor.java` |
 | `SpellFx.homing`, `Vulnerable` | `wraithFlies`, `curse` in `PaleEmperor.java` |
 | `Zone`, `Spells.keepEffect`, `PaleEmperorFx.crown` (`modelOnHead`) | `cursedLand`, `landCurses` in `PaleEmperor.java` |
-| `HudTimer` with `DeathWard` | `secondLife`, `risesAgain` in `PaleEmperor.java` |
+| `HudTimer` with `DeathWard` | `secondLife`, `secondLifeShows`, `risesAgain` in `PaleEmperor.java` |
+| `SpellFx.circleUnder` | `landCurses` (it grows and reddens with the stage), `secondLifeShows` in `PaleEmperor.java` |
+| `Spells.groundNear` | `landGraves`, `landBeats` in `PaleEmperor.java` |
+| `SpellFx.risingRings` | `risesAgain` in `PaleEmperor.java` |
 | Model tags | `stringUp`, `summonProjection` |
 
 ## Tricks worth copying
@@ -726,6 +742,8 @@ All in `AttendantOfMysteries.java`, with the method to look at in brackets.
 **Stay hidden until something happens** (`enterUnderworld`, `underworldTick` in `PaleEmperor.java`). `Concealment.hide` for a short time, topped up every tick for as long as a flag on the player is set. The flag is cleared by casting again, by dealing damage (a `LivingHurtEvent` whose attacker carries the flag) or when the upkeep cannot be paid.
 
 **A zone that gets worse in stages** (`cursedLand`, `landCurses`, `curseStage` in `PaleEmperor.java`). One small method turns the time someone has stood in the zone into a stage, and everything the zone does is written from that stage. "It just reached this stage" is `stage > curseStage(ticksOnLand - LAND_BEAT)`: use it for what should happen once (a sound, a hand that grabs). What must happen once per zone for each enemy is remembered in a `Set<UUID>` made at the cast.
+
+**Everything one cast put down, under one name** (`cursedLand`, `landCloses` in `PaleEmperor.java`). The seal, the headstones and the arms of a cursed land all carry the same tag, made from the caster's id, so one `ParticleShapes.clearModels(sl, ground, tag)` takes all of it away when the land ends early or is cast again. What the cast has to remember (who was told, who was grabbed, which mark each one shows) lives in one small `record` that is handed to every method of the spell.
 
 **Small pictures for what is active** (`showStatus`). `ScreenImages.show(...)` with a duration fades by itself; `ScreenImages.hide(player, id)` removes it early when the effect is used up. The pictures are 16x16 PNGs in `textures/gui/attendant_of_mysteries/`.
 

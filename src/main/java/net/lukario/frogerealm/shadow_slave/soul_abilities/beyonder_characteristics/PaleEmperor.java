@@ -41,8 +41,10 @@ import net.minecraftforge.fml.common.Mod;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Supplier;
@@ -330,8 +332,13 @@ public class PaleEmperor {
     // Stepping off the land does not wipe the curse: the stage sinks back as slowly as it rose, and what
     // is on them clings for a few seconds more. Casting again moves the land to where the caster stands now.
     //
+    // What it looks like: the seal covers the land and headstones stand round its edge. Mist creeps along
+    // the edge and rises inside, arms of the dead reach out of the ground, feathers fall. Under each of the
+    // cursed turns a mark that grows and reddens with the stage, and an arm rises beside them when it deepens.
+    //
     // Built from the kit: combat/Zone (the land, and who has stood on it for how long), Spells.keepEffect,
-    // status/Vulnerable, status/Blind, PaleEmperorFx.crown (worn on the head: ParticleShapes.modelOnHead).
+    // status/Vulnerable, status/Blind, SpellFx.circleUnder (the mark), Spells.groundNear (things on uneven
+    // land), PaleEmperorFx.crown (worn on the head: ParticleShapes.modelOnHead), tombstoneFor, underworldArm.
 
     private static final float LAND_COST = 1250;
 
@@ -358,9 +365,19 @@ public class PaleEmperor {
     /** At the deepest stage the hand holds them where they stand for this long, once per land. 0 = no hand. */
     public static final int LAND_HAND_HOLDS = 50;
 
-    /** The name of the caster's land, of the crown on their head, and of the seal on the ground. */
+    /** How many headstones stand round the edge of the land. 0 = none. */
+    public static final int LAND_GRAVES = 8;
+
+    /** An arm of the dead reaches out of the land somewhere once every this many ticks. 0 = never. */
+    public static final int LAND_ARM_EVERY = 30;
+
+    /** The color of the mark under the cursed at each stage, from pale green to red (0xAARRGGBB). */
+    private static final int[] CURSE_COLORS = {0x909CFFD2, 0xA0C8F08C, 0xB0F5C211, 0xC0F08A2A, 0xD0E03A3A};
+
+    /** The name of the caster's land, of the crown on their head, and of the mark under the cursed. */
     private static final String LAND = "pale_emperor_land";
     private static final String CROWN_TAG = "pale_emperor_crown";
+    private static final String CURSE_MARK = "pale_emperor_curse";
 
     private static final ParticleFx LAND_MIST = ParticleFx.of("fx/smoke")
             .color(0x90183A2C).endColor(0x00081410)
@@ -368,7 +385,19 @@ public class PaleEmperor {
             .lifetime(30, 14).gravity(-0.02f).friction(0.92f)
             .spin(2f).randomRotation();
 
-    /** The hand that closes on whoever reaches the deepest stage. It is shut at tick 32. */
+    private static final ParticleFx GOLD_SPARK = ParticleFx.of("fx/glow")
+            .color(0xFFFFE9A0).endColor(0x00C08A10)
+            .size(0.1f).endSize(0.03f).sizeRandom(0.4f)
+            .lifetime(18, 10).gravity(-0.015f).friction(0.9f)
+            .glow();
+
+    /** The tick the crown, coming down, has settled on the head (see PaleEmperorFx.CROWN). */
+    private static final int CROWN_SETTLES = 26;
+
+    /** The tick the fingers of the hand below are shut. */
+    private static final int HAND_SHUT = 32;
+
+    /** The hand that closes on whoever reaches the deepest stage. */
     private static final ModelFx EMPEROR_HAND = ModelFx.of("pale_emperor/emperor_hand")
             .frames(5)
             .smooth()
@@ -378,7 +407,21 @@ public class PaleEmperor {
             .fade(3, 8)
             .key(0, pose().frame(3))
             .during(4, 14, pose().frame(0), ModelFx.Ease.OUT)
-            .during(26, 32, pose().frame(4), ModelFx.Ease.IN);
+            .during(26, HAND_SHUT, pose().frame(4), ModelFx.Ease.IN);
+
+    /**
+     * One cursed land, from its cast to its end: where it lies, and what it remembers of those on it.
+     * tag: the name of everything it put on the ground (seal, headstones, arms), so it can all go at once.
+     */
+    private record CursedLand(
+            Player caster,
+            ServerLevel sl,
+            Vec3 ground,
+            String tag,
+            Set<UUID> told,                 // those who were told they stand on it (once each)
+            Set<UUID> held,                 // those the hand has taken (once each)
+            Map<UUID, Integer> marked       // the stage whose mark each of them carries right now
+    ) {}
 
     /** True while the land this player cursed is still there. */
     public static boolean hasCursedLand(Player player) {
@@ -404,66 +447,157 @@ public class PaleEmperor {
 
         float yaw = player.getYRot();
 
-        // the seal on the ground has its own name for every caster, so a land that ends early can take it away
-        String sealTag = LAND + "_" + player.getUUID();
-
-        // each of them is told once per land, and the hand takes each of them once per land
-        Set<UUID> told = new HashSet<>();
-        Set<UUID> held = new HashSet<>();
+        // what lies on the ground has its own name for every caster, so a land that ends early can take it away
+        CursedLand land = new CursedLand(
+                player,
+                sl,
+                ground,
+                LAND + "_" + player.getUUID(),
+                new HashSet<>(),
+                new HashSet<>(),
+                new HashMap<>()
+        );
 
         Zone.at(ground, LAND_RADIUS)
                 .height(LAND_HEIGHT)
                 .lasts(LAND_TICKS)
                 .every(LAND_BEAT)
                 .countsTo(CURSE_DEEPENS * CURSE_STAGES)              // past the deepest stage there is nothing to count
-                .onEnter(enemy -> landTakes(sl, enemy, told))
-                .onInside((enemy, ticksOnLand) -> landCurses(player, sl, enemy, ticksOnLand, held))
-                .onPulse(ticksLeft -> landBeats(sl, ground, ticksLeft))
-                .onEnd(() -> {
-                    // (when its time simply ran out these two have faded away already)
-                    ParticleShapes.clearModels(sl, ground, sealTag);
-                    PaleEmperorFx.takeCrown(sl, player, CROWN_TAG);
-                })
+                .onEnter(enemy -> landTakes(land, enemy))
+                .onInside((enemy, ticksOnLand) -> landCurses(land, enemy, ticksOnLand))
+                .onLeave(enemy -> landLetsGo(land, enemy))
+                .onPulse(ticksLeft -> landBeats(land, ticksLeft))
+                .onEnd(() -> landCloses(land))
                 .open(player, sl, LAND);                             // a land this caster already had ends here
 
-        // only now what shows it: opening the land took away the seal and the crown of the one before it
+        // only now what shows it: opening the land took away what the one before it had put down
         float wide = (float) (LAND_RADIUS * 2);
         float scale = wide / 3f;
         Vec3 floor = ground.add(0, 0.06, 0);
 
-        ParticleShapes.model(sl, SEAL_RING.scale(scale).lifetime(LAND_TICKS).tag(sealTag), floor, yaw, 0f, 0f);
-        ParticleShapes.model(sl, SEAL_CORE.scale(scale).lifetime(LAND_TICKS).tag(sealTag), floor.add(0, 0.02, 0), yaw, 0f, 0f);
+        ParticleShapes.model(sl, SEAL_RING.scale(scale).lifetime(LAND_TICKS).tag(land.tag()), floor, yaw, 0f, 0f);
+        ParticleShapes.model(sl, SEAL_CORE.scale(scale).lifetime(LAND_TICKS).tag(land.tag()), floor.add(0, 0.02, 0), yaw, 0f, 0f);
+
+        landGraves(land, yaw);
 
         PaleEmperorFx.crown(sl, player, LAND_TICKS, CROWN_TAG);
 
         SpellFx.shockRing(sl, ground, LAND_RADIUS, 0xE09CFFD2, 12, 0);
+        SpellFx.shockRing(sl, ground.add(0, 0.03, 0), LAND_RADIUS, 0x90F5C211, 16, 4);
         PaleEmperorFx.featherFall(sl, ground, LAND_RADIUS * 0.6, 12);
 
         Spells.sound(sl, ground, SoundEvents.WITHER_SPAWN, 0.6f, 0.6f);
         Spells.sound(sl, ground, SoundEvents.BELL_BLOCK, 1.2f, 0.5f);
+
+        // the moment the crown has settled on their head
+        Later.run(sl, CROWN_SETTLES, () -> {
+            if (!Spells.casterStillHere(player, sl) || !hasCursedLand(player) || Concealment.isHidden(player)) return;
+
+            Vec3 brow = player.position().add(0, player.getBbHeight() + 0.15, 0);
+
+            ParticleShapes.burst(sl, GOLD_SPARK, brow, 16, 0.03, 0.18);
+            Spells.sound(sl, brow, SoundEvents.AMETHYST_BLOCK_CHIME, 1.0f, 0.7f);
+        });
     }
 
-    /** One beat of the land itself: its edge smoulders, and every two seconds a ring runs out to it. */
-    private static void landBeats(ServerLevel sl, Vec3 ground, int ticksLeft) {
+    /** Headstones rise round the edge of the land one after another, each with its grave toward the middle. */
+    private static void landGraves(CursedLand land, float yaw) {
+        for (int i = 0; i < LAND_GRAVES; i++) {
+            float around = yaw + (i + 0.5f) * 360f / LAND_GRAVES;
+
+            // on the ground where it stands; none where the edge runs over a cliff or a pit
+            Vec3 stands = Spells.groundNear(
+                    land.caster(),
+                    land.sl(),
+                    Spells.spotAround(land.ground(), around, LAND_RADIUS),
+                    3.0
+            );
+
+            if (stands == null) continue;
+
+            int wait = i * 3;
+
+            ParticleShapes.model(
+                    land.sl(),
+                    PaleEmperorFx.tombstoneFor(LAND_TICKS - wait).delay(wait).tag(land.tag()),
+                    stands,
+                    around + 180f,                                   // its front, and so its grave, looks at the middle
+                    0f,
+                    0f
+            );
+        }
+    }
+
+    /** One beat of the land itself: mist along its edge and inside it, and now and then a ring, an arm, feathers. */
+    private static void landBeats(CursedLand land, int ticksLeft) {
+        ServerLevel sl = land.sl();
+        Vec3 ground = land.ground();
+
         ParticleShapes.ring(sl, LAND_MIST, ground.add(0, 0.2, 0), LAND_RADIUS, 28, 0);
 
+        for (int i = 0; i < 6; i++) {
+            ParticleShapes.spawn(sl, LAND_MIST, somewhereOn(land).add(0, 0.2, 0), new Vec3(0, 0.03, 0));
+        }
+
+        // the crown glints
+        Player caster = land.caster();
+
+        if (!Concealment.isHidden(caster)) {
+            ParticleShapes.burst(sl, GOLD_SPARK, caster.position().add(0, caster.getBbHeight() + 0.3, 0), 2, 0.01, 0.05);
+        }
+
+        // every two seconds a ring runs out to the edge
         if (ticksLeft % 40 == 0 && ticksLeft > 20) {
             SpellFx.steadyRing(sl, ground, LAND_RADIUS, 0x709CFFD2, 20, 0);
             Spells.sound(sl, ground, SoundEvents.BEACON_POWER_SELECT, 0.5f, 0.5f);
         }
+
+        // an arm of the dead reaches out of the land somewhere (not in its last seconds: it would be cut off)
+        if (LAND_ARM_EVERY > 0 && ticksLeft % LAND_ARM_EVERY == 0 && ticksLeft >= PaleEmperorFx.ARMS_TICKS) {
+            Vec3 rises = Spells.groundNear(caster, sl, somewhereOn(land), 3.0);
+
+            if (rises != null) {
+                PaleEmperorFx.underworldArm(sl, rises, sl.getRandom().nextFloat() * 360f, land.tag());
+            }
+        }
+
+        // feathers drift down
+        if (ticksLeft % 60 == 0 && ticksLeft >= PaleEmperorFx.FEATHERS_TICKS) {
+            PaleEmperorFx.featherFall(sl, ground, LAND_RADIUS * 0.8, 3);
+        }
+    }
+
+    /** A spot on the land picked at random (at the height of its middle). */
+    private static Vec3 somewhereOn(CursedLand land) {
+        float around = land.sl().getRandom().nextFloat() * 360f;
+        double out = Math.sqrt(land.sl().getRandom().nextDouble()) * LAND_RADIUS * 0.9;      // spread evenly, not bunched in the middle
+        return Spells.spotAround(land.ground(), around, out);
     }
 
     /** Someone set foot on the land. */
-    private static void landTakes(ServerLevel sl, LivingEntity enemy, Set<UUID> told) {
+    private static void landTakes(CursedLand land, LivingEntity enemy) {
         // (in chat: the line above the hotbar is rewritten every tick by the soul essence display)
-        if (enemy instanceof Player victim && told.add(victim.getUUID())) {
+        if (enemy instanceof Player victim && land.told().add(victim.getUUID())) {
             victim.sendSystemMessage(Component.literal("You stand on cursed land. The longer you stay, the deeper its curse."));
         }
-        ParticleShapes.burst(sl, LAND_MIST, enemy.position().add(0, 0.2, 0), 6, 0.02, 0.08);
+
+        Vec3 feet = enemy.position();
+
+        SpellFx.closingRing(land.sl(), feet, enemy.getBbWidth() * 0.5 + 1.1, 0xB09CFFD2, 8, 0);
+        ParticleShapes.burst(land.sl(), LAND_MIST, feet.add(0, 0.2, 0), 6, 0.02, 0.08);
+    }
+
+    /** Someone got off the land (or it ended under them): the mark under them goes. What is on them clings a while. */
+    private static void landLetsGo(CursedLand land, LivingEntity enemy) {
+        land.marked().remove(enemy.getUUID());
+        ParticleShapes.clearModels(land.sl(), enemy, CURSE_MARK);
     }
 
     /** One beat of the land on one of those standing on it: the curse of its stage is laid on it, or kept up. */
-    private static void landCurses(Player player, ServerLevel sl, LivingEntity enemy, int ticksOnLand, Set<UUID> held) {
+    private static void landCurses(CursedLand land, LivingEntity enemy, int ticksOnLand) {
+        ServerLevel sl = land.sl();
+        Player player = land.caster();
+
         int stage = curseStage(ticksOnLand);
 
         Spells.keepEffect(enemy, MobEffects.MOVEMENT_SLOWDOWN, (stage - 1) / 2, CURSE_CLINGS);
@@ -489,6 +623,21 @@ public class PaleEmperor {
 
         ParticleShapes.burst(sl, LAND_MIST, feet.add(0, 0.2, 0), stage, 0.01, 0.06);
 
+        // the mark under it shows how deep the curse is: wider and redder with every stage.
+        // (It is put down again whenever the stage is not the one it shows: on stepping in, and at every change)
+        Integer shows = land.marked().put(enemy.getUUID(), stage);
+
+        if (shows == null || shows != stage) {
+            SpellFx.circleUnder(
+                    sl,
+                    enemy,
+                    enemy.getBbWidth() * 0.5 + 0.45 + stage * 0.12,
+                    CURSE_COLORS[Math.min(stage, CURSE_COLORS.length) - 1],
+                    Zone.ticksLeft(player, LAND),
+                    CURSE_MARK
+            );
+        }
+
         // the beat at which it reached this stage
         boolean deepened = ticksOnLand > 0 && stage > curseStage(ticksOnLand - LAND_BEAT);
 
@@ -497,14 +646,25 @@ public class PaleEmperor {
         ParticleShapes.burst(sl, PALE_SPARK, enemy.getBoundingBox().getCenter(), 6 + stage * 3, 0.04, 0.2);
         Spells.sound(sl, feet, SoundEvents.WITHER_HURT, 0.35f, 0.5f + stage * 0.08f);
 
+        // an arm of the dead comes up beside it and clutches at it
+        Vec3 under = Spells.groundUnder(player, sl, enemy);
+        float side = sl.getRandom().nextFloat() * 360f;
+
+        PaleEmperorFx.underworldArm(
+                sl,
+                Spells.spotAround(under, side, enemy.getBbWidth() * 0.5 + 0.9),
+                side + 180f,                                         // its palm looks back at the one it reaches for
+                land.tag()
+        );
+
         // the deepest stage: the hand of the emperor closes on it, once
-        if (stage >= CURSE_STAGES && LAND_HAND_HOLDS > 0 && held.add(enemy.getUUID())) {
+        if (stage >= CURSE_STAGES && LAND_HAND_HOLDS > 0 && land.held().add(enemy.getUUID())) {
             Root.apply(enemy, LAND_HAND_HOLDS, RootRestriction.MOVEMENT);
 
             ParticleShapes.model(
                     sl,
                     EMPEROR_HAND.lifetime(LAND_HAND_HOLDS),
-                    Spells.groundUnder(player, sl, enemy).add(0, -1.5, 0),
+                    under.add(0, -1.5, 0),
                     player.getYRot(),
                     0f,
                     0f
@@ -515,7 +675,32 @@ public class PaleEmperor {
             if (enemy instanceof Player victim) {
                 victim.sendSystemMessage(Component.literal("The hand of the Pale Emperor closes on you."));
             }
+
+            // the moment its fingers shut
+            Later.run(sl, HAND_SHUT - 2, () -> {
+                if (!enemy.isAlive() || enemy.level() != sl) return;
+
+                Vec3 middle = enemy.getBoundingBox().getCenter();
+
+                ParticleShapes.burst(sl, GOLD_SPARK, middle, 18, 0.05, 0.3);
+                SpellFx.shockRing(sl, enemy.position(), 2.0, 0xE0E03A3A, 8, 0);
+                Spells.sound(sl, middle, SoundEvents.PLAYER_ATTACK_CRIT, 0.9f, 0.5f);
+            });
         }
+    }
+
+    /** The land is over: what it put down is taken away, and it closes on its middle. */
+    private static void landCloses(CursedLand land) {
+        ServerLevel sl = land.sl();
+        Vec3 ground = land.ground();
+
+        // (when its time simply ran out these have sunk and faded away already)
+        ParticleShapes.clearModels(sl, ground, land.tag());
+        PaleEmperorFx.takeCrown(sl, land.caster(), CROWN_TAG);
+
+        SpellFx.closingRing(sl, ground, LAND_RADIUS, 0xC09CFFD2, 14, 0);
+        ParticleShapes.ring(sl, LAND_MIST, ground.add(0, 0.2, 0), LAND_RADIUS, 28, -0.25);     // the mist is drawn in
+        Spells.sound(sl, ground, SoundEvents.BELL_BLOCK, 0.9f, 0.4f);
     }
 
     // =====================================================================================
@@ -672,7 +857,13 @@ public class PaleEmperor {
     // they fell, with part of their health, free of what was on them, and whoever stood over them is thrown
     // back. It works once. A small clock next to the hotbar shows how long it still waits.
     //
-    // Built from the kit: status/DeathWard (dying is undone), combat/HudTimer (the clock by the hotbar).
+    // What it looks like: ribs close round the caster and fade into them, and while death waits a pale mark
+    // turns under their feet (everyone can see it). When they rise, the arms of the dead reach for them and
+    // miss, rings climb round them, wings open on their back for a moment, and they shine for as long as
+    // nothing can hurt them.
+    //
+    // Built from the kit: status/DeathWard (dying is undone), combat/HudTimer (the clock by the hotbar),
+    // SpellFx.circleUnder (the mark), SpellFx.risingRings, PaleEmperorFx.ribsAround, underworldArms, wings.
 
     private static final float REVIVE_COST = 11250;
 
@@ -685,8 +876,18 @@ public class PaleEmperor {
     /** Enemies this near are thrown back when the caster rises. */
     public static final double REVIVE_THROWS = 5;
 
-    /** The name of the clock by the hotbar. */
+    /** How long the wings stay open on the one who rose. They are only for show. 0 = no wings. */
+    public static final int REVIVE_WINGS_TICKS = 84;
+
+    /** Set while death waits for the player. Saved with the player (the ward itself is not: it is gone after a logout). */
+    private static final String REVIVE_ON = "pale_emperor_revive_on";
+
+    /** The name of the clock by the hotbar, of the mark under the caster, and of the wings they rise with. */
     private static final String REVIVE_TIMER = "pale_emperor_revive";
+    private static final String REVIVE_MARK = "pale_emperor_revive";
+    private static final String REVIVE_WINGS = "pale_emperor_revive_wings";
+
+    private static final int REVIVE_COLOR = 0x9CFFD2;
 
     private static void secondLife(Player player, ServerLevel sl) {
         if (DeathWard.isArmed(player)) {
@@ -704,9 +905,14 @@ public class PaleEmperor {
                 (saved, source, level) -> risesAgain(saved, level)
         );
 
-        HudTimer.show(player, REVIVE_TIMER, "Revive", REVIVE_TICKS, 0x9CFFD2);
+        player.getPersistentData().putBoolean(REVIVE_ON, true);
+
+        secondLifeShows(player, sl, REVIVE_TICKS);
 
         Vec3 feet = player.position();
+
+        // ribs close round them and fade into them
+        PaleEmperorFx.ribsAround(sl, player);
 
         seal(sl, feet, player.getYRot(), 4f, 40);
         SpellFx.closingRing(sl, feet, 3.0, 0xE0F5C211, 12, 0);
@@ -715,15 +921,59 @@ public class PaleEmperor {
         Spells.sound(sl, feet, SoundEvents.BEACON_ACTIVATE, 0.8f, 0.6f);
         Spells.sound(sl, feet, SoundEvents.ENCHANTMENT_TABLE_USE, 1.0f, 0.6f);
 
+        // the moment the ribs snap shut
+        Later.run(sl, PaleEmperorFx.RIBS_AROUND_SHUT, () -> {
+            if (!Spells.casterStillHere(player, sl)) return;
+
+            Vec3 middle = player.getBoundingBox().getCenter();
+
+            ParticleShapes.burst(sl, PALE_SPARK, middle, 16, 0.04, 0.22);
+            Spells.sound(sl, middle, SoundEvents.CHAIN_PLACE, 1.0f, 0.5f);
+        });
+
         player.sendSystemMessage(Component.literal("For " + REVIVE_TICKS / 20 + " seconds death cannot keep you."));
+    }
+
+    /** What shows that death waits for 'ticks' more: the clock by the hotbar and the mark under the caster's feet. */
+    private static void secondLifeShows(Player player, ServerLevel sl, int ticks) {
+        HudTimer.show(player, REVIVE_TIMER, "Revive", ticks, REVIVE_COLOR);
+        SpellFx.circleUnder(sl, player, 0.85, 0x70000000 | REVIVE_COLOR, ticks, REVIVE_MARK);
+    }
+
+    /** One tick while death waits: notices when it stopped waiting without having been needed. */
+    private static void secondLifeTick(Player player, ServerLevel sl) {
+        if (!player.getPersistentData().getBoolean(REVIVE_ON)) return;
+        if (DeathWard.isArmed(player)) return;
+
+        // its time ran out, or the player logged out meanwhile (rising again clears the flag itself)
+        player.getPersistentData().remove(REVIVE_ON);
+
+        HudTimer.hide(player, REVIVE_TIMER);
+        ParticleShapes.clearModels(sl, player, REVIVE_MARK);
+
+        Spells.sound(sl, player.position(), SoundEvents.AMETHYST_BLOCK_RESONATE, 0.8f, 0.5f);
+
+        player.sendSystemMessage(Component.literal("Death no longer waits for you."));
     }
 
     /** The caster died while death waited: they stand again. (Their health is given back by the ward itself.) */
     private static void risesAgain(LivingEntity saved, ServerLevel sl) {
         Vec3 feet = saved.position();
         Vec3 middle = saved.getBoundingBox().getCenter();
+        float yaw = saved.getYRot();
 
         Spells.cleanse(saved);                                       // what was killing them is gone too
+
+        // they shine for as long as nothing can hurt them
+        if (DeathWard.GRACE_TICKS > 0) {
+            saved.addEffect(new MobEffectInstance(MobEffects.GLOWING, DeathWard.GRACE_TICKS, 0, false, false));
+        }
+
+        saved.getPersistentData().remove(REVIVE_ON);
+        ParticleShapes.clearModels(sl, saved, REVIVE_MARK);
+
+        // the arms of the dead come up round the spot and close on nothing
+        Vec3 ground = feet;
 
         if (saved instanceof Player player) {
             HudTimer.hide(player, REVIVE_TIMER);
@@ -732,16 +982,28 @@ public class PaleEmperor {
                 Spells.push(enemy, feet, 1.1, 0.35);                 // room to breathe
             }
 
+            ground = Spells.groundUnder(player, sl, player);
+
+            // wings open on their back for a moment (not over the wings of ability 6)
+            if (REVIVE_WINGS_TICKS > 0 && !hasWings(player)) {
+                PaleEmperorFx.wings(sl, player, REVIVE_WINGS_TICKS, REVIVE_WINGS);
+            }
+
             player.sendSystemMessage(Component.literal("You rise again."));
         }
 
-        seal(sl, feet, saved.getYRot(), 6f, 50);
+        PaleEmperorFx.underworldArms(sl, ground, yaw, 6);
+
+        seal(sl, ground, yaw, 6f, 50);
         SpellFx.blast(sl, middle, 3.0, 0xE09CFFD2, PALE_SPARK);
-        SpellFx.shockRing(sl, feet, REVIVE_THROWS, 0xE0F5C211, 12, 0);
+        SpellFx.shockRing(sl, ground, REVIVE_THROWS, 0xE0F5C211, 12, 0);
+        SpellFx.risingRings(sl, feet, 1.6, saved.getBbHeight() + 0.6, 4, 0xD09CFFD2);
+        ParticleShapes.burst(sl, GOLD_SPARK, middle, 24, 0.05, 0.3);
         PaleEmperorFx.featherFall(sl, feet, 2.0, 14);
 
         Spells.sound(sl, feet, SoundEvents.WITHER_SPAWN, 0.7f, 1.4f);
         Spells.sound(sl, feet, SoundEvents.ZOMBIE_VILLAGER_CURE, 0.8f, 1.2f);
+        Spells.sound(sl, feet, SoundEvents.ENDER_DRAGON_FLAP, 1.0f, 0.7f);
     }
 
     // =====================================================================================
@@ -1893,8 +2155,8 @@ public class PaleEmperor {
     public static class PaleEmperorEvents {
 
         /**
-         * What goes with the wings of ability 6, and the underworld of ability 7 is kept up
-         * (both run on even if the aspect is taken away meanwhile).
+         * What goes with the wings of ability 6, the underworld of ability 7 is kept up, and the second life
+         * of ability 2 is watched (all run on even if the aspect is taken away meanwhile).
          */
         @SubscribeEvent
         public static void onPaleEmperorPlayerTick(TickEvent.PlayerTickEvent event) {
@@ -1906,6 +2168,7 @@ public class PaleEmperor {
 
             wingsTick(player, sl);
             underworldTick(player, sl);
+            secondLifeTick(player, sl);
         }
 
         /** Whoever deals damage is back from the underworld. */
@@ -1924,7 +2187,8 @@ public class PaleEmperor {
         }
 
         // Models are forgotten by a player's game when they log in or change dimension, so the wings of a
-        // flight that is still going are put on again. A second later: by then their game knows where they are.
+        // flight that is still going are put on again, and so is the mark of a second life that still waits.
+        // A second later: by then their game knows where they are.
 
         @SubscribeEvent
         public static void onPaleEmperorLogin(PlayerEvent.PlayerLoggedInEvent event) {
@@ -1934,6 +2198,17 @@ public class PaleEmperor {
         @SubscribeEvent
         public static void onPaleEmperorChangedDimension(PlayerEvent.PlayerChangedDimensionEvent event) {
             wingsAgain(event.getEntity());
+            secondLifeAgain(event.getEntity());
+        }
+
+        private static void secondLifeAgain(Player player) {
+            if (!player.getPersistentData().getBoolean(REVIVE_ON) || !(player.level() instanceof ServerLevel sl)) return;
+
+            Later.run(sl, 20, () -> {
+                if (player.isAlive() && !player.isRemoved() && player.level() == sl && DeathWard.isArmed(player)) {
+                    secondLifeShows(player, sl, DeathWard.ticksLeft(player));
+                }
+            });
         }
 
         private static void wingsAgain(Player player) {
