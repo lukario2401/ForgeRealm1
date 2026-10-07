@@ -1,5 +1,6 @@
 package net.lukario.frogerealm.shadow_slave.soul_abilities.beyonder_characteristics;
 
+import net.lukario.frogerealm.combat.AnimatedShot;
 import net.lukario.frogerealm.combat.Later;
 import net.lukario.frogerealm.combat.SpellFx;
 import net.lukario.frogerealm.combat.Spells;
@@ -15,15 +16,11 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
-import net.minecraft.world.phys.BlockHitResult;
-import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -850,33 +847,31 @@ public class PaleEmperor {
 
 
     // =====================================================================================
-    // SPEAR AND SKULL: WHAT THEY HIT
+    // SPEAR AND SKULL (ability 4)
     // =====================================================================================
+    //
+    // SPEAR_HOVERS and SKULL above are only the animations. The two AnimatedShots below follow them tick by
+    // tick and hit what they reach, so the keys, the timing and the lifetime up there can be changed freely:
+    // nothing down here names a tick. Both fly at what the crosshair is on, up and down too.
 
-    /** How high above the caster's feet the spear and the skull fly. They fly level, the way the caster faced. */
+    /** How high above the caster's feet they appear. */
     private static final double SPEAR_HEIGHT = 2.2;
     private static final double SKULL_HEIGHT = 2.6;
-
-    /** The tick the hovering spear lets fly, and the tick it has gone its whole way (see SPEAR_HOVERS). */
-    private static final int SPEAR_FLIES = 64;
-    private static final int SPEAR_LANDS = 76;
-
-    /** Blocks from the middle of the spear's shaft (its pivot) to its tip, at the scale it is played. */
-    private static final double SPEAR_TIP = 1.8;
-
-    /** How close the path must pass to a body to hit it. */
-    private static final double SPEAR_WIDTH = 0.6;
-    private static final double SKULL_WIDTH = 0.6;
 
     /** What the spear does to each enemy it goes through. */
     public static final float SPEAR_DAMAGE = 40f;
 
-    /** The tick the skull starts to fly (see SKULL). */
-    private static final int SKULL_FLIES = 10;
-
     /** What the skull's blast does to every enemy within SKULL_BLAST_RADIUS blocks of it. */
     public static final float SKULL_DAMAGE = 30f;
     public static final double SKULL_BLAST_RADIUS = 4.5;
+
+    private static final AnimatedShot SPEAR_SHOT = AnimatedShot.of(SPEAR_HOVERS)
+            .width(0.6)              // how close its path must pass to a body to hit it
+            .tip(1.8)                // blocks from the middle of the shaft (its pivot) to its point, at scale 1.2
+            .pierce();               // goes through every enemy on its way
+
+    private static final AnimatedShot SKULL_SHOT = AnimatedShot.of(SKULL)
+            .width(0.6);             // stops at the first enemy: that is where it bursts
 
     private static final ParticleFx PALE_SPARK = ParticleFx.of("fx/glow")
             .color(0xFFC8FFE4).endColor(0x0018A070)
@@ -891,167 +886,32 @@ public class PaleEmperor {
 
         SoulCore.setSoulEssence(player, SoulCore.getSoulEssence(player) - 600);
 
-        Vec3 ground = player.position();
-        Vec3 direction = player.getLookAngle();
-        float yaw = (float)Math.toDegrees(Math.atan2(-direction.x, direction.z));
-
         if (!player.isShiftKeyDown()){
-            throwSpear(player, sl, ground.add(0, SPEAR_HEIGHT, 0), yaw);
+
+            // SPEAR: hurts every enemy it goes through and flies on. A block ends it.
+            Vec3 from = Spells.clearStart(player, sl, player.position().add(0, SPEAR_HEIGHT, 0));
+
+            SPEAR_SHOT
+                    .onHit((target, at) -> {
+                        Spells.strike(player, target, SPEAR_DAMAGE);
+                        ParticleShapes.burst(sl, PALE_SPARK, at, 12, 0.05, 0.25);
+                        Spells.sound(sl, at, SoundEvents.PLAYER_ATTACK_CRIT, 0.9f, 0.7f);
+                    })
+                    .onStop((at, hitBlock) -> {
+                        ParticleShapes.burst(sl, PALE_SPARK, at, 16, 0.05, 0.3);
+                        Spells.sound(sl, at, SoundEvents.PLAYER_ATTACK_KNOCKBACK, 0.7f, 0.6f);
+                    })
+                    .fire(player, sl, from);
+
         }else{
-            throwSkull(player, sl, ground.add(0, SKULL_HEIGHT, 0), yaw);
+
+            // SKULL: bursts on the first enemy it reaches, or on a block. With nothing in its way it only fades.
+            Vec3 from = Spells.clearStart(player, sl, player.position().add(0, SKULL_HEIGHT, 0));
+
+            SKULL_SHOT
+                    .onStop((at, hitBlock) -> skullBursts(player, sl, at))
+                    .fire(player, sl, from);
         }
-    }
-
-    // =====================================================================================
-    // SPEAR (normal cast): goes through everything on its path
-    // =====================================================================================
-
-    /**
-     * Plays the spear and follows it tick by tick while it flies: where the model is comes from its own
-     * animation (poseAt), so the damage is always where the spear is seen.
-     */
-    private static void throwSpear(Player player, ServerLevel sl, Vec3 start, float yaw) {
-        ParticleShapes.model(sl, SPEAR_HOVERS, start, yaw, 0f, 0f);
-
-        Vec3 forward = Vec3.directionFromRotation(0f, yaw);
-
-        Set<UUID> alreadyHit = new HashSet<>();
-
-        // how far along its path the first block is. Worked out when it lets fly, not now: 3 seconds pass until then
-        double[] wall = {-1};
-
-        for (int tick = SPEAR_FLIES + 1; tick <= SPEAR_LANDS; tick++) {
-
-            // this tick it covers the stretch from where its middle was to where its tip is now
-            double from = SPEAR_HOVERS.poseAt(tick - 1).forward();
-            double to = SPEAR_HOVERS.poseAt(tick).forward() + SPEAR_TIP;
-
-            Later.run(
-                    sl,
-                    tick,
-                    () -> spearFlies(player, sl, start, forward, from, to, wall, alreadyHit)
-            );
-        }
-    }
-
-    /** One tick of the spear's flight: hurts every enemy on that stretch that it has not hurt yet, and flies on. */
-    private static void spearFlies(
-            Player player,
-            ServerLevel sl,
-            Vec3 start,
-            Vec3 forward,
-            double from,
-            double to,
-            double[] wall,
-            Set<UUID> alreadyHit
-    ) {
-        if (!Spells.casterStillHere(player, sl)) return;
-
-        if (wall[0] < 0) {
-            double whole = SPEAR_HOVERS.poseAt(SPEAR_LANDS).forward() + SPEAR_TIP;
-            BlockHitResult block = firstBlock(player, sl, start, start.add(forward.scale(whole)));
-            wall[0] = block.getType() == HitResult.Type.MISS ? whole : start.distanceTo(block.getLocation());
-        }
-
-        double reach = Math.min(to, wall[0]);            // nothing behind a wall is hurt
-
-        if (reach <= from) return;
-
-        List<LivingEntity> inTheWay = enemiesAlong(
-                player,
-                sl,
-                start.add(forward.scale(from)),
-                start.add(forward.scale(reach)),
-                SPEAR_WIDTH,
-                SPEAR_HEIGHT
-        );
-
-        for (LivingEntity enemy : inTheWay) {
-
-            if (!alreadyHit.add(enemy.getUUID())) continue;
-
-            Spells.strike(player, enemy, SPEAR_DAMAGE);
-
-            Vec3 at = enemy.getBoundingBox().getCenter();
-
-            ParticleShapes.burst(sl, PALE_SPARK, at, 12, 0.05, 0.25);
-            Spells.sound(sl, at, SoundEvents.PLAYER_ATTACK_CRIT, 0.9f, 0.7f);
-        }
-    }
-
-    // =====================================================================================
-    // SKULL (sneak cast): bursts on the first thing it hits
-    // =====================================================================================
-
-    /**
-     * Plays the skull and follows it tick by tick while it flies. It has a tag of its own, so it can be
-     * taken away the moment it bursts.
-     */
-    private static void throwSkull(Player player, ServerLevel sl, Vec3 start, float yaw) {
-        String tag = "pale_skull_" + UUID.randomUUID();
-
-        ParticleShapes.model(sl, SKULL.tag(tag), start, yaw, 0f, 0f);
-
-        Vec3 forward = Vec3.directionFromRotation(0f, yaw);
-
-        boolean[] burst = {false};
-
-        for (int tick = SKULL_FLIES + 1; tick <= SKULL_TICKS; tick++) {
-
-            Vec3 from = start.add(forward.scale(SKULL.poseAt(tick - 1).forward()));
-            Vec3 to = start.add(forward.scale(SKULL.poseAt(tick).forward()));
-
-            Later.run(
-                    sl,
-                    tick,
-                    () -> skullFlies(player, sl, from, to, tag, burst)
-            );
-        }
-    }
-
-    /**
-     * One tick of the skull's flight. It bursts on the first enemy on that stretch, or on a block.
-     * At the end of its way with nothing hit it only fades, as its animation says.
-     */
-    private static void skullFlies(
-            Player player,
-            ServerLevel sl,
-            Vec3 from,
-            Vec3 to,
-            String tag,
-            boolean[] burst
-    ) {
-        if (burst[0]) return;
-
-        if (!Spells.casterStillHere(player, sl)) return;
-
-        BlockHitResult block = firstBlock(player, sl, from, to);
-
-        boolean hitBlock = block.getType() != HitResult.Type.MISS;
-
-        Vec3 end = hitBlock ? block.getLocation() : to;
-
-        List<LivingEntity> inTheWay = enemiesAlong(player, sl, from, end, SKULL_WIDTH, SKULL_HEIGHT);
-
-        if (inTheWay.isEmpty() && !hitBlock) return;
-
-        Vec3 at = end;
-
-        if (!inTheWay.isEmpty()) {
-            // the point of this stretch nearest to the middle of the first enemy on it
-            Vec3 path = end.subtract(from);
-            double length = path.length();
-            Vec3 along = path.scale(1.0 / length);                       // (enemiesAlong finds nothing on a stretch of no length)
-            Vec3 middle = inTheWay.get(0).getBoundingBox().getCenter();
-            double far = Math.max(0.0, Math.min(length, middle.subtract(from).dot(along)));
-            at = from.add(along.scale(far));
-        }
-
-        burst[0] = true;
-
-        ParticleShapes.clearModels(sl, at, tag);
-
-        skullBursts(player, sl, at);
     }
 
     /** The skull is gone in a pale blast that hurts every enemy around it. */
@@ -1075,55 +935,6 @@ public class PaleEmperor {
 
         Spells.sound(sl, at, SoundEvents.GENERIC_EXPLODE.value(), 1f, 1.3f);
         Spells.sound(sl, at, SoundEvents.WITHER_HURT, 0.8f, 0.6f);
-    }
-
-    // =====================================================================================
-    // SHARED BY BOTH
-    // =====================================================================================
-
-    /** The first block between two points (its type is MISS when there is none). */
-    private static BlockHitResult firstBlock(Player player, ServerLevel sl, Vec3 from, Vec3 to) {
-        return sl.clip(new ClipContext(from, to, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player));
-    }
-
-    /**
-     * Every enemy the line from..to passes through OR over, nearest to 'from' first. The spear and the skull
-     * fly above head height, so a plain line would miss everything that is not tall: here each body counts as
-     * reaching 'above' blocks higher than it does (and 'grow' blocks wider), which is how high they fly.
-     * What stands lower than the caster's feet by more than its own height is still missed.
-     */
-    private static List<LivingEntity> enemiesAlong(
-            Player player,
-            ServerLevel sl,
-            Vec3 from,
-            Vec3 to,
-            double grow,
-            double above
-    ) {
-        List<LivingEntity> result = new ArrayList<>();
-
-        if (from.distanceToSqr(to) < 1.0E-6) return result;
-
-        AABB area = new AABB(from, to).inflate(grow + 0.5).expandTowards(0, -above, 0);
-
-        List<LivingEntity> candidates = sl.getEntitiesOfClass(
-                LivingEntity.class,
-                area,
-                other -> Spells.isEnemy(player, other)
-        );
-
-        for (LivingEntity candidate : candidates) {
-            AABB body = candidate.getBoundingBox().inflate(grow).expandTowards(0, above, 0);
-
-            // clip() finds nothing when the line starts inside the box
-            if (body.contains(from) || body.clip(from, to).isPresent()) result.add(candidate);
-        }
-
-        result.sort(Comparator.comparingDouble(
-                (LivingEntity candidate) -> candidate.getBoundingBox().getCenter().distanceToSqr(from)
-        ));
-
-        return result;
     }
 
 }

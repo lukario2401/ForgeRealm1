@@ -8,6 +8,7 @@ Nothing needs registering. Call them from your ability method. The 3D models the
 |---|---|---|
 | The enemy under the crosshair, everyone in a circle, the ground I aim at | [`Spells`](#1-spells-aiming-and-enemies) | `combat/` |
 | A model that flies and hits things (dagger, bolt, shell) | [`Shot`](#2-shot-a-model-that-flies-and-hits) | `combat/` |
+| A model with an animation of my own that hits what it reaches | [`AnimatedShot`](#animatedshot-a-model-that-hits-along-its-own-animation) | `combat/` |
 | 5, 4, 3, 2, 1 on the screen and then something happens | [`Countdown`](#3-countdown) | `combat/` |
 | A line that keeps joining two moving things (thread, chain, beam) | [`SpellFx.tether`](#4-spellfx-looks-that-many-abilities-share) | `combat/` |
 | Rings, warning circles, a burst of fire | [`SpellFx`](#4-spellfx-looks-that-many-abilities-share) | `combat/` |
@@ -178,6 +179,73 @@ for (int i = 0; i < 5; i++) {
 **An exploding shell:** hit in `onHit`, splash in `onEnd` (see `airCannon` in `AttendantOfMysteries.java`).
 
 **How it works.** The whole flight is worked out the moment it is fired: where the first block is and which enemies are on the path. The model is told to fly exactly that far and the hits are delivered with `Later.run` when it gets there. An enemy that moved more than about 2 blocks off the path by then is missed. A mob that walks *into* the path after the shot was fired is not hit, so keep shots fast (2 blocks per tick or more).
+
+### AnimatedShot: a model that hits along its own animation
+
+A `Shot` flies in a straight line at one speed. When the model should do more than that (hover and turn before it leaves, swell up, start slowly, fly in a curve) you animate the `ModelFx` with keys as always, and an `AnimatedShot` plays it and hits whatever the model reaches.
+
+**The model's front (north in Blockbench) faces the target.** In its keys, `forward(...)` is "toward what was aimed at"; `up(...)` and `right(...)` are across it.
+
+```java
+// 1. the animation, like any other ModelFx
+private static final ModelFx SPEAR_MODEL = ModelFx.of("my_class/spear")
+        .pivot(8, 8, 8).glow().lifetime(80).fade(0, 4)
+        .during(8, 50, ModelFx.pose().spin(360), ModelFx.Ease.IN_OUT)        // turns once, standing on its end
+        .during(50, 60, ModelFx.pose().pitch(90), ModelFx.Ease.IN_OUT)       // tips over: the point looks forward
+        .during(64, 76, ModelFx.pose().forward(26f), ModelFx.Ease.IN);       // and flies
+
+// 2. what kind of shot it is
+private static final AnimatedShot SPEAR = AnimatedShot.of(SPEAR_MODEL)
+        .width(0.6)              // how close its path must pass to an enemy's body to hit it
+        .tip(1.8)                // blocks from the model's pivot to its front end
+        .pierce();               // goes through enemies instead of stopping at the first
+```
+
+In the ability:
+
+```java
+Vec3 from = Spells.clearStart(player, sl, player.position().add(0, 2.2, 0));     // above the caster's head
+SPEAR
+        .onHit((target, at) -> Spells.strike(player, target, 40f))
+        .fire(player, sl, from);                                                 // at what the crosshair is on
+```
+
+Something that bursts on the first thing it meets is the same without `.pierce()`, with the blast in `onStop`:
+
+```java
+SKULL.onStop((at, hitBlock) -> {
+            for (LivingEntity enemy : Spells.enemiesAround(player, sl, at, 4.5)) Spells.strike(player, enemy, 30f);
+            SpellFx.fireBurst(sl, at, 4.5);
+        })
+        .fire(player, sl, from);
+```
+
+| Option | What it does |
+|---|---|
+| `AnimatedShot.of(model)` | A shot that looks and moves like this `ModelFx` |
+| `.model(other)` | Another model for the same shot |
+| `.width(blocks)` | How fat its path is |
+| `.tip(blocks)` | Distance from the model's pivot to its front end, at the scale you play it. With it the point reaches the enemy and the wall; without it the pivot does |
+| `.pierce()` | Goes through enemies (each is hit once) instead of stopping at the first |
+| `.throughBlocks()` | Blocks do not stop it |
+| `.anyDirection()` | Also hits while it moves sideways or backward (a blade that swings round, something that comes back) |
+| `.onHit((target, at) -> ...)` | Runs for each enemy it reaches, at that moment |
+| `.onStop((at, hitBlock) -> ...)` | Runs where it is stopped: by a block, or by the first enemy when it does not pierce. The model is already gone |
+| `.onExpire(at -> ...)` | Runs when the animation ends and nothing stopped it |
+| `.fire(player, sl, from)` | Plays it aimed at what the crosshair is on, up and down too. Returns how many ticks the animation lasts |
+| `.fire(player, sl, from, direction)` | The same along a direction of your own |
+| `.ticks()`, `.reach()` | How long the animation lasts, and how far forward its front end gets |
+
+Every method returns a new copy, like `Shot`.
+
+Good to know:
+
+- **Nothing names a tick.** It asks the model where it is (`ModelFx.poseAt`) every tick from the first to the last. Change the keys, the timing or the lifetime of the model and the hits follow by themselves.
+- **It only hits while it moves forward.** Hovering, turning on the spot and drawing back before a throw hurt no one. `.anyDirection()` switches that off.
+- **It is stopped by blocks and by the first enemy**, and its model is taken away at that moment. It does not need a tag from you for that: every shot gets its own.
+- **It is aimed once, when it is fired.** A model cannot be turned after it appeared, so one that hovers for 3 seconds still flies at what the crosshair was on when the key was pressed.
+- It sees enemies that walk into its way while it flies, which a `Shot` does not.
+- The model's own turning (`pitch`, `spin`...) is only for the look. What counts for the hits is where its pivot goes.
 
 ---
 
@@ -419,7 +487,7 @@ ParticleShapes.modelOn(sl, mark, target, new Vec3(0, target.getBbHeight() + 0.4,
 
 Tags in use: `freeze`, `marionette`, and the Attendant's `aom_strings`, `aom_transfer`, `aom_projection`, `aom_miracle`.
 
-A tag also lets you remove a model that is **not** on an entity before its time is up, for something that flies and must vanish the moment it hits (the Pale Emperor's skull, `throwSkull` in `PaleEmperor.java`). Give every cast a tag of its own, or one cast would remove the models of another:
+A tag also lets you remove a model that is **not** on an entity before its time is up, for something that must vanish the moment it hits. An `AnimatedShot` does this by itself; this is for when you build something of your own. Give every cast a tag of its own, or one cast would remove the models of another:
 
 ```java
 String tag = "my_skull_" + UUID.randomUUID();
@@ -437,6 +505,7 @@ Every tool has a worked example in `AttendantOfMysteries.java`:
 | Tool | Look at |
 |---|---|
 | `Shot` | `throwDagger` (a fan of them: `paperDaggers`), `airCannon` (a shell with a blast) |
+| `AnimatedShot` | `paleEmperorSpearSkull` in `PaleEmperor.java` (a spear that pierces, a skull that bursts) |
 | `Countdown` | `seizeThreads`, `threadWeb` (silent, with a picture) |
 | `SpellFx.tether` | `seizeThreads`, `damageTransfer`, `stitchTogether` |
 | `DamageLink.redirect` | `damageTransfer` |
@@ -612,6 +681,10 @@ If one status must get its say before another, add a priority: `@SubscribeEvent(
 | A shot starts inside the wall the player stands next to | Wrap the start in `Spells.clearStart(player, sl, ...)` |
 | `onHit` never runs for an enemy that was on the path | It moved more than 2 blocks out of the way before the shot arrived. Make the shot faster |
 | `KNIFE.range(12);` changed nothing | Every method returns a new copy. Fire the result |
+| An animated shot flies sideways or tail first | Its model's front must be north in Blockbench, and it must fly with `forward(...)`, not `up(...)` |
+| An animated shot hits nothing | It only hits while it moves forward. Moving with `up(...)` or `right(...)` alone needs `.anyDirection()` |
+| An animated shot vanishes the moment it starts to move | It started inside a block. Wrap the start in `Spells.clearStart(player, sl, ...)` |
+| I changed the animation and the hits are late or early | They should not be: they follow the model. Check that the `AnimatedShot` is made from the model you changed |
 | My spell hurts my own summons | `Spells.addAllyCheck(...)` |
 | Hits in a row only count once | Use `Spells.strike`, not `target.hurt` |
 | The countdown never shows numbers | `.silent()` is on, or another countdown replaced it |
@@ -626,4 +699,4 @@ If one status must get its say before another, add a priority: `@SubscribeEvent(
 | "Not enough soul essence." is in chat, not above the hotbar | The line above the hotbar is rewritten every tick by the soul essence display |
 | Something in a `-> { }` of a countdown, substitute or death ward broke | The error is in the game log ("A countdown failed", ...). The game goes on and that one effect ends |
 
-The code lives in `src/main/java/net/lukario/frogerealm/combat/` (`Spells`, `SpellFx`, `Shot`, `Countdown`, `Later`) and `.../status/` (one file per status). `client/ClientConcealment` and `network/CConcealPacket` are the part of `Concealment` that runs on the players' screens; you should not need to touch them.
+The code lives in `src/main/java/net/lukario/frogerealm/combat/` (`Spells`, `SpellFx`, `Shot`, `AnimatedShot`, `Countdown`, `Later`) and `.../status/` (one file per status). `client/ClientConcealment` and `network/CConcealPacket` are the part of `Concealment` that runs on the players' screens; you should not need to touch them.

@@ -37,6 +37,7 @@ import java.util.List;
  * How it works: the whole flight is worked out when it is fired (where the first block or enemy is), the model is
  * told to fly exactly that far, and the hits are delivered with Later.run when it gets there. An enemy that has
  * moved well out of the way by then is missed. Give it a model without keys of its own.
+ * For a model that has an animation of its own (hovers first, flies in a curve...) use AnimatedShot.
  *
  * The guide with examples for all of these tools: docs/SPELL_KIT.md
  */
