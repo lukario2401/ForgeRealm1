@@ -30,6 +30,7 @@ import java.util.UUID;
  *           .pierce();               // goes through enemies instead of stopping at the first
  *
  *   SPEAR.onHit((target, at) -> Spells.strike(player, target, 40f))
+ *           .onMove(at -> ParticleShapes.burst(sl, SPARK, at, 2, 0.0, 0.03))     // a trail while it flies (optional)
  *           .fire(player, sl, from);                                             // flies at what the crosshair is on
  *
  * Nothing here names a tick. Change the keys, the timing or the lifetime of the model and the hits follow: it
@@ -67,6 +68,12 @@ public final class AnimatedShot {
         void expire(Vec3 at);
     }
 
+    @FunctionalInterface
+    public interface Move {
+        /** 'at' = where its pivot is this tick. */
+        void move(Vec3 at);
+    }
+
     /** Less movement than this in one tick (in blocks) counts as standing still. */
     private static final double STILL = 1.0E-3;
 
@@ -82,6 +89,7 @@ public final class AnimatedShot {
     private Hit onHit = null;
     private Stop onStop = null;
     private Expire onExpire = null;
+    private Move onMove = null;
 
     private AnimatedShot() {}
 
@@ -89,6 +97,7 @@ public final class AnimatedShot {
         AnimatedShot c = new AnimatedShot();
         c.model = model; c.width = width; c.tip = tip; c.pierce = pierce; c.throughBlocks = throughBlocks;
         c.anyDirection = anyDirection; c.onHit = onHit; c.onStop = onStop; c.onExpire = onExpire;
+        c.onMove = onMove;
         return c;
     }
 
@@ -133,6 +142,14 @@ public final class AnimatedShot {
 
     /** What happens when its animation runs out and nothing has stopped it. */
     public AnimatedShot onExpire(Expire expire) { AnimatedShot c = copy(); c.onExpire = expire; return c; }
+
+    /**
+     * Runs every tick it FLIES, with where it is: a trail of particles, a hum. Like the hits it only counts
+     * forward movement (any movement with .anyDirection()), so nothing trails while it hovers, turns on the
+     * spot or draws back. The first time it runs is the moment it is let fly: the place for a "whoosh".
+     *   .onMove(at -> ParticleShapes.burst(sl, SPARK, at, 2, 0.0, 0.03))
+     */
+    public AnimatedShot onMove(Move move) { AnimatedShot c = copy(); c.onMove = move; return c; }
 
     // ---------- what the animation says ----------
 
@@ -249,7 +266,11 @@ public final class AnimatedShot {
                 return;
             }
 
-            if (stoppedBetween(positionAt(tick - 1), now)) return;
+            Vec3 before = positionAt(tick - 1);
+
+            if (stoppedBetween(before, now)) return;
+
+            if (shot.onMove != null && flies(before, now)) shot.onMove.move(now);
 
             if (tick >= last) {
                 if (shot.onExpire != null) shot.onExpire.expire(now);
@@ -259,13 +280,19 @@ public final class AnimatedShot {
             Later.run(sl, 1, () -> step(tick + 1));
         }
 
+        /** True if what it did in one tick counts as flying: it moved, and forward (any way with .anyDirection()). */
+        private boolean flies(Vec3 before, Vec3 now) {
+            Vec3 move = now.subtract(before);
+            if (move.length() < STILL) return false;
+            return shot.anyDirection || move.dot(forward) >= STILL;
+        }
+
         /** What it meets on the way it went in one tick. True when that was the end of it. */
         private boolean stoppedBetween(Vec3 before, Vec3 now) {
+            if (!flies(before, now)) return false;
+
             Vec3 move = now.subtract(before);
             double length = move.length();
-
-            if (length < STILL) return false;
-            if (!shot.anyDirection && move.dot(forward) < STILL) return false;
 
             Vec3 heading = move.scale(1.0 / length);
             Vec3 end = now.add(heading.scale(shot.tip));          // its front end is ahead of its pivot

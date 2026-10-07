@@ -256,6 +256,7 @@ SKULL.onStop((at, hitBlock) -> {
 | `.onHit((target, at) -> ...)` | Runs for each enemy it reaches, at that moment |
 | `.onStop((at, hitBlock) -> ...)` | Runs where it is stopped: by a block, or by the first enemy when it does not pierce. The model is already gone |
 | `.onExpire(at -> ...)` | Runs when the animation ends and nothing stopped it |
+| `.onMove(at -> ...)` | Runs every tick it flies, with where it is: a trail of particles, a hum. Not while it hovers, turns on the spot or draws back. The first time it runs is the moment it is let fly, so that is where a "whoosh" goes |
 | `.fire(player, sl, from)` | Plays it aimed at what the crosshair is on, up and down too. Returns how many ticks the animation lasts |
 | `.fire(player, sl, from, direction)` | The same along a direction of your own |
 | `.ticks()`, `.reach()` | How long the animation lasts, and how far forward its front end gets |
@@ -676,7 +677,7 @@ ParticleShapes.clearModels(sl, target, "my_class_mark");       // cast again: on
 ParticleShapes.modelOn(sl, mark, target, new Vec3(0, target.getBbHeight() + 0.4, 0), 0f, 0f, 0f);
 ```
 
-Tags in use: `freeze`, `marionette`, the Attendant's `aom_strings`, `aom_transfer`, `aom_projection`, `aom_miracle`, and the Pale Emperor's `pale_emperor_hits`, `pale_emperor_wings`, `pale_emperor_crown`, `pale_emperor_curse` (the mark under those on cursed land), `pale_emperor_revive` (the mark of the second life), `pale_emperor_revive_wings` and `pale_emperor_land_<player id>` (what the cursed land put on the ground: seal, headstones, arms).
+Tags in use: `freeze`, `marionette`, the Attendant's `aom_strings`, `aom_transfer`, `aom_projection`, `aom_miracle`, and the Pale Emperor's `pale_emperor_hits`, `pale_emperor_wings`, `pale_emperor_crown`, `pale_emperor_curse` (the mark under those on cursed land), `pale_emperor_revive` (the mark of the second life), `pale_emperor_wraith_curse` (the mark under those the wraiths cursed), `pale_emperor_revive_wings` and `pale_emperor_land_<player id>` (what the cursed land put on the ground: seal, headstones, arms).
 
 A tag also lets you remove a model that is **not** on an entity before its time is up, for something that must vanish the moment it hits. An `AnimatedShot` does this by itself; this is for when you build something of your own. Give every cast a tag of its own, or one cast would remove the models of another:
 
@@ -696,7 +697,7 @@ Every tool has a worked example in `AttendantOfMysteries.java`:
 | Tool | Look at |
 |---|---|
 | `Shot` | `throwDagger` (a fan of them: `paperDaggers`), `airCannon` (a shell with a blast) |
-| `AnimatedShot` | `paleEmperorSpearSkull` in `PaleEmperor.java` (a spear that pierces, a skull that bursts) |
+| `AnimatedShot` | `paleEmperorSpearSkull` in `PaleEmperor.java` (a spear that pierces, a skull that bursts; both leave a trail with `.onMove`) |
 | `Countdown` | `seizeThreads`, `threadWeb` (silent, with a picture) |
 | `SpellFx.tether` | `seizeThreads`, `damageTransfer`, `stitchTogether` |
 | `DamageLink.redirect` | `damageTransfer` |
@@ -716,7 +717,8 @@ Every tool has a worked example in `AttendantOfMysteries.java`:
 | `SpellFx.homing`, `Vulnerable` | `wraithFlies`, `curse` in `PaleEmperor.java` |
 | `Zone`, `Spells.keepEffect`, `PaleEmperorFx.crown` (`modelOnHead`) | `cursedLand`, `landCurses` in `PaleEmperor.java` |
 | `HudTimer` with `DeathWard` | `secondLife`, `secondLifeShows`, `risesAgain` in `PaleEmperor.java` |
-| `SpellFx.circleUnder` | `landCurses` (it grows and reddens with the stage), `secondLifeShows` in `PaleEmperor.java` |
+| `SpellFx.circleUnder` | `landCurses` (it grows and reddens with the stage), `secondLifeShows`, `curse` (brighter with every wraith) in `PaleEmperor.java` |
+| `SpellFx.tether` from a fixed point to many moving things | `gateDrags` in `PaleEmperor.java` (chains from the gate to those it pulls) |
 | `Spells.groundNear` | `landGraves`, `landBeats` in `PaleEmperor.java` |
 | `SpellFx.risingRings` | `risesAgain` in `PaleEmperor.java` |
 | Model tags | `stringUp`, `summonProjection` |
@@ -744,6 +746,8 @@ All in `AttendantOfMysteries.java`, with the method to look at in brackets.
 **A zone that gets worse in stages** (`cursedLand`, `landCurses`, `curseStage` in `PaleEmperor.java`). One small method turns the time someone has stood in the zone into a stage, and everything the zone does is written from that stage. "It just reached this stage" is `stage > curseStage(ticksOnLand - LAND_BEAT)`: use it for what should happen once (a sound, a hand that grabs). What must happen once per zone for each enemy is remembered in a `Set<UUID>` made at the cast.
 
 **Everything one cast put down, under one name** (`cursedLand`, `landCloses` in `PaleEmperor.java`). The seal, the headstones and the arms of a cursed land all carry the same tag, made from the caster's id, so one `ParticleShapes.clearModels(sl, ground, tag)` takes all of it away when the land ends early or is cast again. What the cast has to remember (who was told, who was grabbed, which mark each one shows) lives in one small `record` that is handed to every method of the spell.
+
+**What is seen and heard, apart from what happens** (`gateShows` / `gateDrags`, `serpentShows`, `chainsBite` in `PaleEmperor.java`). The pull, the damage and the root are in one method; the rings, mist, sparks and sounds that go with them are in another that only shows things. Either can be changed, or switched off by removing one line, without touching the other. Their moments are the same named ticks the models are built from (`GATE_OPENS`, `SERPENT_BREAKS_OUT`, `SERPENT_BITES`...), so moving one number moves the animation and what is seen and heard at it together.
 
 **Small pictures for what is active** (`showStatus`). `ScreenImages.show(...)` with a duration fades by itself; `ScreenImages.hide(player, id)` removes it early when the effect is used up. The pictures are 16x16 PNGs in `textures/gui/attendant_of_mysteries/`.
 

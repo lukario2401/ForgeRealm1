@@ -177,12 +177,16 @@ public class PaleEmperor {
     // GATE MODELS
     // =====================================================================================
 
+    /** How long the gate stands, and the tick its doors have sunk away: from then on it pulls. */
+    public static final int GATE_TICKS = 500;
+    public static final int GATE_OPENS = 100;
+
     private static final ModelFx GATE = ModelFx.of("pale_emperor/underworld_gate")
             .scale(2f)
             .pivot(8, 0, 8)
             .glow()
             .aura(0xFF0000, 0.1f, 3)
-            .lifetime(500)
+            .lifetime(GATE_TICKS)
             .fade(5, 10);
 
     private static final ModelFx GATE_VOID = ModelFx.of("pale_emperor/underworld_void")
@@ -190,7 +194,7 @@ public class PaleEmperor {
             .pivot(8, 0, 8)
             .glow()
             .aura(0xFF0000, 0.1f, 3)
-            .lifetime(500)
+            .lifetime(GATE_TICKS)
             .fade(5, 10);
 
     private static final ModelFx GATE_DOOR_LEFT = ModelFx.of("pale_emperor/underworld_gate_door_left")
@@ -198,7 +202,7 @@ public class PaleEmperor {
             .pivot(8, 0, 8)
             .glow()
             .aura(0xFF0000, 0.1f, 3)
-            .lifetime(500)
+            .lifetime(GATE_TICKS)
             .fade(5, 10);
 
     private static final ModelFx GATE_DOOR_RIGHT = ModelFx.of("pale_emperor/underworld_gate_door_right")
@@ -206,7 +210,7 @@ public class PaleEmperor {
             .pivot(8, 0, 8)
             .glow()
             .aura(0xFF0000, 0.1f, 3)
-            .lifetime(500)
+            .lifetime(GATE_TICKS)
             .fade(5, 10);
 
     // =====================================================================================
@@ -312,6 +316,36 @@ public class PaleEmperor {
                     stop
             );
         }
+
+        chainsBite(sl, enemy, ground, heart, duration);
+    }
+
+    /** The tick the chains have reached what they were sent at (see CHAIN: 0 -> 5). */
+    private static final int CHAIN_ARRIVES = 5;
+
+    /** What is seen and heard of the chains of the sneak cast: they rattle out, bite, and let go when the root ends. */
+    private static void chainsBite(ServerLevel sl, LivingEntity enemy, Vec3 ground, Vec3 heart, int holds) {
+        Spells.sound(sl, ground, SoundEvents.CHAIN_PLACE, 1.4f, 0.5f);
+        Spells.sound(sl, ground, SoundEvents.WITHER_AMBIENT, 0.5f, 0.7f);
+
+        SpellFx.closingRing(sl, ground, 3.0, 0xD0F5C211, CHAIN_ARRIVES + 1, 0);
+
+        // they bite
+        Later.run(sl, CHAIN_ARRIVES, () -> {
+            ParticleShapes.burst(sl, GOLD_SPARK, heart, 20, 0.05, 0.3);
+            ParticleShapes.burst(sl, PALE_SPARK, heart, 10, 0.03, 0.2);
+            Spells.sound(sl, heart, SoundEvents.ANVIL_LAND, 0.5f, 1.6f);
+        });
+
+        // it is free again
+        Later.run(sl, holds, () -> {
+            if (!enemy.isAlive() || enemy.level() != sl) return;
+
+            Vec3 middle = enemy.getBoundingBox().getCenter();
+
+            ParticleShapes.burst(sl, GOLD_SPARK, middle, 12, 0.04, 0.25);
+            Spells.sound(sl, middle, SoundEvents.CHAIN_PLACE, 0.9f, 1.3f);
+        });
     }
 
     // =====================================================================================
@@ -750,18 +784,18 @@ public class PaleEmperor {
         ModelFx gateVoid = GATE_VOID;
 
         ModelFx gateDoorLeft = GATE_DOOR_LEFT.key(
-                100,
+                GATE_OPENS,
                 pose().up(-6),
                 ModelFx.Ease.IN
         );
 
         ModelFx gateDoorRight = GATE_DOOR_RIGHT.key(
-                100,
+                GATE_OPENS,
                 pose().up(-6),
                 ModelFx.Ease.IN
         );
 
-        for (int i = 100; i <= 500; i += 10) {
+        for (int i = GATE_OPENS; i <= GATE_TICKS; i += 10) {
 
             Later.run(
                     sl,
@@ -809,6 +843,8 @@ public class PaleEmperor {
                 0f,
                 0f
         );
+
+        gateShows(player, sl, position);
     }
 
     // =====================================================================================
@@ -846,6 +882,110 @@ public class PaleEmperor {
                     sl.damageSources().playerAttack(player),
                     4
             );
+        }
+
+        gateDrags(sl, player, position, entities, enemies);
+    }
+
+    // =====================================================================================
+    // THE GATE: WHAT IS SEEN AND HEARD OF IT
+    // =====================================================================================
+    //
+    // Nothing here pulls or hurts: that is paleEmpGatePull above. A seal lies under the gate for as long as
+    // it stands. While its doors sink away the ground shakes; when they are gone it opens with a roar and
+    // the dead reach up under it; while it pulls, mist and embers are sucked into it and chains run from it
+    // to those it drags.
+
+    /** How many of those it drags have a chain drawn to them at one time. */
+    private static final int GATE_CHAINS = 10;
+
+    /** The gate's pivot is its threshold: this far above it is the middle of its opening. */
+    private static final double GATE_MOUTH = 2.5;
+
+    private static final ParticleFx GATE_EMBER = ParticleFx.of("fx/glow")
+            .color(0xFFFF6A4A).endColor(0x00801010)
+            .size(0.12f).endSize(0.03f).sizeRandom(0.4f)
+            .lifetime(18, 10).friction(0.92f)
+            .glow();
+
+    /** From the moment the gate appears to the moment it is gone. 'gate' is where it stands (its threshold). */
+    private static void gateShows(Player player, ServerLevel sl, Vec3 gate) {
+        float yaw = player.getYRot();
+        Vec3 below = Spells.groundAt(player, sl, player.position());
+        Vec3 mouth = gate.add(0, GATE_MOUTH, 0);
+
+        // it appears
+        seal(sl, below, yaw, 10f, GATE_TICKS);
+        SpellFx.shockRing(sl, below, 6.0, 0xE0D02A2A, 12, 0);
+
+        Spells.sound(sl, gate, SoundEvents.WITHER_SPAWN, 0.9f, 0.5f);
+        Spells.sound(sl, gate, SoundEvents.BELL_BLOCK, 1.5f, 0.4f);
+
+        // its doors sink away: the ground shakes
+        for (int tick = 10; tick < GATE_OPENS; tick += 20) {
+            Later.run(sl, tick, () -> {
+                ParticleShapes.ring(sl, LAND_MIST, below.add(0, 0.2, 0), 3.0, 14, 0.06);
+                Spells.sound(sl, gate, SoundEvents.CHAIN_PLACE, 1.0f, 0.5f);
+            });
+        }
+
+        // they are gone: it opens
+        Later.run(sl, GATE_OPENS, () -> {
+            SpellFx.shockRing(sl, below, 12.0, 0xE0D02A2A, 14, 0);
+            SpellFx.shockRing(sl, mouth, 6.0, 0xC09CFFD2, 10, 2);
+            ParticleShapes.burst(sl, GATE_EMBER, mouth, 40, 0.1, 0.5);
+
+            PaleEmperorFx.underworldArms(sl, below, yaw, 6);
+
+            Spells.sound(sl, gate, SoundEvents.ENDER_DRAGON_GROWL, 1.2f, 0.5f);
+            Spells.sound(sl, gate, SoundEvents.WITHER_AMBIENT, 1.0f, 0.5f);
+        });
+
+        // it is gone
+        Later.run(sl, GATE_TICKS, () -> {
+            SpellFx.closingRing(sl, below, 12.0, 0xC0D02A2A, 14, 0);
+            ParticleShapes.burst(sl, GATE_EMBER, mouth, 30, 0.05, 0.35);
+            Spells.sound(sl, gate, SoundEvents.BELL_BLOCK, 1.2f, 0.4f);
+        });
+    }
+
+    /** One pull of the gate: what it drags in is 'dragged', what it hurt this time is 'hurt'. */
+    private static void gateDrags(
+            ServerLevel sl,
+            Player player,
+            Vec3 gate,
+            List<LivingEntity> dragged,
+            List<LivingEntity> hurt
+    ) {
+        Vec3 mouth = gate.add(0, GATE_MOUTH, 0);
+        Vec3 below = Spells.groundAt(player, sl, gate);
+
+        // mist along the ground and embers in the air, both sucked in
+        ParticleShapes.ring(sl, LAND_MIST, below.add(0, 0.3, 0), 9.0, 18, -0.45);
+        ParticleShapes.ring(sl, GATE_EMBER, mouth, 5.0, 10, -0.35);
+
+        // a chain from the gate to each of those it drags (a pull comes every 10 ticks: drawn until the next)
+        int chains = 0;
+
+        for (LivingEntity entity : dragged) {
+            if (chains++ >= GATE_CHAINS) break;
+
+            SpellFx.tether(sl, CHAIN_SLASH, () -> mouth, () -> SpellFx.middleOf(entity, sl), 10);
+        }
+
+        for (LivingEntity entity : hurt) {
+            ParticleShapes.burst(sl, GATE_EMBER, entity.getBoundingBox().getCenter(), 6, 0.05, 0.25);
+        }
+
+        // every 2 seconds it groans, every 4 the dead reach up under it
+        long time = sl.getGameTime();
+
+        if (time % 40 < 10) {
+            Spells.sound(sl, gate, SoundEvents.WITHER_AMBIENT, 0.6f, 0.5f);
+        }
+
+        if (time % 80 < 10) {
+            PaleEmperorFx.underworldArms(sl, below, sl.getRandom().nextFloat() * 360f, 5);
         }
     }
 
@@ -1050,18 +1190,31 @@ public class PaleEmperor {
     /** The tick the serpent's jaws are wide open: the screech leaves it, or the lines do. */
     public static final int SERPENT_ROARS = 40;
 
+    /**
+     * The other moments of its animation: it breaks out of the ground, it stands tall, its jaws snap shut at
+     * the end of its strike (normal cast only), it starts to sink. The models below are built from these,
+     * and so is what is seen and heard at each of them (serpentShows).
+     */
+    private static final int SERPENT_BREAKS_OUT = 12;
+    private static final int SERPENT_UP = 30;
+    private static final int SERPENT_BITES = 86;
+    private static final int SERPENT_SINKS = 128;
+
+    /** How far its head tips forward when it strikes, in degrees. */
+    private static final float SERPENT_STRIKES = 28f;
+
     public static final ModelFx SERPENT = ModelFx.of("pale_emperor/feathered_serpent").frames(3).smooth()
             .scale(2f).pivot(8, -16, 12).glow().lifetime(SERPENT_TICKS).fade(0, 4)
             .key(0, pose().up(-6.2f))                                    // under the ground
-            .key(12, pose().up(-6.2f))                                   // waits for the coils and the seal
-            .key(30, pose().up(0), ModelFx.Ease.OUT)                             // rears up
+            .key(SERPENT_BREAKS_OUT, pose().up(-6.2f))                   // waits for the coils and the seal
+            .key(SERPENT_UP, pose().up(0), ModelFx.Ease.OUT)                     // rears up
             .during(34, 40, pose().frame(2), ModelFx.Ease.OUT)                   // roars: jaws wide, collar flared
             .during(60, 68, pose().frame(0), ModelFx.Ease.IN_OUT)                // shuts its mouth
             .during(78, 84, pose().frame(2), ModelFx.Ease.OUT)                   // opens it again...
-            .during(80, 86, pose().pitch(28), ModelFx.Ease.IN)                   // ...and strikes forward and down
-            .during(86, 89, pose().frame(0), ModelFx.Ease.IN)                    // the bite
+            .during(SERPENT_BITES - 6, SERPENT_BITES, pose().pitch(SERPENT_STRIKES), ModelFx.Ease.IN)   // ...and strikes forward and down
+            .during(SERPENT_BITES, SERPENT_BITES + 3, pose().frame(0), ModelFx.Ease.IN)                 // the bite
             .during(94, 108, pose().pitch(0), ModelFx.Ease.IN_OUT)               // draws back
-            .during(128, 148, pose().up(-6.2f), ModelFx.Ease.IN);                // sinks away
+            .during(SERPENT_SINKS, 148, pose().up(-6.2f), ModelFx.Ease.IN);      // sinks away
 
     /**
      * The serpent of the sneak cast: it rears up, opens its jaws and keeps them open for as long as
@@ -1070,11 +1223,11 @@ public class PaleEmperor {
     public static final ModelFx SERPENT_BINDING = ModelFx.of("pale_emperor/feathered_serpent").frames(3).smooth()
             .scale(2f).pivot(8, -16, 12).glow().lifetime(SERPENT_TICKS).fade(0, 4)
             .key(0, pose().up(-6.2f))                                    // under the ground
-            .key(12, pose().up(-6.2f))                                   // waits for the coils and the seal
-            .key(30, pose().up(0), ModelFx.Ease.OUT)                             // rears up
+            .key(SERPENT_BREAKS_OUT, pose().up(-6.2f))                   // waits for the coils and the seal
+            .key(SERPENT_UP, pose().up(0), ModelFx.Ease.OUT)                     // rears up
             .during(34, 40, pose().frame(2), ModelFx.Ease.OUT)                   // jaws wide: the lines leave its mouth
             .during(100, 108, pose().frame(0), ModelFx.Ease.IN_OUT)              // lets go and shuts its mouth
-            .during(128, 148, pose().up(-6.2f), ModelFx.Ease.IN);                // sinks away
+            .during(SERPENT_SINKS, 148, pose().up(-6.2f), ModelFx.Ease.IN);      // sinks away
 
     /** Its coiled body, 5 blocks across. */
     public static final ModelFx SERPENT_COIL = ModelFx.of("pale_emperor/feathered_serpent_coil")
@@ -1098,6 +1251,48 @@ public class PaleEmperor {
     /** Where the open mouth of a serpent that rose at 'ground' is. */
     private static Vec3 serpentMouth(Vec3 ground, float yaw) {
         return ground.add(0, 2.4, 0).add(Vec3.directionFromRotation(0f, yaw).scale(1.7));
+    }
+
+    /** Where its mouth is at the end of its strike: the head has tipped SERPENT_STRIKES degrees forward round its base. */
+    private static Vec3 serpentBite(Vec3 ground, float yaw) {
+        double tipped = Math.toRadians(SERPENT_STRIKES);
+        double forward = 1.7 * Math.cos(tipped) + 2.4 * Math.sin(tipped);
+        double up = 2.4 * Math.cos(tipped) - 1.7 * Math.sin(tipped);
+
+        return ground.add(0, up, 0).add(Vec3.directionFromRotation(0f, yaw).scale(forward));
+    }
+
+    /**
+     * What is seen and heard of the serpent itself, for both casts: the ground breaks, feathers fall as it
+     * rears up, and mist closes over the place as it sinks. 'bites': the normal cast, whose serpent strikes
+     * once and snaps its jaws (that is only for show: the screech is what hurts).
+     */
+    private static void serpentShows(ServerLevel sl, Vec3 ground, float yaw, boolean bites) {
+        Spells.sound(sl, ground, SoundEvents.WITHER_AMBIENT, 0.9f, 0.5f);
+        ParticleShapes.ring(sl, LAND_MIST, ground.add(0, 0.2, 0), 2.5, 16, 0.05);
+
+        Later.run(sl, SERPENT_BREAKS_OUT, () -> {
+            SpellFx.shockRing(sl, ground, 4.5, 0xD09CFFD2, 10, 0);
+            ParticleShapes.burst(sl, LAND_MIST, ground.add(0, 0.4, 0), 14, 0.04, 0.2);
+            Spells.sound(sl, ground, SoundEvents.ENDER_DRAGON_FLAP, 0.9f, 0.5f);
+        });
+
+        Later.run(sl, SERPENT_UP, () -> PaleEmperorFx.featherFall(sl, ground, 3.5, 10));
+
+        if (bites) {
+            Later.run(sl, SERPENT_BITES, () -> {
+                Vec3 jaws = serpentBite(ground, yaw);
+
+                ParticleShapes.burst(sl, PALE_SPARK, jaws, 16, 0.05, 0.3);
+                Spells.sound(sl, jaws, SoundEvents.PLAYER_ATTACK_CRIT, 1.2f, 0.5f);
+                Spells.sound(sl, jaws, SoundEvents.ANVIL_LAND, 0.4f, 1.4f);
+            });
+        }
+
+        Later.run(sl, SERPENT_SINKS, () -> {
+            SpellFx.closingRing(sl, ground, 4.5, 0xB09CFFD2, 16, 0);
+            ParticleShapes.ring(sl, LAND_MIST, ground.add(0, 0.2, 0), 4.0, 18, -0.12);
+        });
     }
 
     // =====================================================================================
@@ -1128,6 +1323,12 @@ public class PaleEmperor {
         Spells.sound(sl, mouth, SoundEvents.ENDER_DRAGON_GROWL, 1.6f, 1.7f);
         Spells.sound(sl, mouth, SoundEvents.WARDEN_SONIC_BOOM, 1.2f, 1.4f);
 
+        // its breath
+        Vec3 facing = Vec3.directionFromRotation(0f, yaw);
+
+        ParticleShapes.cone(sl, PALE_SPARK, mouth, facing, 70, 40, 0.3, 0.9);
+        ParticleShapes.cone(sl, LAND_MIST, mouth, facing, 50, 12, 0.15, 0.45);
+
         // the first ring is the wave itself, the others follow it like an echo
         SpellFx.steadyRing(sl, ground, SCREECH_RADIUS, 0xF09CFFD2, SCREECH_TICKS, 0);
         SpellFx.steadyRing(sl, ground.add(0, 0.02, 0), SCREECH_RADIUS, 0xB0F5C211, SCREECH_TICKS, 3);
@@ -1142,7 +1343,14 @@ public class PaleEmperor {
                 SCREECH_RADIUS,
                 SCREECH_TICKS,
                 SCREECH_HEIGHT,
-                enemy -> Spells.strike(player, enemy, SCREECH_DAMAGE)
+                enemy -> {
+                    Spells.strike(player, enemy, SCREECH_DAMAGE);
+
+                    Vec3 middle = enemy.getBoundingBox().getCenter();
+
+                    ParticleShapes.burst(sl, PALE_SPARK, middle, 8, 0.05, 0.25);
+                    Spells.sound(sl, middle, SoundEvents.PLAYER_ATTACK_KNOCKBACK, 0.5f, 1.4f);
+                }
         );
     }
 
@@ -1188,7 +1396,14 @@ public class PaleEmperor {
 
         List<LivingEntity> caught = enemiesInFront(player, sl, ground, yaw, mouth, castFrom);
 
-        if (caught.isEmpty()) return;
+        if (caught.isEmpty()) {
+            // it hisses at nothing
+            Spells.sound(sl, mouth, SoundEvents.ENDER_DRAGON_GROWL, 0.6f, 1.9f);
+            player.sendSystemMessage(Component.literal("The serpent finds no one before it."));
+            return;
+        }
+
+        ParticleShapes.cone(sl, PALE_SPARK, mouth, Vec3.directionFromRotation(0f, yaw), 60, 24, 0.2, 0.6);
 
         Spells.sound(sl, mouth, SoundEvents.ENDER_DRAGON_GROWL, 1.0f, 1.9f);
         Spells.sound(sl, mouth, SoundEvents.CHAIN_PLACE, 1.4f, 0.6f);
@@ -1223,12 +1438,22 @@ public class PaleEmperor {
                     LINE_TICKS
             );
 
+            // the line takes hold
+            SpellFx.closingRing(sl, enemy.position(), enemy.getBbWidth() * 0.5 + 1.0, 0xC09CFFD2, 6, 0);
+
             for (int tick = 0; tick < LINE_TICKS; tick += LINE_PULSE) {
                 Later.run(
                         sl,
                         tick,
                         () -> {
-                            if (end.get() != null) Spells.strike(player, enemy, LINE_DAMAGE);
+                            Vec3 held = end.get();
+
+                            if (held == null) return;
+
+                            Spells.strike(player, enemy, LINE_DAMAGE);
+
+                            ParticleShapes.burst(sl, PALE_SPARK, held, 6, 0.04, 0.2);
+                            ParticleShapes.spawn(sl, PALE_SPARK, mouth, Vec3.ZERO);        // its mouth glows while it holds them
                         }
                 );
             }
@@ -1300,6 +1525,7 @@ public class PaleEmperor {
         if (!player.isShiftKeyDown()) {
 
             serpent(sl, ground, yaw);
+            serpentShows(sl, ground, yaw, true);
 
             Later.run(
                     sl,
@@ -1316,6 +1542,7 @@ public class PaleEmperor {
             Vec3 castFrom = player.getEyePosition();
 
             serpent(sl, SERPENT_BINDING, ground, yaw);
+            serpentShows(sl, ground, yaw, false);
 
             Later.run(
                     sl,
@@ -1390,14 +1617,31 @@ public class PaleEmperor {
             // SPEAR: hurts every enemy it goes through and flies on. A block ends it.
             Vec3 from = Spells.clearStart(player, sl, player.position().add(0, SPEAR_HEIGHT, 0));
 
+            shotAppears(sl, from);
+
+            boolean[] thrown = {false};
+
             SPEAR_SHOT
+                    .onMove(at -> {
+                        // the first tick it flies is the throw; from then on it leaves a trail
+                        if (!thrown[0]) {
+                            thrown[0] = true;
+                            Spells.sound(sl, at, SoundEvents.WITHER_SHOOT, 0.6f, 1.6f);
+                            Spells.sound(sl, at, SoundEvents.PLAYER_ATTACK_SWEEP, 1.0f, 0.6f);
+                        }
+                        ParticleShapes.burst(sl, PALE_SPARK, at, 2, 0.0, 0.04);
+                    })
                     .onHit((target, at) -> {
                         Spells.strike(player, target, SPEAR_DAMAGE);
                         ParticleShapes.burst(sl, PALE_SPARK, at, 12, 0.05, 0.25);
+                        ParticleShapes.burst(sl, GOLD_SPARK, at, 6, 0.05, 0.2);
+                        SpellFx.shockRing(sl, at.add(0, -0.3, 0), 1.4, 0xD09CFFD2, 6, 0);
                         Spells.sound(sl, at, SoundEvents.PLAYER_ATTACK_CRIT, 0.9f, 0.7f);
                     })
                     .onStop((at, hitBlock) -> {
                         ParticleShapes.burst(sl, PALE_SPARK, at, 16, 0.05, 0.3);
+                        ParticleShapes.burst(sl, LAND_MIST, at, 5, 0.02, 0.1);
+                        SpellFx.shockRing(sl, at.add(0, -0.2, 0), 1.6, 0xB0F5C211, 7, 0);
                         Spells.sound(sl, at, SoundEvents.PLAYER_ATTACK_KNOCKBACK, 0.7f, 0.6f);
                     })
                     .fire(player, sl, from);
@@ -1407,17 +1651,47 @@ public class PaleEmperor {
             // SKULL: bursts on the first enemy it reaches, or on a block. With nothing in its way it only fades.
             Vec3 from = Spells.clearStart(player, sl, player.position().add(0, SKULL_HEIGHT, 0));
 
+            shotAppears(sl, from);
+
+            boolean[] loosed = {false};
+
             SKULL_SHOT
+                    .onMove(at -> {
+                        // the first tick it flies it howls; from then on it trails mist and sparks
+                        if (!loosed[0]) {
+                            loosed[0] = true;
+                            Spells.sound(sl, at, SoundEvents.WITHER_AMBIENT, 0.7f, 1.5f);
+                        }
+                        ParticleShapes.burst(sl, LAND_MIST, at, 1, 0.0, 0.02);
+                        ParticleShapes.burst(sl, PALE_SPARK, at, 1, 0.0, 0.05);
+                    })
                     .onStop((at, hitBlock) -> skullBursts(player, sl, at))
+                    .onExpire(at -> {
+                        // nothing was in its way: it only fades
+                        ParticleShapes.burst(sl, LAND_MIST, at, 8, 0.02, 0.1);
+                        ParticleShapes.burst(sl, PALE_SPARK, at, 8, 0.03, 0.15);
+                    })
                     .fire(player, sl, from);
         }
+    }
+
+    /** The spear or the skull takes shape over the caster's shoulder. */
+    private static void shotAppears(ServerLevel sl, Vec3 at) {
+        ParticleShapes.burst(sl, PALE_SPARK, at, 14, 0.03, 0.18);
+        SpellFx.closingRing(sl, at.add(0, -0.4, 0), 1.3, 0xC09CFFD2, 8, 0);
+        Spells.sound(sl, at, SoundEvents.ILLUSIONER_CAST_SPELL, 0.8f, 0.7f);
     }
 
     /** The skull is gone in a pale blast that hurts every enemy around it. */
     private static void skullBursts(Player player, ServerLevel sl, Vec3 at) {
         for (LivingEntity enemy : Spells.enemiesAround(player, sl, at, SKULL_BLAST_RADIUS)) {
             Spells.strike(player, enemy, SKULL_DAMAGE);
+            ParticleShapes.burst(sl, PALE_SPARK, enemy.getBoundingBox().getCenter(), 8, 0.05, 0.25);
         }
+
+        // what is left of it hangs in the air for a moment
+        ParticleShapes.burst(sl, LAND_MIST, at, 16, 0.02, 0.12);
+        ParticleShapes.burst(sl, GOLD_SPARK, at, 14, 0.05, 0.3);
 
         SpellFx.blast(sl, at, SKULL_BLAST_RADIUS, 0xE09CFFD2, PALE_SPARK);
         SpellFx.shockRing(sl, at.add(0, -0.3, 0), SKULL_BLAST_RADIUS * 0.7, 0xB0F5C211, 10, 2);       // a second, golden ring
@@ -1486,6 +1760,10 @@ public class PaleEmperor {
 
             if (!Spells.payEssence(player, SPIKES_COST)) return;
 
+            // the caster calls them up
+            SpellFx.shockRing(sl, player.position(), 2.2, 0xD09CFFD2, 8, 0);
+            Spells.sound(sl, player.position(), SoundEvents.ANVIL_LAND, 0.35f, 0.6f);
+
             for (LivingEntity enemy : seen) {
                 spikesUnder(player, sl, enemy);
             }
@@ -1508,6 +1786,10 @@ public class PaleEmperor {
             }
 
             if (!Spells.payEssence(player, SPIKES_COST)) return;
+
+            // the caster calls in what is owed
+            SpellFx.closingRing(sl, player.position(), 2.2, 0xD0F5C211, 8, 0);
+            Spells.sound(sl, player.position(), SoundEvents.BELL_BLOCK, 0.9f, 0.6f);
 
             for (LivingEntity enemy : marked) {
                 handsTake(player, sl, enemy);
@@ -1544,14 +1826,20 @@ public class PaleEmperor {
         // a little taller than what they hit
         float scale = (float) Math.max(0.5, Math.min(1.6, enemy.getBbHeight() / 2.75 * 1.2));
 
+        Vec3 ground = Spells.groundUnder(player, sl, enemy);
+
         ParticleShapes.model(
                 sl,
                 boneSpikes(scale),
-                Spells.groundUnder(player, sl, enemy),
+                ground,
                 sl.getRandom().nextFloat() * 360f,
                 0f,
                 0f
         );
+
+        // the ground breaks where they come out
+        ParticleShapes.burst(sl, LAND_MIST, ground.add(0, 0.2, 0), 6, 0.02, 0.1);
+        SpellFx.shockRing(sl, ground, 0.9 + scale, 0xC09CFFD2, 6, SPIKES_OUT - 1);
 
         Later.run(
                 sl,
@@ -1635,6 +1923,18 @@ public class PaleEmperor {
 
             ParticleShapes.burst(sl, PALE_SPARK, middle, 14, 0.05, 0.3);
             Spells.sound(sl, middle, SoundEvents.WITHER_HURT, 0.7f, 0.8f);
+
+            // one hand of the dead claws at it, if there is ground for it to come out of
+            if (enemy.onGround()) {
+                float side = sl.getRandom().nextFloat() * 360f;
+
+                PaleEmperorFx.underworldArm(
+                        sl,
+                        Spells.spotAround(enemy.position(), side, enemy.getBbWidth() * 0.5 + 0.9),
+                        side + 180f,
+                        ""
+                );
+            }
             return;
         }
 
@@ -1691,6 +1991,24 @@ public class PaleEmperor {
                     // it goes down exactly as fast as the arms do (their depth is the 'pull'), stays under
                     // for BURIED_TICKS and is then put back where it stood
                     Burial.bury(enemy, HANDS_UNDER - HANDS_PULL, BURIED_TICKS, ARM_HIDDEN * scale);
+
+                    // the ground closes over it
+                    SpellFx.closingRing(sl, ground, radius + 1.0, 0xD09CFFD2, HANDS_UNDER - HANDS_PULL, 0);
+                    ParticleShapes.ring(sl, LAND_MIST, ground.add(0, 0.2, 0), radius + 0.5, 14, -0.08);
+                    Spells.sound(sl, ground, SoundEvents.WITHER_AMBIENT, 0.7f, 0.4f);
+                }
+        );
+
+        // the moment it is given back (Burial puts it where it stood)
+        Later.run(
+                sl,
+                HANDS_UNDER + BURIED_TICKS,
+                () -> {
+                    if (enemy.level() != sl || !enemy.isAlive()) return;
+
+                    SpellFx.shockRing(sl, ground, radius + 1.0, 0xC09CFFD2, 8, 0);
+                    ParticleShapes.burst(sl, LAND_MIST, ground.add(0, 0.3, 0), 12, 0.03, 0.15);
+                    Spells.sound(sl, ground, SoundEvents.PLAYER_ATTACK_KNOCKBACK, 0.8f, 0.5f);
                 }
         );
     }
@@ -1704,6 +2022,8 @@ public class PaleEmperor {
         Spells.strike(player, enemy, damage);
 
         ParticleShapes.burst(sl, PALE_SPARK, middle, 24, 0.05, 0.35);
+        ParticleShapes.burst(sl, GOLD_SPARK, middle, 10, 0.05, 0.3);
+        SpellFx.shockRing(sl, enemy.position(), enemy.getBbWidth() * 0.5 + 1.4, 0xD0F5C211, 7, 0);
         Spells.sound(sl, middle, SoundEvents.PLAYER_ATTACK_CRIT, 1.0f, 0.5f);
     }
 
@@ -1774,6 +2094,21 @@ public class PaleEmperor {
         PaleEmperorFx.featherFall(sl, player.position(), 1.5, 10);
 
         Spells.sound(sl, player.position(), SoundEvents.ENDER_DRAGON_FLAP, 1.0f, 0.8f);
+
+        // the gust of the first beat
+        Vec3 feet = player.position();
+
+        SpellFx.shockRing(sl, feet, 3.5, 0xD09CFFD2, 10, 0);
+        SpellFx.risingRings(sl, feet, 1.6, 2.4, 3, 0xA0F5C211);
+        ParticleShapes.burst(sl, PALE_SPARK, feet.add(0, 1.0, 0), 20, 0.05, 0.3);
+    }
+
+    /** The wings are gone: a few feathers and sparks are left where they were. */
+    private static void wingsShed(Player player, ServerLevel sl) {
+        Vec3 back = player.position().add(0, 1.2, 0);
+
+        ParticleShapes.burst(sl, PALE_SPARK, back, 14, 0.04, 0.22);
+        PaleEmperorFx.featherFall(sl, player.position().add(0, -3.5, 0), 1.2, 6);      // (from about the player's height)
     }
 
     /** Ends the flight before its time. */
@@ -1785,6 +2120,8 @@ public class PaleEmperor {
         PaleEmperorFx.foldWings(sl, player, WINGS_TAG);
 
         Spells.sound(sl, player.position(), SoundEvents.ENDER_DRAGON_FLAP, 0.7f, 0.6f);
+
+        wingsShed(player, sl);
     }
 
     /** One tick of wearing the wings: the warning, the sound of the beats, a feather now and then. */
@@ -1797,6 +2134,7 @@ public class PaleEmperor {
         if (left <= 0) {
             player.getPersistentData().remove(WINGS_ON);
             Spells.sound(sl, player.position(), SoundEvents.ENDER_DRAGON_FLAP, 0.7f, 0.6f);
+            wingsShed(player, sl);
             return;
         }
 
@@ -1811,6 +2149,10 @@ public class PaleEmperor {
             if (left % 10 == 0) {
                 // one feather, starting about where the player is and drifting down behind them
                 PaleEmperorFx.featherFall(sl, player.position().add(0, -3.5, 0), 0.5, 1);
+            }
+            if (left % 4 == 0) {
+                // a spark off the wings
+                ParticleShapes.burst(sl, PALE_SPARK, player.position().add(0, 1.2, 0), 1, 0.0, 0.04);
             }
         }
     }
@@ -1857,6 +2199,12 @@ public class PaleEmperor {
         }
 
         ParticleShapes.slashBetween(sl, STEP_STREAK.lifetime(8).sweep(3), left.add(0, 1.0, 0), there.add(0, 1.0, 0));
+
+        // the air closes where they were and opens where they are
+        SpellFx.closingRing(sl, left, 2.0, 0xD09CFFD2, 8, 0);
+        SpellFx.shockRing(sl, there, 2.5, 0xD09CFFD2, 8, 0);
+        SpellFx.risingRings(sl, there, 1.2, 2.0, 3, 0xB0F5C211);
+        ParticleShapes.burst(sl, GOLD_SPARK, there.add(0, 1.0, 0), 10, 0.04, 0.22);
     }
 
     // =====================================================================================
@@ -2007,6 +2355,9 @@ public class PaleEmperor {
 
         ParticleShapes.model(sl, WRAITH_RISING, ground, yaw, 0f, 0f);
 
+        // the ground smokes where it comes out
+        ParticleShapes.burst(sl, LAND_MIST, ground.add(0, 0.3, 0), 4, 0.02, 0.08);
+
         // where it hangs when it has risen: that is where it flies from
         Vec3 hangs = ground.add(0, 0.35, 0);
 
@@ -2071,9 +2422,10 @@ public class PaleEmperor {
 
         ParticleShapes.burst(sl, PALE_SPARK, middle, 12, 0.05, 0.3);
         ParticleShapes.burst(sl, SpellFx.FIRE_SMOKE, middle, 4, 0.02, 0.08);
+        SpellFx.shockRing(sl, enemy.position(), enemy.getBbWidth() * 0.5 + 1.1, 0xC0B48CFF, 6, 0);
         Spells.sound(sl, middle, SoundEvents.WITHER_HURT, 0.5f, 1.4f);
 
-        if (enemy.isAlive()) curse(enemy);
+        if (enemy.isAlive()) curse(sl, enemy);
     }
 
     private static boolean isPrey(Player player, ServerLevel sl, LivingEntity enemy) {
@@ -2081,11 +2433,27 @@ public class PaleEmperor {
     }
 
     /** One more curse: it takes more damage from everything, and withers, for CURSE_TICKS from now. */
-    private static void curse(LivingEntity enemy) {
-        Vulnerable.add(enemy, CURSE_DAMAGE, CURSE_DAMAGE_MAX, CURSE_TICKS);
+    private static void curse(ServerLevel sl, LivingEntity enemy) {
+        float more = Vulnerable.add(enemy, CURSE_DAMAGE, CURSE_DAMAGE_MAX, CURSE_TICKS);
 
         enemy.addEffect(new MobEffectInstance(MobEffects.WITHER, CURSE_TICKS, 0));
+
+        // a violet mark under it for as long as it is cursed, wider and brighter the more curses lie on it
+        float part = Math.max(0f, Math.min(1f, more / CURSE_DAMAGE_MAX));
+        int strength = 0x60 + (int) (0x80 * part);
+
+        SpellFx.circleUnder(
+                sl,
+                enemy,
+                enemy.getBbWidth() * 0.5 + 0.4 + 0.6 * part,
+                (strength << 24) | 0xB48CFF,
+                CURSE_TICKS,
+                WRAITH_CURSE_MARK
+        );
     }
+
+    /** The name of the mark under those the wraiths cursed. */
+    private static final String WRAITH_CURSE_MARK = "pale_emperor_wraith_curse";
 
     // =====================================================================================
     // THE UNDERWORLD (sneak cast)
@@ -2102,6 +2470,11 @@ public class PaleEmperor {
         seal(sl, feet, player.getYRot(), 4f, 30);
         SpellFx.closingRing(sl, feet, 3.0, 0xE09CFFD2, 10, 0);
         Spells.sound(sl, feet, SoundEvents.WITHER_AMBIENT, 0.8f, 0.6f);
+
+        // the arms of the dead take them down, and the mist closes over the place
+        PaleEmperorFx.underworldArms(sl, Spells.groundUnder(player, sl, player), player.getYRot(), 5);
+        ParticleShapes.ring(sl, LAND_MIST, feet.add(0, 0.3, 0), 2.5, 14, -0.15);
+        ParticleShapes.burst(sl, PALE_SPARK, player.getBoundingBox().getCenter(), 14, 0.03, 0.2);
 
         player.getPersistentData().putBoolean(IN_UNDERWORLD, true);
 
@@ -2121,6 +2494,12 @@ public class PaleEmperor {
         seal(sl, feet, player.getYRot(), 4f, 30);
         SpellFx.shockRing(sl, feet, 3.0, 0xE09CFFD2, 10, 0);
         Spells.sound(sl, feet, SoundEvents.WITHER_AMBIENT, 0.8f, 1.2f);
+
+        // they come up out of it
+        SpellFx.risingRings(sl, feet, 1.4, 2.2, 3, 0xC09CFFD2);
+        ParticleShapes.burst(sl, LAND_MIST, feet.add(0, 0.3, 0), 10, 0.03, 0.14);
+        ParticleShapes.burst(sl, PALE_SPARK, player.getBoundingBox().getCenter(), 18, 0.04, 0.25);
+        PaleEmperorFx.featherFall(sl, feet, 1.2, 5);
 
         player.sendSystemMessage(Component.literal("You return from the underworld."));
     }
