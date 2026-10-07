@@ -234,7 +234,7 @@ public class PaleEmperor {
         // NORMAL CAST — THE CURSED LAND
         // =====================================================================
 
-        if (!player.isShiftKeyDown()) {
+        if (player.isShiftKeyDown()) {
             cursedLand(player, sl);
             return;
         }
