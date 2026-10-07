@@ -831,7 +831,7 @@ public class PaleEmperor {
             .scale(0.5f).pivot(8, 8, 8).glow().lifetime(SKULL_TICKS).fade(0, 12)
             .key(0, pose().scale(0.15f).alpha(0f))
             .key(10, pose().scale(1f).alpha(1f), ModelFx.Ease.OUT_BACK)
-            .during(10, 40, pose().forward(24f), ModelFx.Ease.IN_OUT);
+            .during(10, 40, pose().forward(32f), ModelFx.Ease.IN_OUT);
 
 
     public static final int SPEAR_TICKS = 80;
@@ -840,10 +840,10 @@ public class PaleEmperor {
     private static final ModelFx SPEAR_HOVERS = SPEAR.lifetime(SPEAR_TICKS)
             .key(0, pose().scale(0.3f).alpha(0f))
             .key(8, pose().scale(1f).alpha(1f), ModelFx.Ease.OUT_BACK)           // appears, point up
-            .during(8, 50, pose().spin(360), ModelFx.Ease.IN_OUT)                // turns once
-            .during(50, 60, pose().pitch(90), ModelFx.Ease.IN_OUT)               // tips over: the point looks forward
-            .during(60, 64, pose().forward(-1f), ModelFx.Ease.OUT)               // draws back
-            .during(64, 76, pose().forward(26f), ModelFx.Ease.IN);
+            .during(4, 25, pose().spin(360), ModelFx.Ease.IN_OUT)                // turns once
+            .during(25, 30, pose().pitch(90), ModelFx.Ease.IN_OUT)               // tips over: the point looks forward
+            .during(30, 32, pose().forward(-1f), ModelFx.Ease.OUT)               // draws back
+            .during(32, 64, pose().forward(36f), ModelFx.Ease.IN);
 
 
     // =====================================================================================
