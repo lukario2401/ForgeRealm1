@@ -1,5 +1,6 @@
 package net.lukario.frogerealm.shadow_slave.soul_abilities.beyonder_characteristics;
 
+import net.lukario.frogerealm.ForgeRealm;
 import net.lukario.frogerealm.combat.AnimatedShot;
 import net.lukario.frogerealm.combat.Later;
 import net.lukario.frogerealm.combat.SpellFx;
@@ -11,14 +12,21 @@ import net.lukario.frogerealm.particles.fx.SlashFx;
 import net.lukario.frogerealm.root.Root;
 import net.lukario.frogerealm.root.RootRestriction;
 import net.lukario.frogerealm.shadow_slave.soul_shards.SoulCore;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.event.entity.living.LivingChangeTargetEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -935,6 +943,402 @@ public class PaleEmperor {
 
         Spells.sound(sl, at, SoundEvents.GENERIC_EXPLODE.value(), 1f, 1.3f);
         Spells.sound(sl, at, SoundEvents.WITHER_HURT, 0.8f, 0.6f);
+    }
+
+    // =====================================================================================
+    // BONE SPIKES AND THE HANDS OF THE UNDERWORLD (ability 5)
+    // =====================================================================================
+    //
+    // Normal cast: spikes break out under every enemy the caster can see. They hurt and blind it, and it
+    //   remembers how often it was hit: every hit after the first hurts more.
+    // Sneak cast: every enemy in sight pays for the hits it remembers, 15 damage for each. With 3 or more,
+    //   hands come out of the ground around it, close on it and drag it under.
+
+    private static final float SPIKES_COST = 2000;               // either cast
+    private static final int SPIKES_STAGE = 3;
+
+    /** Who it reaches: every enemy in sight this far away, this many degrees to either side of the crosshair. */
+    public static final double SIGHT_RANGE = 24;
+    public static final double SIGHT_ANGLE = 45;
+
+    /** The first hit of the spikes, and how much more each hit it already remembers adds. */
+    public static final float SPIKE_DAMAGE = 10f;
+    public static final float SPIKE_DAMAGE_PER_HIT = 5f;
+
+    /** How long the spikes blind, and how near a blinded mob must be to something to go after it. */
+    public static final int BLIND_TICKS = 80;
+    public static final double BLIND_MOB_SEES = 3.0;
+
+    /** An enemy forgets its hits this long after the last one, and never remembers more than HITS_MAX. */
+    public static final int HITS_FORGOTTEN_AFTER = 300;
+    public static final int HITS_MAX = 10;
+
+    /** Sneak cast: damage for each hit it remembers, and how many hits it takes for the hands to come. */
+    public static final float HANDS_DAMAGE_PER_HIT = 15f;
+    public static final int HANDS_NEED_HITS = 3;
+
+    /** How long the hands keep it under the ground before it is given back. */
+    public static final int BURIED_TICKS = 40;
+
+    // saved with the enemy
+    private static final String HITS = "pale_emperor_spike_hits";
+    private static final String HITS_UNTIL = "pale_emperor_spike_hits_until";        // game time
+    private static final String BLIND_UNTIL = "pale_emperor_blind_until";            // game time
+
+    /** The feathers over an enemy's head, one for each hit it remembers. */
+    private static final String HITS_TAG = "pale_emperor_hits";
+
+    public static void paleEmperorSpikes(Player player, Level level, ServerLevel sl, boolean bypassClassCheck) {
+        if (!canUseCharacteristic(player, bypassClassCheck)) return;
+        if (SoulCore.getAscensionStage(player) < SPIKES_STAGE) return;
+
+        List<LivingEntity> seen = Spells.enemiesInSight(player, sl, SIGHT_RANGE, SIGHT_ANGLE);
+
+        // =====================================================================
+        // NORMAL CAST - SPIKES UNDER EVERYONE IN SIGHT
+        // =====================================================================
+
+        if (!player.isShiftKeyDown()) {
+
+            if (seen.isEmpty()) {
+                player.sendSystemMessage(Component.literal("No one stands before you."));
+                return;                                             // nothing spent
+            }
+
+            if (!Spells.payEssence(player, SPIKES_COST)) return;
+
+            for (LivingEntity enemy : seen) {
+                spikesUnder(player, sl, enemy);
+            }
+
+            // =====================================================================
+            // SHIFT CAST - THEY PAY FOR THE HITS THEY REMEMBER
+            // =====================================================================
+
+        } else {
+
+            List<LivingEntity> marked = new ArrayList<>();
+
+            for (LivingEntity enemy : seen) {
+                if (spikeHits(enemy) > 0) marked.add(enemy);
+            }
+
+            if (marked.isEmpty()) {
+                player.sendSystemMessage(Component.literal("No one before you has felt your spikes."));
+                return;                                             // nothing spent
+            }
+
+            if (!Spells.payEssence(player, SPIKES_COST)) return;
+
+            for (LivingEntity enemy : marked) {
+                handsTake(player, sl, enemy);
+            }
+        }
+    }
+
+    // =====================================================================================
+    // THE HITS AN ENEMY REMEMBERS
+    // =====================================================================================
+
+    /** How many spike hits this enemy remembers right now (0 once it has forgotten them). */
+    public static int spikeHits(LivingEntity enemy) {
+        if (enemy.level().getGameTime() >= enemy.getPersistentData().getLong(HITS_UNTIL)) return 0;
+        return enemy.getPersistentData().getInt(HITS);
+    }
+
+    private static void setSpikeHits(ServerLevel sl, LivingEntity enemy, int hits) {
+        enemy.getPersistentData().putInt(HITS, hits);
+        enemy.getPersistentData().putLong(HITS_UNTIL, sl.getGameTime() + HITS_FORGOTTEN_AFTER);
+        showSpikeHits(sl, enemy, hits);
+    }
+
+    private static void forgetSpikeHits(ServerLevel sl, LivingEntity enemy) {
+        enemy.getPersistentData().remove(HITS);
+        enemy.getPersistentData().remove(HITS_UNTIL);
+        ParticleShapes.clearModels(sl, enemy, HITS_TAG);
+    }
+
+    private static final ModelFx HIT_FEATHER = ModelFx.of("pale_emperor/pale_feather")
+            .scale(0.3f).pivot(8, 8, 8).glow().spin(6f)
+            .lifetime(HITS_FORGOTTEN_AFTER).fade(4, 10)                  // gone when the hits are forgotten
+            .tag(HITS_TAG);
+
+    /** A ring of small feathers over its head, one for each hit. They turn gold when the hands can come. */
+    private static void showSpikeHits(ServerLevel sl, LivingEntity enemy, int hits) {
+        ParticleShapes.clearModels(sl, enemy, HITS_TAG);             // the old ring
+
+        ModelFx feather = hits >= HANDS_NEED_HITS ? HIT_FEATHER.color(0xFFFFC83C) : HIT_FEATHER;
+
+        double radius = hits == 1 ? 0.0 : Math.max(0.3, enemy.getBbWidth() * 0.5);
+
+        for (int i = 0; i < hits; i++) {
+
+            double angle = Math.PI * 2 * i / hits;
+
+            Vec3 offset = new Vec3(
+                    Math.cos(angle) * radius,
+                    enemy.getBbHeight() + 0.45,
+                    Math.sin(angle) * radius
+            );
+
+            ParticleShapes.modelOn(sl, feather, enemy, offset, 0f, 0f, 0f);
+        }
+    }
+
+    // =====================================================================================
+    // SPIKES (normal cast)
+    // =====================================================================================
+
+    /** The tick the spikes are out (the hit lands), the tick they start to sink, and when they are gone. */
+    private static final int SPIKES_OUT = 4;
+    private static final int SPIKES_SINK = 30;
+    private static final int SPIKES_TICKS = 44;
+
+    /** The spikes at this size: they are 2.75 blocks tall at scale 1. */
+    private static ModelFx boneSpikes(float scale) {
+        float hidden = -2.9f * scale;                                // this far down they are under the ground
+
+        return ModelFx.of("pale_emperor/bone_spikes")
+                .scale(scale).pivot(8, -16, 8).glow().lifetime(SPIKES_TICKS).fade(0, 4)
+                .key(0, pose().up(hidden))
+                .key(SPIKES_OUT, pose().up(0), ModelFx.Ease.OUT_BACK)                 // burst out, a little too far, and settle
+                .during(SPIKES_SINK, SPIKES_TICKS - 2, pose().up(hidden), ModelFx.Ease.IN);
+    }
+
+    private static void spikesUnder(Player player, ServerLevel sl, LivingEntity enemy) {
+        // a little taller than what they hit
+        float scale = (float) Math.max(0.5, Math.min(1.6, enemy.getBbHeight() / 2.75 * 1.2));
+
+        ParticleShapes.model(
+                sl,
+                boneSpikes(scale),
+                groundUnder(player, sl, enemy),
+                sl.getRandom().nextFloat() * 360f,
+                0f,
+                0f
+        );
+
+        Later.run(
+                sl,
+                SPIKES_OUT,
+                () -> spikesHit(player, sl, enemy)
+        );
+    }
+
+    private static void spikesHit(Player player, ServerLevel sl, LivingEntity enemy) {
+        if (!Spells.casterStillHere(player, sl)) return;
+        if (enemy.level() != sl || !Spells.isEnemy(player, enemy)) return;
+
+        int hits = Math.min(HITS_MAX, spikeHits(enemy) + 1);
+
+        Spells.strike(player, enemy, SPIKE_DAMAGE + SPIKE_DAMAGE_PER_HIT * (hits - 1));
+
+        Vec3 middle = enemy.getBoundingBox().getCenter();
+
+        ParticleShapes.burst(sl, PALE_SPARK, middle, 10, 0.05, 0.25);
+        Spells.sound(sl, middle, SoundEvents.AMETHYST_CLUSTER_BREAK, 0.9f, 0.5f);
+
+        if (!enemy.isAlive()) return;                                // that was the end of it
+
+        setSpikeHits(sl, enemy, hits);
+        blind(sl, enemy);
+    }
+
+    /**
+     * Blindness. A player's screen goes dark by itself; a mob does not care about the effect, so it is also
+     * made to lose what it was hunting, and until it can see again it only goes after what is right next to
+     * it (PaleEmperorEvents below).
+     */
+    private static void blind(ServerLevel sl, LivingEntity enemy) {
+        enemy.addEffect(new MobEffectInstance(MobEffects.BLINDNESS, BLIND_TICKS, 0));
+        enemy.getPersistentData().putLong(BLIND_UNTIL, sl.getGameTime() + BLIND_TICKS);
+
+        if (enemy instanceof Mob mob) {
+            mob.setTarget(null);
+            mob.getNavigation().stop();
+        }
+    }
+
+    /** The ground an enemy stands on or hangs just above. One high in the air gets them at its feet. */
+    private static Vec3 groundUnder(Player player, ServerLevel sl, LivingEntity enemy) {
+        if (enemy.onGround()) return enemy.position();
+
+        Vec3 ground = Spells.groundAt(player, sl, enemy.position());
+
+        return enemy.getY() - ground.y <= 4.0 ? ground : enemy.position();
+    }
+
+    // =====================================================================================
+    // HANDS (sneak cast)
+    // =====================================================================================
+
+    /**
+     * The hands' timing. Their animation is built from these four numbers and so is everything that happens
+     * to the enemy, so changing one moves both.
+     */
+    private static final int HANDS_OUT = 8;                          // they are out of the ground
+    private static final int HANDS_GRASP = 16;                       // they have closed: the damage lands
+    private static final int HANDS_PULL = 24;                        // they start to pull down
+    private static final int HANDS_UNDER = 44;                       // they are gone, and so is what they held
+
+    /** One arm at this size: it is 3 blocks tall at scale 1. */
+    private static ModelFx draggingArm(float scale) {
+        float hidden = -3.1f * scale;                                // this far down it is under the ground
+
+        return ModelFx.of("pale_emperor/underworld_arm").frames(5).smooth()
+                .scale(scale).pivot(8, -16, 8).glow().lifetime(HANDS_UNDER + 2).fade(0, 4)
+                .key(0, pose().frame(3).up(hidden))                                   // half closed, under the ground
+                .key(HANDS_OUT, pose().up(0), ModelFx.Ease.OUT)                       // rises
+                .during(2, HANDS_OUT + 2, pose().frame(0), ModelFx.Ease.OUT)          // opens wide
+                .during(HANDS_GRASP - 5, HANDS_GRASP, pose().frame(4), ModelFx.Ease.IN)       // closes on it
+                .during(HANDS_PULL, HANDS_UNDER, pose().up(hidden), ModelFx.Ease.IN);         // and takes it down
+    }
+
+    /** One enemy pays for the hits it remembers. They are used up by this. */
+    private static void handsTake(Player player, ServerLevel sl, LivingEntity enemy) {
+        int hits = spikeHits(enemy);
+
+        forgetSpikeHits(sl, enemy);
+
+        float damage = HANDS_DAMAGE_PER_HIT * hits;
+
+        // too few hits, or nothing under its feet for hands to come out of: only the damage
+        if (hits < HANDS_NEED_HITS || !enemy.onGround()) {
+            Vec3 middle = enemy.getBoundingBox().getCenter();
+
+            Spells.strike(player, enemy, damage);
+
+            ParticleShapes.burst(sl, PALE_SPARK, middle, 14, 0.05, 0.3);
+            Spells.sound(sl, middle, SoundEvents.WITHER_HURT, 0.7f, 0.8f);
+            return;
+        }
+
+        Vec3 ground = enemy.position();
+        float yaw = player.getYRot();
+
+        // arms about as tall as one and a half of what they take
+        float scale = Math.max(0.8f, Math.min(2.0f, enemy.getBbHeight() * 0.55f));
+        ModelFx arm = draggingArm(scale);
+
+        // they lean in by 16 degrees: this far out, their hands close just outside its body
+        double radius = enemy.getBbWidth() / 2.0 + 0.25 + 0.83 * scale;
+
+        int arms = 5;
+
+        for (int i = 0; i < arms; i++) {
+
+            float around = yaw + i * 360f / arms;
+            double angle = Math.toRadians(around);
+
+            Vec3 at = ground.add(
+                    -Math.sin(angle) * radius,
+                    0,
+                    Math.cos(angle) * radius
+            );
+
+            // around + 180 = its palm looks back at the middle; pitch 16 = it leans that way
+            ParticleShapes.model(sl, i % 2 == 0 ? arm : arm.mirrored(), at, around + 180f, 16f, 0f);
+        }
+
+        seal(sl, ground, yaw, (float) (radius * 2.0 + 1.5), HANDS_UNDER);
+
+        boolean buried = canBeBuried(enemy);
+
+        // held for as long as the hands have it, and while it is under the ground
+        Root.apply(enemy, buried ? HANDS_UNDER + BURIED_TICKS : HANDS_UNDER, RootRestriction.EVERYTHING);
+
+        Spells.sound(sl, ground, SoundEvents.WITHER_AMBIENT, 0.9f, 0.5f);
+
+        Later.run(
+                sl,
+                HANDS_GRASP,
+                () -> handsClose(player, sl, enemy, damage)
+        );
+
+        if (!buried) return;
+
+        Later.run(
+                sl,
+                HANDS_PULL,
+                () -> {
+                    // where it stands when the pulling starts is where it comes back up
+                    if (Spells.casterStillHere(player, sl)) dragUnder(sl, enemy, arm, enemy.position(), HANDS_PULL);
+                }
+        );
+    }
+
+    private static void handsClose(Player player, ServerLevel sl, LivingEntity enemy, float damage) {
+        if (!Spells.casterStillHere(player, sl)) return;
+        if (enemy.level() != sl || !enemy.isAlive()) return;
+
+        Vec3 middle = enemy.getBoundingBox().getCenter();
+
+        Spells.strike(player, enemy, damage);
+
+        ParticleShapes.burst(sl, PALE_SPARK, middle, 24, 0.05, 0.35);
+        Spells.sound(sl, middle, SoundEvents.PLAYER_ATTACK_CRIT, 1.0f, 0.5f);
+    }
+
+    /** Too big for the hands to pull under, or a player nothing can hurt: those only take the damage. */
+    private static boolean canBeBuried(LivingEntity enemy) {
+        if (enemy.getBbHeight() > 4.0f || enemy.getBbWidth() > 3.0f) return false;
+
+        return !(enemy instanceof Player other && other.getAbilities().invulnerable);
+    }
+
+    /**
+     * One tick of being dragged under. The enemy goes down exactly as far as the arms have gone (asked from
+     * their own animation), stays under for BURIED_TICKS, where the ground chokes it like anything that is
+     * buried, and is then put back where it stood. It calls itself again a tick later until that is done.
+     */
+    private static void dragUnder(ServerLevel sl, LivingEntity enemy, ModelFx arm, Vec3 surface, int tick) {
+        if (enemy.level() != sl || !enemy.isAlive() || enemy.isRemoved()) return;
+
+        if (tick >= HANDS_UNDER + BURIED_TICKS) {
+            putAt(enemy, surface);                                   // the ground gives it back
+
+            ParticleShapes.burst(sl, PALE_SPARK, surface.add(0, 0.2, 0), 16, 0.05, 0.3);
+            Spells.sound(sl, surface, SoundEvents.WITHER_HURT, 0.6f, 0.5f);
+            return;
+        }
+
+        double deepest = enemy.getBbHeight() + 0.2;                  // all of it under the ground
+        double pulled = tick >= HANDS_UNDER ? deepest : -arm.poseAt(tick).up();
+
+        putAt(enemy, surface.add(0, -Math.max(0.0, Math.min(deepest, pulled)), 0));
+
+        Later.run(
+                sl,
+                1,
+                () -> dragUnder(sl, enemy, arm, surface, tick + 1)
+        );
+    }
+
+    private static void putAt(LivingEntity entity, Vec3 spot) {
+        entity.teleportTo(spot.x, spot.y, spot.z);
+        entity.setDeltaMovement(Vec3.ZERO);
+        entity.fallDistance = 0;
+    }
+
+    // =====================================================================================
+    // EVENTS
+    // =====================================================================================
+
+    @Mod.EventBusSubscriber(modid = ForgeRealm.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
+    public static class PaleEmperorEvents {
+
+        /** A mob blinded by the spikes only goes after what is right next to it. */
+        @SubscribeEvent
+        public static void onPaleEmperorBlindTarget(LivingChangeTargetEvent event) {
+            LivingEntity mob = event.getEntity();
+            LivingEntity target = event.getNewTarget();
+
+            if (target == null || mob.level().isClientSide()) return;
+
+            if (mob.level().getGameTime() >= mob.getPersistentData().getLong(BLIND_UNTIL)) return;
+
+            if (mob.distanceToSqr(target) > BLIND_MOB_SEES * BLIND_MOB_SEES) event.setCanceled(true);
+        }
     }
 
 }

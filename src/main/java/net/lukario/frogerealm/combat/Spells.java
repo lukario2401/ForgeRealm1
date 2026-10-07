@@ -103,6 +103,29 @@ public final class Spells {
         return result;
     }
 
+    /**
+     * Every enemy the caster can see: within 'range' blocks, no more than 'halfAngle' degrees away from the crosshair
+     * (45 is about what is on the screen) and not behind blocks. Nearest first.
+     */
+    public static List<LivingEntity> enemiesInSight(Player caster, ServerLevel sl, double range, double halfAngle) {
+        Vec3 eye = caster.getEyePosition();
+        Vec3 look = caster.getLookAngle().normalize();
+        double narrowest = Math.cos(Math.toRadians(halfAngle));
+
+        List<LivingEntity> result = new ArrayList<>();
+        for (LivingEntity candidate : enemiesAround(caster, sl, eye, range)) {
+            Vec3 middle = candidate.getBoundingBox().getCenter();
+            Vec3 toIt = middle.subtract(eye);
+            // one that stands right on the caster has no direction: it counts as seen
+            if (toIt.lengthSqr() > 1.0 && toIt.normalize().dot(look) < narrowest) continue;
+            // its body or its head showing is enough
+            if (!clearLine(caster, sl, eye, middle) && !clearLine(caster, sl, eye, candidate.getEyePosition())) continue;
+            result.add(candidate);
+        }
+        result.sort(Comparator.comparingDouble(candidate -> candidate.getBoundingBox().getCenter().distanceToSqr(eye)));
+        return result;
+    }
+
     /** The enemy on the line that is closest to 'from', or null. */
     public static LivingEntity firstEnemyOnLine(Player caster, ServerLevel sl, Vec3 from, Vec3 to, double grow) {
         List<LivingEntity> onLine = enemiesOnLine(caster, sl, from, to, grow);
