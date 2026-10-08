@@ -42,6 +42,7 @@ import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidRes
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.aspects.VoidWalker.voidWalkerAbilityOneUsed;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.beyonder_characteristics.PaleEmperor.paleEmperorRoot;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.beyonder_characteristics.PrinceOfAbolition.princeOfAbolitionSpear;
+import static net.lukario.frogerealm.shadow_slave.soul_abilities.beyonder_characteristics.WormOfTime.wormOfTimeAbility1;
 import static net.lukario.frogerealm.shadow_slave.soul_abilities.expeditioners.Verso.crescendoBladeQuickStrike;
 
 public class SKeyPressAbilityOneUsed {
@@ -98,5 +99,6 @@ public class SKeyPressAbilityOneUsed {
         princeOfAbolitionSpear(player,level,serverLevel,false);
         handOfOrderBuff(player,level,serverLevel,false);
         paleEmperorRoot(player,serverLevel,false);
+        wormOfTimeAbility1(player,level,serverLevel,false);
     }
 }
