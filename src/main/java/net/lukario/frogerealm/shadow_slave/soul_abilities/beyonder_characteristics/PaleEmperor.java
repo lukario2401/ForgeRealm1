@@ -4,6 +4,7 @@ import net.lukario.frogerealm.ForgeRealm;
 import net.lukario.frogerealm.combat.AnimatedShot;
 import net.lukario.frogerealm.combat.HudTimer;
 import net.lukario.frogerealm.combat.Later;
+import net.lukario.frogerealm.combat.MeleeCombo;
 import net.lukario.frogerealm.combat.SpellFx;
 import net.lukario.frogerealm.combat.Spells;
 import net.lukario.frogerealm.combat.Zone;
@@ -24,7 +25,9 @@ import net.lukario.frogerealm.status.Marks;
 import net.lukario.frogerealm.status.Vulnerable;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
@@ -1144,6 +1147,231 @@ public class PaleEmperor {
         Spells.sound(sl, feet, SoundEvents.WITHER_SPAWN, 0.7f, 1.4f);
         Spells.sound(sl, feet, SoundEvents.ZOMBIE_VILLAGER_CURE, 0.8f, 1.2f);
         Spells.sound(sl, feet, SoundEvents.ENDER_DRAGON_FLAP, 1.0f, 0.7f);
+    }
+
+    // =====================================================================================
+    // MELEE COMBO "TOLL OF THE PALE EMPEROR" (hitting mobs as the Pale Emperor)
+    // =====================================================================================
+    //
+    // Registered in combat/MeleeCombos. Only how a hit looks and sounds: the damage is the weapon's own.
+    //   hit 1  Pale claw      three claw marks rake across it
+    //   hit 2  Gilded arc     a wide pale-and-gold crescent sweeps in front, shedding sparks
+    //   hit 3  Grave hand     an arm of the dead breaks out beside it, and a rising cut of bone-light goes up through it
+    //   hit 4  one of:
+    //          Verdict        a tall golden cleave comes down on it, a seal flashes under it
+    //          Wingbeat       a ring of light spins round the caster and feathers scatter
+    // Then it starts over. Two seconds without a hit also starts it over.
+
+    private static final int TOLL_PALE = 0xF09CFFD2;      // pale green body
+    private static final int TOLL_TAIL = 0x809CFFD2;      // dimmer tail
+    private static final int TOLL_GOLD = 0xF0F5C211;      // gold
+    private static final int TOLL_WHITE = 0xFFF4FFE8;     // bright front / core
+    private static final int TOLL_LEAD = 0xC09CFFD2;      // dotted lead-in lines
+
+    // hit 1: three claw marks
+    private static final SlashFx TOLL_CLAW = SlashFx.line("slash/smooth")
+            .color(TOLL_PALE).core(TOLL_WHITE)
+            .width(0.12f).taper(SlashFx.Taper.CRESCENT)
+            .lifetime(16).sweep(2);
+
+    // hit 2: a wide crescent in front
+    private static final SlashFx TOLL_ARC_LEAD = SlashFx.arc("slash/dashed_fine")
+            .color(TOLL_LEAD).radius(2.7f).arc(220f).width(0.11f).taper(SlashFx.Taper.UNIFORM)
+            .lifetime(6).sweep(3);
+    private static final SlashFx TOLL_ARC = SlashFx.arc("slash/edge")
+            .color(TOLL_PALE).tailColor(TOLL_GOLD).headColor(TOLL_WHITE)
+            .radius(2.55f).arc(200f).width(0.8f).taper(SlashFx.Taper.CRESCENT)
+            .layers(2).spread(0.18f)
+            .lifetime(10).sweep(3).delay(2);
+
+    // hit 3: a cut of bone-light rising through it
+    private static final SlashFx TOLL_RISE = SlashFx.line("slash/shatter")
+            .color(TOLL_PALE).tailColor(TOLL_TAIL).headColor(TOLL_WHITE)
+            .width(0.7f).taper(SlashFx.Taper.COMET)
+            .layers(2).spread(0.2f)
+            .lifetime(14).sweep(3).delay(3);
+    private static final SlashFx TOLL_RISE_CORE = SlashFx.line("slash/smooth")
+            .color(0xE0F4FFE8).core(0xFFFFFFFF)
+            .width(0.12f).taper(SlashFx.Taper.UNIFORM)
+            .lifetime(12).sweep(3).delay(3);
+
+    // hit 4a: a tall golden cleave coming down in front (the same stance as the Prince's cleave)
+    private static final SlashFx TOLL_CLEAVE = SlashFx.arc("slash/edge")
+            .color(TOLL_GOLD).tailColor(TOLL_TAIL).headColor(TOLL_WHITE)
+            .radius(2.45f).arc(130f).width(0.85f).taper(SlashFx.Taper.CRESCENT)
+            .layers(2).spread(0.18f)
+            .lifetime(10).sweep(2).delay(2)
+            .rotation(0f, -30f, -72f);
+    private static final SlashFx TOLL_CLEAVE_LEAD = SlashFx.arc("slash/smooth")
+            .color(0xE0FFF0B0).core(0xFFFFFFFF)
+            .radius(2.55f).arc(135f).width(0.12f).taper(SlashFx.Taper.CRESCENT)
+            .lifetime(6).sweep(2)
+            .rotation(0f, -30f, -72f);
+
+    // hit 4b: a spinning ring round the caster
+    private static final SlashFx TOLL_RING = SlashFx.arc("slash/edge")
+            .color(TOLL_PALE).tailColor(TOLL_TAIL).headColor(TOLL_WHITE)
+            .radius(2.5f).arc(300f).width(1.0f).taper(SlashFx.Taper.COMET)
+            .layers(2).spread(0.22f)
+            .lifetime(11).sweep(3).delay(2).spin(14f);
+    private static final SlashFx TOLL_RING_LEAD = SlashFx.arc("slash/dashed_fine")
+            .color(TOLL_LEAD).radius(2.7f).arc(360f).width(0.11f).taper(SlashFx.Taper.UNIFORM)
+            .lifetime(6).sweep(3);
+
+    // short rays of light round whatever is hit
+    private static final SlashFx TOLL_HIT_RAY = SlashFx.line("slash/smooth")
+            .color(TOLL_PALE).tailColor(TOLL_GOLD).headColor(TOLL_WHITE)
+            .width(0.09f).taper(SlashFx.Taper.CRESCENT)
+            .lifetime(7).sweep(2);
+
+    public static final MeleeCombo MELEE_COMBO = MeleeCombo.forAspect("Pale Emperor")
+            .step(PaleEmperor::tollClaw)
+            .step(PaleEmperor::tollArc)
+            .step(PaleEmperor::tollGraveHand)
+            .randomStep(PaleEmperor::tollVerdict, PaleEmperor::tollWingbeat)
+            .resetAfter(40)
+            .minCharge(0.8f);
+
+    // hit 1: three parallel claw marks rake across it, at a slant that changes every time
+    private static void tollClaw(ServerPlayer player, LivingEntity target, ServerLevel sl) {
+        RandomSource random = player.getRandom();
+        Vec3 hit = target.getBoundingBox().getCenter();
+        Vec3 look = Spells.flatLook(player);
+        Vec3 side = look.cross(Spells.UP).normalize();
+
+        // the direction of the marks (rising one way or the other), and the way they lie next to each other
+        double angle = Math.toRadians((random.nextBoolean() ? 1 : -1) * (35 + random.nextFloat() * 20));
+        Vec3 along = side.scale(Math.cos(angle)).add(Spells.UP.scale(Math.sin(angle))).normalize();
+        Vec3 apart = side.scale(-Math.sin(angle)).add(Spells.UP.scale(Math.cos(angle))).normalize();
+        double half = target.getBbHeight() * 0.45 + 0.6;
+
+        for (int i = -1; i <= 1; i++) {
+            Vec3 middle = hit.add(apart.scale(i * 0.28)).subtract(look.scale(0.2));
+            double length = half * (i == 0 ? 1.0 : 0.8);         // the middle claw is the longest
+            ParticleShapes.slashBetween(sl, TOLL_CLAW.delay(i + 1),
+                    middle.subtract(along.scale(length)), middle.add(along.scale(length)));
+        }
+
+        tollHitRays(sl, hit, random, 2);
+        ParticleShapes.burst(sl, PALE_SPARK, hit, 8, 0.04, 0.2);
+
+        Spells.sound(sl, player.position(), SoundEvents.PLAYER_ATTACK_SWEEP, 0.9f, 1.4f);
+        Later.run(sl, 2, () -> Spells.sound(sl, hit, SoundEvents.PLAYER_ATTACK_CRIT, 0.9f, 1.2f));
+    }
+
+    // hit 2: a wide pale crescent with a golden tail sweeps in front, and sparks fly off it
+    private static void tollArc(ServerPlayer player, LivingEntity target, ServerLevel sl) {
+        RandomSource random = player.getRandom();
+        Vec3 center = player.position().add(0, 1.0, 0);
+        float yaw = player.getYRot();
+        SlashFx arc = TOLL_ARC.varied(random, 20f, 6f, 14f);       // left or right, a little tilted
+
+        ParticleShapes.slash(sl, TOLL_ARC_LEAD.alignedWith(arc), center, yaw, 0f, 0f);
+        ParticleShapes.slash(sl, arc, center, yaw, 0f, 0f);
+
+        Later.run(sl, 6, () -> {
+            ParticleShapes.alongSlash(sl, PALE_SPARK, arc, center, yaw, 0f, 0f, 5f, 12, 0.06, 0.03);
+            ParticleShapes.alongSlash(sl, GOLD_SPARK, arc, center, yaw, 0f, 0f, 5f, 8, 0.06, 0.03);
+        });
+
+        tollHitRays(sl, target.getBoundingBox().getCenter(), random, 3);
+
+        Spells.sound(sl, player.position(), SoundEvents.PLAYER_ATTACK_SWEEP, 1.0f, 0.9f);
+        Later.run(sl, 3, () -> Spells.sound(sl, center, SoundEvents.AMETHYST_BLOCK_CHIME, 1.0f, 1.3f));
+    }
+
+    // hit 3: an arm of the dead breaks out beside it and clutches at it, while a cut of light rises through it
+    private static void tollGraveHand(ServerPlayer player, LivingEntity target, ServerLevel sl) {
+        RandomSource random = player.getRandom();
+        Vec3 feet = target.position();
+        Vec3 hit = target.getBoundingBox().getCenter();
+
+        // the arm, on the ground beside it, palm toward it (none if it is in the air: no ground to come out of)
+        if (target.onGround()) {
+            float side = random.nextFloat() * 360f;
+
+            PaleEmperorFx.underworldArm(
+                    sl,
+                    Spells.spotAround(feet, side, target.getBbWidth() * 0.5 + 0.9),
+                    side + 180f,
+                    ""
+            );
+
+            SpellFx.closingRing(sl, feet, target.getBbWidth() * 0.5 + 1.2, 0xC09CFFD2, 6, 0);
+            ParticleShapes.burst(sl, LAND_MIST, feet.add(0, 0.2, 0), 6, 0.02, 0.08);
+        }
+
+        // the rising cut: from under its feet to above its head, leaning a little
+        Vec3 lean = Spells.flatLook(player).cross(Spells.UP).normalize().scale((random.nextFloat() - 0.5f) * 1.2f);
+        Vec3 from = feet.add(lean.scale(-1)).add(0, -0.3, 0);
+        Vec3 to = feet.add(lean).add(0, target.getBbHeight() + 0.9, 0);
+
+        ParticleShapes.slashBetween(sl, TOLL_RISE, from, to);
+        ParticleShapes.slashBetween(sl, TOLL_RISE_CORE, from, to);
+
+        tollHitRays(sl, hit, random, 4);
+
+        Spells.sound(sl, feet, SoundEvents.CHAIN_PLACE, 1.0f, 0.6f);
+        Later.run(sl, 3, () -> Spells.sound(sl, hit, SoundEvents.PLAYER_ATTACK_CRIT, 1.0f, 0.8f));
+    }
+
+    // hit 4a: a tall golden cleave comes down through it, and the seal flashes under it
+    private static void tollVerdict(ServerPlayer player, LivingEntity target, ServerLevel sl) {
+        RandomSource random = player.getRandom();
+        float yaw = player.getYRot();
+        Vec3 feet = target.position();
+        Vec3 hit = target.getBoundingBox().getCenter();
+
+        // the arc's center sits between the caster and the target, so the blade comes down right through it
+        Vec3 center = feet.subtract(Spells.flatLook(player).scale(2.0)).add(0, 1.1, 0);
+        SlashFx cleave = TOLL_CLEAVE.varied(random, 15f, 8f, 12f);
+
+        ParticleShapes.slash(sl, TOLL_CLEAVE_LEAD.alignedWith(cleave), center, yaw, 0f, 0f);
+        ParticleShapes.slash(sl, cleave, center, yaw, 0f, 0f);
+
+        Later.run(sl, 4, () -> {
+            seal(sl, feet, yaw, 2.6f, 20);
+            SpellFx.shockRing(sl, feet, 2.2, 0xE0F5C211, 8, 0);
+            ParticleShapes.alongSlash(sl, GOLD_SPARK, cleave, center, yaw, 0f, 0f, 5f, 14, 0.05, 0.04);
+            Spells.sound(sl, feet, SoundEvents.ANVIL_LAND, 0.4f, 0.7f);
+        });
+
+        tollHitRays(sl, hit, random, 3);
+
+        Spells.sound(sl, player.position(), SoundEvents.PLAYER_ATTACK_SWEEP, 1.0f, 0.7f);
+        Later.run(sl, 2, () -> Spells.sound(sl, hit, SoundEvents.PLAYER_ATTACK_CRIT, 1.0f, 0.7f));
+    }
+
+    // hit 4b: a ring of light spins round the caster, a beat of unseen wings scatters feathers
+    private static void tollWingbeat(ServerPlayer player, LivingEntity target, ServerLevel sl) {
+        RandomSource random = player.getRandom();
+        Vec3 center = player.position().add(0, 0.95, 0);
+        float yaw = player.getYRot();
+        SlashFx ring = TOLL_RING.varied(random, 180f, 5f, 8f);      // starts anywhere, spins either way
+
+        ParticleShapes.slash(sl, TOLL_RING_LEAD.alignedWith(ring), center, yaw, 0f, 0f);
+        ParticleShapes.slash(sl, ring, center, yaw, 0f, 0f);
+
+        Later.run(sl, 8, () -> {
+            ParticleShapes.alongSlash(sl, PALE_SPARK, ring, center, yaw, 0f, 0f, 7f, 14, 0.07, 0.03);
+            SpellFx.shockRing(sl, player.position(), 3.0, 0xC09CFFD2, 8, 0);
+        });
+
+        PaleEmperorFx.featherFall(sl, player.position(), 2.5, 6);
+        tollHitRays(sl, target.getBoundingBox().getCenter(), random, 4);
+
+        Spells.sound(sl, player.position(), SoundEvents.PLAYER_ATTACK_SWEEP, 1.0f, 0.8f);
+        Spells.sound(sl, player.position(), SoundEvents.ENDER_DRAGON_FLAP, 0.6f, 1.2f);
+    }
+
+    /** Short rays of pale light with golden tails shooting out round a hit. */
+    private static void tollHitRays(ServerLevel sl, Vec3 center, RandomSource random, int delay) {
+        for (int i = 0; i < 6; i++) {
+            Vec3 dir = ParticleShapes.randomDirectionInCone(random, Spells.UP, 360);
+            double inner = 0.5 + random.nextDouble() * 0.2;
+            double outer = inner + 0.5 + random.nextDouble() * 0.3;
+            ParticleShapes.slashBetween(sl, TOLL_HIT_RAY.delay(delay), center.add(dir.scale(inner)), center.add(dir.scale(outer)));
+        }
     }
 
     // =====================================================================================
