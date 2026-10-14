@@ -394,6 +394,16 @@ These are in `models/model_fx/` and any class can use them. Sizes are at `.scale
 | `pale_emperor/wraith` | A hooded spirit of the dead, 2.7 blocks tall: a skull deep in the hood with lights for eyes, a robe worn to rags, clawed arms of bare bone. 3 stages: 0 = arms hanging, 2 = reaching out | under it `(8, -16, 8)` | `.frames(3).smooth()`. Face = front |
 | `pale_emperor/death_sigil` | A flat seal for the ground, 3 blocks wide: a ring of runes, a feathered serpent biting its tail, eight feathers and an hourglass | default (its middle) | `.glow().unshaded().seeThrough()` |
 | `pale_emperor/death_sigil_ring`, `death_sigil_core` | The outer and the inner half of that seal | default | Play both and give them opposite `.spin(...)` |
+| `hanged_man/pendulum` | A spirit pendulum: a crimson crystal on a silver chain, 1.4 blocks long | the top of the chain `(8, 24, 8)` | Swing it with `pose().roll(...)` |
+| `hanged_man/whisper_mouths` | Four mouths in a ring 0.9 blocks across, facing out, to circle a head. 2 stages: 0 = shut, 1 = open | the middle of the ring `(8, 8, 8)` | `.frames(2).smooth()`; swing `frame` between 0 and 1 to make them whisper |
+| `hanged_man/shadow_tendrils` | Four shadow tendrils rising from a pool, 1.4 blocks tall, round a 1-block middle. 5 stages: 0 = leaning out, 4 = curled shut over the middle | the middle of the pool `(8, -16, 8)` | `.frames(5).smooth()`. Start it under the ground with `pose().up(...)` |
+| `hanged_man/flesh_lump` | A veined lump of flesh with two bone shards, 0.6 blocks wide. 2 stages: 0 = resting, 1 = swollen | its middle `(8, 8, 8)` | `.frames(2).smooth()` |
+| `hanged_man/flesh_cloak` | See-through veined shells round a standing player, 2 blocks tall | default (between the feet) | `.seeThrough()`. Worn with `modelOnTurning` |
+| `hanged_man/black_armor` | Black plates with crimson trim round a player's body and limbs. 2 stages: 0 = flung apart, 1 = locked on | default (between the feet) | `.frames(2).smooth()`. Worn with `modelOnTurning` |
+| `hanged_man/black_armor_helm` | A black knight's helm with a glowing visor slit and a crest | the top of the head inside it `(8, 0, 8)` | `modelOnHead(..., 0, ...)` puts it on |
+| `hanged_man/shadow_head` | A head of shadow, 0.45 blocks wide, with slit red eyes and a jagged grin, wisps off its back | the bottom of its neck `(8, 0, 8)` | Face = front |
+
+The Hanged Man models are made by `tools/model_gen/hanged_man/models.py` (`python3 models.py src/main/resources/assets/forgerealmmod`); `render.py` there draws any model to a PNG without starting the game. Every Hanged Man look is ready to call in `HangedManFx` (`/hangedfx all` shows them all).
 
 The fire and light ones (`orb`, `thread` and `projection` too) want `.glow().unshaded().seeThrough()`; the solid ones `.glow()`.
 
